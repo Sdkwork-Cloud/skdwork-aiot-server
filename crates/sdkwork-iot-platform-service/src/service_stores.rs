@@ -7,6 +7,7 @@ use sdkwork_aiot_storage_sqlx::{
     open_aiot_device_database, resolve_device_database_config_from_env,
     DEFAULT_SHARED_SQLITE_MEMORY_URI,
 };
+use sdkwork_database_config::DatabaseEngine;
 
 use crate::{
     AiotCatalogRepositoryHandle, AiotCredentialRepository, AiotFirmwareRepositoryHandle,
@@ -102,10 +103,14 @@ pub fn open_admin_service_stores(
 fn log_device_database_target(device_db_path: Option<&str>, service_label: &str) {
     match resolve_device_database_config_from_env(device_db_path) {
         Ok(config) if config.url.contains("mode=memory") => {
-            println!("{service_label} device-db=sqlite uri={DEFAULT_SHARED_SQLITE_MEMORY_URI}");
+            println!("{service_label} device-db=sqlite mode=memory uri={DEFAULT_SHARED_SQLITE_MEMORY_URI}");
         }
         Ok(config) => {
-            println!("{service_label} device-db=sqlite url={}", config.url);
+            let engine = match config.engine {
+                DatabaseEngine::Sqlite => "sqlite",
+                DatabaseEngine::Postgres => "postgres",
+            };
+            println!("{service_label} device-db={engine} configured");
         }
         Err(error) => {
             eprintln!("{service_label} device-db=error={error}");

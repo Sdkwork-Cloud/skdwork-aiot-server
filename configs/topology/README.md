@@ -15,4 +15,4 @@ Platform standard: `../../sdkwork-specs/APP_RUNTIME_TOPOLOGY_ADOPTION.md`
 
 Loader: `scripts/lib/aiot-topology.mjs` → `@sdkwork/app-topology`.
 
-Edge ingress (`edge.device-ingress`) is never proxied by `sdkwork-api-gateway`.
+Edge ingress (`edge.device-ingress`) is never proxied by `sdkwork-api-cloud-gateway`.

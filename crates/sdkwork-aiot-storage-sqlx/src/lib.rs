@@ -2,18 +2,26 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
+mod blocking_device_pool;
 mod credential;
 mod credential_hash;
 mod database_bootstrap;
 mod device_database;
 mod device_repository_sqlite;
+mod dialect_sql;
+mod firmware_ota_catalog;
 mod framework_bootstrap;
 mod outbox;
 mod outbox_worker;
 mod persisted_entity;
+mod postgres_sync;
 mod schema;
 mod sqlite_sync;
 
+#[cfg(test)]
+mod test_env;
+
+pub use blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine, DeviceDbTransaction};
 pub use credential::{
     SqliteCredentialCreateCommand, SqliteCredentialRepositoryError, SqliteDeviceCredentialRecord,
     SqliteSqlxCredentialRepository,
@@ -22,12 +30,16 @@ pub use database_bootstrap::{
     aiot_device_blocking_pool, aiot_device_blocking_pool_from_env, aiot_device_pool_from_env,
     aiot_device_sqlite_memory_config, aiot_device_sqlite_memory_pool,
     resolve_device_database_config, resolve_device_database_config_from_env,
-    AIOT_DEVICE_DATABASE_SERVICE_NAME, POSTGRES_DEVICE_PERSISTENCE_DEFERRED,
+    AIOT_DEVICE_DATABASE_SERVICE_NAME,
 };
 pub use device_database::{
     open_aiot_device_database, open_aiot_device_database_from_env, AiotDeviceDatabase,
 };
 pub use device_repository_sqlite::SqliteSqlxDeviceRepository;
+pub use firmware_ota_catalog::{
+    resolve_firmware_download_url, FirmwareOtaCatalog, FirmwareOtaHint, ENTITY_FIRMWARE_ARTIFACT,
+    ENTITY_FIRMWARE_DEPLOYMENT,
+};
 pub use framework_bootstrap::{
     bootstrap_aiot_database, bootstrap_aiot_database_from_env, connect_aiot_database_pool_from_env,
     connect_and_bootstrap_aiot_database_from_env, AiotDatabaseHost, AiotDatabasePool,
@@ -35,8 +47,8 @@ pub use framework_bootstrap::{
 pub use outbox::SqliteOutboxEventRepository;
 pub use outbox_worker::{
     configured_device_db_path_from_env, device_storage_ready_from_env,
-    open_outbox_repository_for_path, open_outbox_repository_from_env,
-    outbox_dispatcher_enabled_from_env, outbox_lag_count_from_env,
+    open_outbox_repository_for_path, open_outbox_repository_for_pool,
+    open_outbox_repository_from_env, outbox_dispatcher_enabled_from_env, outbox_lag_count_from_env,
     outbox_lag_ready_threshold_from_env, outbox_readiness_probe, outbox_ready_from_env,
     sqlite_path_ready, start_outbox_dispatcher_worker, DEFAULT_OUTBOX_DISPATCH_INTERVAL_MS,
     DEFAULT_OUTBOX_LAG_READY_THRESHOLD, ENV_DEVICE_DB_PATH, ENV_OUTBOX_DISPATCHER_ENABLED,
@@ -45,6 +57,7 @@ pub use outbox_worker::{
 pub use persisted_entity::{
     SqlitePersistedEntityError, SqlitePersistedEntityRecord, SqlitePersistedEntityRepository,
 };
+pub use postgres_sync::{BlockingPostgresPool, StoragePostgresError};
 use schema::ensure_device_schema;
 use sdkwork_aiot_storage::{
     table_contract, AiotCommandCreateCommand, AiotCommandRecord, AiotCommandRepository,
@@ -58,7 +71,7 @@ use sdkwork_aiot_storage::{
 };
 use sdkwork_database_sqlx::PoolError;
 use sdkwork_utils_rust::uuid;
-use sqlite_sync::{execute_sql_plan, sqlite_connect_url};
+use sqlite_sync::sqlite_connect_url;
 pub use sqlite_sync::{BlockingSqlitePool, StorageSqliteError};
 
 pub fn schema_version() -> &'static str {
@@ -1161,26 +1174,26 @@ impl SqlStatementExecutor for InMemorySqlStatementExecutor {
 
 #[derive(Debug, Clone)]
 pub struct SqlxPoolSqlStatementExecutor {
-    db: BlockingSqlitePool,
+    db: BlockingDevicePool,
 }
 
 impl SqlxPoolSqlStatementExecutor {
-    pub fn new(db: BlockingSqlitePool) -> Self {
+    pub fn new(db: BlockingDevicePool) -> Self {
         Self { db }
     }
 
     pub fn new_in_memory() -> Result<Self, sqlx::Error> {
         let url = sqlite_connect_url("file:sdkwork-aiot-sql-executor?mode=memory&cache=shared");
         let db = BlockingSqlitePool::connect(&url)?;
-        ensure_device_schema(&db)?;
-        Ok(Self::new(db))
+        ensure_device_schema(&BlockingDevicePool::Sqlite(db.clone()))?;
+        Ok(Self::new(BlockingDevicePool::Sqlite(db)))
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, sqlx::Error> {
         let url = sqlite_connect_url(path.as_ref().to_string_lossy().as_ref());
         let db = BlockingSqlitePool::connect(&url)?;
-        ensure_device_schema(&db)?;
-        Ok(Self::new(db))
+        ensure_device_schema(&BlockingDevicePool::Sqlite(db.clone()))?;
+        Ok(Self::new(BlockingDevicePool::Sqlite(db)))
     }
 
     pub fn protocol_ingest_unit_of_work(&self) -> SqlxProtocolIngestUnitOfWork<Self> {
@@ -1214,9 +1227,9 @@ impl From<StorageSqliteError> for SqlExecutorTransactionError {
 impl SqlStatementExecutor for SqlxPoolSqlStatementExecutor {
     fn execute_idempotency_guard(&self, _key: &str, statement: SqlStatementPlan) -> bool {
         self.db
-            .with_transaction(|tx| {
+            .with_device_transaction(|mut tx, _dialect| {
                 Box::pin(async move {
-                    let changed = execute_sql_plan(&mut **tx, &statement).await?;
+                    let changed = tx.execute_plan(&statement).await?;
                     if changed == 0 {
                         return Err(SqlExecutorTransactionError::Duplicate);
                     }
@@ -1231,16 +1244,16 @@ impl SqlStatementExecutor for SqlxPoolSqlStatementExecutor {
     }
 
     fn execute_transaction(&self, transaction: SqlTransactionPlan) -> SqlTransactionOutcome {
-        match self.db.with_transaction(|tx| {
+        match self.db.with_device_transaction(|mut tx, _dialect| {
             let guard = transaction.guard.clone();
             let write_batch = transaction.write_batch.clone();
             Box::pin(async move {
-                let guard_changed = execute_sql_plan(&mut **tx, &guard).await?;
+                let guard_changed = tx.execute_plan(&guard).await?;
                 if guard_changed == 0 {
                     return Err(SqlExecutorTransactionError::Duplicate);
                 }
                 for statement in write_batch.statements {
-                    execute_sql_plan(&mut **tx, &statement).await?;
+                    tx.execute_plan(&statement).await?;
                 }
                 Ok(())
             })
@@ -2593,7 +2606,7 @@ mod protocol_ingest_sqlite_tests {
 
     use crate::schema::ensure_device_schema;
     use crate::sqlite_sync::{execute_sql_plan, sqlite_connect_url, BlockingSqlitePool};
-    use crate::{SqlDialect, SqlProtocolIngestPlanner};
+    use crate::{BlockingDevicePool, SqlDialect, SqlProtocolIngestPlanner};
 
     #[test]
     fn protocol_ingest_statements_execute_on_sqlite() {
@@ -2617,9 +2630,12 @@ mod protocol_ingest_sqlite_tests {
             .expect("plan");
         let url = sqlite_connect_url("file:protocol-ingest-sqlite-test?mode=memory&cache=shared");
         let db = BlockingSqlitePool::connect(&url).expect("connect");
-        ensure_device_schema(&db).expect("schema");
+        let pool = BlockingDevicePool::Sqlite(db);
+        ensure_device_schema(&pool).expect("schema");
 
-        let guard_result = db.run(async { execute_sql_plan(db.pool(), &plan.guard).await });
+        let guard_result = pool.run(async {
+            execute_sql_plan(pool.sqlite_pool().expect("sqlite pool"), &plan.guard).await
+        });
         assert!(
             guard_result.is_ok(),
             "guard failed: {:?}, sql={}",
@@ -2628,7 +2644,9 @@ mod protocol_ingest_sqlite_tests {
         );
 
         for statement in plan.write_batch.statements {
-            let result = db.run(async { execute_sql_plan(db.pool(), &statement).await });
+            let result = pool.run(async {
+                execute_sql_plan(pool.sqlite_pool().expect("sqlite pool"), &statement).await
+            });
             assert!(
                 result.is_ok(),
                 "statement {} failed: {:?}, sql={}",

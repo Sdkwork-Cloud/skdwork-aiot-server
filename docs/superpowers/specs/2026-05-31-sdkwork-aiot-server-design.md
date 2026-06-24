@@ -113,7 +113,7 @@ crates/sdkwork-aiot-observability
 crates/sdkwork-aiot-adapter-xiaozhi
 crates/sdkwork-aiot-adapter-mqtt
 crates/sdkwork-aiot-adapter-industrial
-services/sdkwork-aiot-gateway
+services/sdkwork-aiot-cloud-gateway
 services/sdkwork-aiot-admin-api
 services/sdkwork-aiot-app-api
 generated/
@@ -136,7 +136,7 @@ Responsibilities:
 | `sdkwork-aiot-adapter-xiaozhi` | Xiaozhi WebSocket, MQTT+UDP, OTA, activation compatibility. |
 | `sdkwork-aiot-adapter-mqtt` | MQTT adapter/bridge abstraction. |
 | `sdkwork-aiot-adapter-industrial` | Future Modbus/OPC UA bridge abstractions. |
-| `sdkwork-aiot-gateway` | Binary assembly for TCP/UDP/WebSocket/MQTT listeners. |
+| `sdkwork-aiot-cloud-gateway` | Binary assembly for TCP/UDP/WebSocket/MQTT listeners. |
 | `sdkwork-aiot-admin-api` | Backend API binary assembly. |
 | `sdkwork-aiot-app-api` | App API binary assembly. |
 
@@ -163,7 +163,7 @@ Supported integration modes:
 | Mode | Description | Requirement |
 | --- | --- | --- |
 | Embedded library | Another Rust application embeds AIoT runtime crates and mounts selected routes/listeners. | No hardcoded process globals, ports, URLs, storage, IAM, or protocol adapters. |
-| Standalone server | SDKWork starts `services/sdkwork-aiot-gateway`, `services/sdkwork-aiot-admin-api`, and `services/sdkwork-aiot-app-api` as independent services. | Binaries must assemble the same runtime components used by embedded mode. |
+| Standalone server | SDKWork starts `services/sdkwork-aiot-cloud-gateway`, `services/sdkwork-aiot-admin-api`, and `services/sdkwork-aiot-app-api` as independent services. | Binaries must assemble the same runtime components used by embedded mode. |
 | Sidecar gateway | AIoT gateway runs next to another app and exposes device protocols while management APIs stay in the host app. | Device protocol routes, command routing, and storage must remain configurable. |
 | Hybrid monolith | Host app embeds admin/app APIs but starts gateway as a separate socket-heavy process. | Contracts, storage, and event model must stay identical across process boundaries. |
 

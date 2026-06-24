@@ -1,21 +1,62 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createReadStream } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
+import { generateReleaseSboms } from './sbom-generate.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const releaseDir = path.join(root, 'artifacts/release');
 const manifestPath = path.join(releaseDir, 'release-packages.manifest.json');
 
-const binaries = [
-  { id: 'linux-x64-standalone-server-tar-gz', crate: 'sdkwork-aiot-gateway', unix: 'sdkwork-aiot-gateway' },
-  { id: 'linux-x64-standalone-server-tar-gz', crate: 'sdkwork-aiot-app-api', unix: 'sdkwork-aiot-app-api' },
-  { id: 'linux-x64-standalone-server-tar-gz', crate: 'sdkwork-aiot-admin-api', unix: 'sdkwork-aiot-admin-api' },
+export const SERVER_BINARIES = [
+  {
+    crate: 'sdkwork-aiot-cloud-gateway',
+    unix: 'sdkwork-aiot-cloud-gateway',
+    windows: 'sdkwork-aiot-cloud-gateway.exe',
+  },
+  {
+    crate: 'sdkwork-aiot-app-api',
+    unix: 'sdkwork-aiot-app-api',
+    windows: 'sdkwork-aiot-app-api.exe',
+  },
+  {
+    crate: 'sdkwork-aiot-admin-api',
+    unix: 'sdkwork-aiot-admin-api',
+    windows: 'sdkwork-aiot-admin-api.exe',
+  },
 ];
+
+export const RELEASE_PACKAGE_TARGETS = [
+  {
+    id: 'linux-x64-standalone-server-tar-gz',
+    archiveRelativePath: 'linux/x64/server.tar.gz',
+    bundleDir: 'bundle-linux',
+    bundleFileName: (binary) => binary.unix,
+    createArchive: createTarGz,
+  },
+  {
+    id: 'windows-x64-standalone-server-zip',
+    archiveRelativePath: 'windows/x64/server.zip',
+    bundleDir: 'bundle-windows',
+    bundleFileName: (binary) => binary.windows,
+    createArchive: createZipArchive,
+  },
+];
+
+export function resolveReleaseBinaryPath(binary, platform = process.platform) {
+  const fileName = platform === 'win32' ? binary.windows : binary.unix;
+  return path.join(root, 'target/release', fileName);
+}
 
 async function sha256File(filePath) {
   const hash = createHash('sha256');
@@ -24,17 +65,6 @@ async function sha256File(filePath) {
 }
 
 async function createTarGz(sourceDir, outputPath) {
-  if (process.platform === 'win32') {
-    const result = spawnSync(
-      'tar',
-      ['-czf', outputPath, '-C', sourceDir, '.'],
-      { cwd: root, stdio: 'inherit' },
-    );
-    if (result.status !== 0) {
-      throw new Error(`tar failed with exit code ${result.status}`);
-    }
-    return;
-  }
   const result = spawnSync('tar', ['-czf', outputPath, '-C', sourceDir, '.'], {
     cwd: root,
     stdio: 'inherit',
@@ -44,58 +74,117 @@ async function createTarGz(sourceDir, outputPath) {
   }
 }
 
-mkdirSync(releaseDir, { recursive: true });
-const bundleDir = path.join(releaseDir, 'bundle');
-mkdirSync(bundleDir, { recursive: true });
-
-for (const binary of binaries) {
-  const source = path.join(root, 'target/release', binary.unix);
-  if (!existsSync(source)) {
-    console.error(
-      `[release:package] missing release binary ${source}; run pnpm release:build first`,
+async function createZipArchive(sourceDir, outputPath) {
+  if (process.platform === 'win32') {
+    const sourceGlob = path.join(sourceDir, '*');
+    const result = spawnSync(
+      'powershell',
+      [
+        '-NoProfile',
+        '-Command',
+        `Compress-Archive -Path '${sourceGlob}' -DestinationPath '${outputPath}' -Force`,
+      ],
+      { cwd: root, stdio: 'inherit' },
     );
-    process.exit(1);
+    if (result.status !== 0) {
+      throw new Error(`Compress-Archive failed with exit code ${result.status}`);
+    }
+    return;
   }
-  const target = path.join(bundleDir, binary.unix);
-  writeFileSync(target, readFileSync(source));
+
+  const result = spawnSync('zip', ['-qr', outputPath, '.'], {
+    cwd: sourceDir,
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) {
+    throw new Error(`zip failed with exit code ${result.status}`);
+  }
 }
 
-const linuxTar = path.join(releaseDir, 'linux-x64-server.tar.gz');
-await createTarGz(bundleDir, linuxTar);
-const checksum = await sha256File(linuxTar);
+function stageBundle(bundleDir, bundleFileName) {
+  mkdirSync(bundleDir, { recursive: true });
+  for (const binary of SERVER_BINARIES) {
+    const source = resolveReleaseBinaryPath(binary);
+    if (!existsSync(source)) {
+      console.error(
+        `[release:package] missing release binary ${source}; run pnpm release:build first`,
+      );
+      process.exit(1);
+    }
+    const target = path.join(bundleDir, bundleFileName(binary));
+    writeFileSync(target, readFileSync(source));
+  }
+}
 
-const manifest = {
-  schemaVersion: 1,
-  kind: 'sdkwork.release.packages',
-  generatedAt: new Date().toISOString(),
-  packages: [
-    {
-      id: 'linux-x64-standalone-server-tar-gz',
-      path: path.relative(root, linuxTar).replaceAll('\\', '/'),
+async function packageReleaseTargets() {
+  mkdirSync(releaseDir, { recursive: true });
+  const packages = [];
+
+  for (const target of RELEASE_PACKAGE_TARGETS) {
+    const bundleDir = path.join(releaseDir, target.bundleDir);
+    rmSync(bundleDir, { recursive: true, force: true });
+    stageBundle(bundleDir, target.bundleFileName);
+
+    const archivePath = path.join(releaseDir, target.archiveRelativePath);
+    mkdirSync(path.dirname(archivePath), { recursive: true });
+    rmSync(archivePath, { force: true });
+    await target.createArchive(bundleDir, archivePath);
+    const checksum = await sha256File(archivePath);
+    packages.push({
+      id: target.id,
+      path: path.relative(root, archivePath).replaceAll('\\', '/'),
       checksumAlgorithm: 'SHA-256',
       checksum,
       enabled: true,
-    },
-  ],
-};
-
-writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-
-const appConfigPath = path.join(root, 'sdkwork.app.config.json');
-const appConfig = JSON.parse(readFileSync(appConfigPath, 'utf8'));
-const packages = appConfig.artifacts?.installConfig?.packages ?? [];
-for (const released of manifest.packages) {
-  const target = packages.find((pkg) => pkg.id === released.id);
-  if (!target) {
-    continue;
+    });
+    console.log(
+      `[release:package] wrote ${path.relative(root, archivePath)} checksum=${checksum}`,
+    );
   }
-  target.checksum = released.checksum;
-  target.checksumAlgorithm = released.checksumAlgorithm;
-  target.enabled = released.enabled ?? true;
-  if (target.metadata?.checksumPendingReleaseBuild) {
-    delete target.metadata.checksumPendingReleaseBuild;
-  }
+
+  return packages;
 }
-writeFileSync(appConfigPath, `${JSON.stringify(appConfig, null, 2)}\n`);
-console.log(`[release:package] synced checksum into sdkwork.app.config.json`);
-console.log(`[release:package] wrote ${path.relative(root, linuxTar)} checksum=${checksum}`);
+
+function syncAppConfigPackages(releasedPackages) {
+  const appConfigPath = path.join(root, 'sdkwork.app.config.json');
+  const appConfig = JSON.parse(readFileSync(appConfigPath, 'utf8'));
+  const packages = appConfig.artifacts?.installConfig?.packages ?? [];
+
+  for (const released of releasedPackages) {
+    const target = packages.find((pkg) => pkg.id === released.id);
+    if (!target) {
+      continue;
+    }
+    target.checksum = released.checksum;
+    target.checksumAlgorithm = released.checksumAlgorithm;
+    target.enabled = released.enabled ?? true;
+    if (target.metadata?.checksumPendingReleaseBuild) {
+      delete target.metadata.checksumPendingReleaseBuild;
+    }
+  }
+
+  writeFileSync(appConfigPath, `${JSON.stringify(appConfig, null, 2)}\n`);
+}
+
+async function main() {
+  const packages = await packageReleaseTargets();
+  const manifest = {
+    schemaVersion: 1,
+    kind: 'sdkwork.release.packages',
+    generatedAt: new Date().toISOString(),
+    packages,
+  };
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  syncAppConfigPackages(packages);
+  const sbomOutputs = generateReleaseSboms();
+  for (const sbomPath of sbomOutputs) {
+    console.log(`[release:package] wrote ${path.relative(root, sbomPath)}`);
+  }
+  console.log('[release:package] synced checksum into sdkwork.app.config.json');
+}
+
+const isMain =
+  path.resolve(fileURLToPath(import.meta.url)) === path.resolve(process.argv[1] ?? '');
+if (isMain) {
+  await main();
+}

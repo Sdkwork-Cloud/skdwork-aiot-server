@@ -73,30 +73,35 @@
     ],
     "build": [
       {
+        "name": "Verify workspace standards",
+        "shell": "pwsh",
+        "run": "pnpm check"
+      },
+      {
         "name": "Verify Rust workspace",
         "shell": "pwsh",
-        "run": "cargo fmt --all -- --check; cargo clippy --workspace --tests -- -D warnings; cargo test --workspace"
+        "run": "cargo fmt -- --check; cargo clippy --workspace --tests -- -D warnings; cargo test --workspace"
       }
     ],
     "package": [
       {
         "name": "Package AIoT server binaries",
         "shell": "pwsh",
-        "run": "$ErrorActionPreference = \"Stop\"\nswitch ($env:SDKWORK_PACKAGE_PROFILE) {\n  'server' {\n    New-Item -ItemType Directory -Force -Path artifacts/release | Out-Null\n    cargo build --release -p sdkwork-aiot-gateway -p sdkwork-aiot-app-api -p sdkwork-aiot-admin-api\n    Copy-Item target/release/sdkwork-aiot-gateway.exe artifacts/release/ -ErrorAction SilentlyContinue\n    Copy-Item target/release/sdkwork-aiot-app-api.exe artifacts/release/ -ErrorAction SilentlyContinue\n    Copy-Item target/release/sdkwork-aiot-admin-api.exe artifacts/release/ -ErrorAction SilentlyContinue\n    Copy-Item target/release/sdkwork-aiot-gateway artifacts/release/ -ErrorAction SilentlyContinue\n    Copy-Item target/release/sdkwork-aiot-app-api artifacts/release/ -ErrorAction SilentlyContinue\n    Copy-Item target/release/sdkwork-aiot-admin-api artifacts/release/ -ErrorAction SilentlyContinue\n  }\n  default { Write-Host \"Skipping AIoT package archive for profile $($env:SDKWORK_PACKAGE_PROFILE)\" }\n}"
+        "run": "$ErrorActionPreference = \"Stop\"\nswitch ($env:SDKWORK_PACKAGE_PROFILE) {\n  'server' {\n    cargo build --release -p sdkwork-aiot-cloud-gateway -p sdkwork-aiot-app-api -p sdkwork-aiot-admin-api\n    pnpm release:package\n  }\n  default { Write-Host \"Skipping AIoT package archive for profile $($env:SDKWORK_PACKAGE_PROFILE)\" }\n}"
       }
     ],
     "sbom": [
       {
         "name": "Write AIoT package SBOM evidence",
-        "shell": "node",
-        "run": "import { mkdirSync, writeFileSync } from 'node:fs';\nimport path from 'node:path';\nconst env = process.env;\nconst packageId = env.SDKWORK_PACKAGE_ID || env.SDKWORK_PACKAGE_TARGET_ID || 'sdkwork-aiot';\nconst output = path.posix.join('artifacts/release/sbom', `${packageId}.sbom.json`);\nmkdirSync(path.dirname(output), { recursive: true });\nwriteFileSync(output, `${JSON.stringify({ bomFormat: 'CycloneDX', specVersion: '1.6', version: 1, metadata: { timestamp: new Date().toISOString(), tools: [{ vendor: 'SDKWork', name: 'sdkwork-aiot-workflow-sbom', version: '1.0.0' }], component: { type: 'application', name: env.SDKWORK_APP_ID || 'sdkwork-aiot', version: env.SDKWORK_PACKAGE_VERSION || env.SDKWORK_RELEASE_TAG || '0.1.0', 'bom-ref': packageId }, properties: [{ name: 'sdkwork:packageId', value: packageId }, { name: 'sdkwork:targetId', value: env.SDKWORK_PACKAGE_TARGET_ID || packageId }, { name: 'sdkwork:runtimeTarget', value: env.SDKWORK_RUNTIME_TARGET || 'server' }, { name: 'sdkwork:deploymentProfile', value: env.SDKWORK_DEPLOYMENT_PROFILE || 'standalone' }] }, components: [] }, null, 2)}\\n`);"
+        "shell": "pwsh",
+        "run": "pnpm sbom:generate"
       }
     ],
     "validate": [
       {
         "name": "Validate topology and OpenAPI contracts",
         "shell": "pwsh",
-        "run": "pnpm test:topology-validate; pnpm test:topology-baggage; pnpm api:check; pnpm sdk:check"
+        "run": "pnpm test:topology-validate; pnpm test:topology-baggage; pnpm api:check; pnpm sdk:check; pnpm check:production-topology; pnpm check:deploy-manifest; pnpm check:docs-index"
       }
     ]
   },

@@ -137,13 +137,11 @@
           "packageFormat": "TAR_GZ",
           "platform": "SERVER",
           "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/linux/x64/server.tar.gz",
-          "enabled": false,
-          "metadata": {
-            "checksumPendingReleaseBuild": true
-          },
+          "enabled": true,
+          "metadata": {},
           "architecture": "x64",
           "checksumAlgorithm": "SHA-256",
-          "checksum": "a2ff0d5da2ff0d5da2ff0d5da2ff0d5da2ff0d5da2ff0d5da2ff0d5da2ff0d5d",
+          "checksum": "4d8ed33438e7025c076b0d0b6ba24950057e854025365f2ac4937a4c8822ceb5",
           "deploymentProfile": "standalone",
           "runtimeTarget": "server"
         },
@@ -154,13 +152,11 @@
           "packageFormat": "ZIP",
           "platform": "SERVER",
           "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/windows/x64/server.zip",
-          "enabled": false,
-          "metadata": {
-            "checksumPendingReleaseBuild": true
-          },
+          "enabled": true,
+          "metadata": {},
           "architecture": "x64",
           "checksumAlgorithm": "SHA-256",
-          "checksum": "f2a032a7f2a032a7f2a032a7f2a032a7f2a032a7f2a032a7f2a032a7f2a032a7",
+          "checksum": "2b3e84531880dcd6b1a57c2eb39f15cb80bb4f26d01b16e2dac48c115a36ea54",
           "deploymentProfile": "standalone",
           "runtimeTarget": "server"
         }
@@ -211,7 +207,7 @@
   "devApp": {
     "build": {
       "targets": [
-        "sdkwork-aiot-gateway",
+        "sdkwork-aiot-cloud-gateway",
         "sdkwork-aiot-app-api",
         "sdkwork-aiot-admin-api"
       ]

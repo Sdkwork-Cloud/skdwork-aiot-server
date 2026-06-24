@@ -28,7 +28,7 @@ The AIoT server already aligns on API contracts, SDK workspaces, topology, secur
 4. Migrate persistence from direct `rusqlite` to `sdkwork-database-sqlx` pools and migration helpers while preserving the existing `iot_` table contract.
 5. Integrate `sdkwork-utils` for cross-language value parsing, string normalization, identifiers, and datetime helpers; consolidate duplicated client-side readers in `@sdkwork/aiot-app-core`.
 6. Do not integrate `sdkwork-discovery` until the repository exposes RPC/gRPC services.
-7. Keep `sdkwork-aiot-gateway` device ingress on the minimal transport stack documented in ADR 002; it is not an HTTP `*-api` surface and therefore does not require `sdkwork-web-framework` integration.
+7. Keep `sdkwork-aiot-cloud-gateway` device ingress on the minimal transport stack documented in ADR 002; it is not an HTTP `*-api` surface and therefore does not require `sdkwork-web-framework` integration.
 8. Add GitHub packaging through `sdkwork.workflow.json` and `.github/workflows/package.yml` immediately.
 9. Require route manifests and OpenAPI authorities to declare `WebRequestContext` and `apiSurface` metadata immediately.
 10. Expose repository-root scripts through the standard `dev`, `api`, `sdk`, `gateway`, `release`, `deploy`, `topology`, and `sbom` command families without application-code prefixes.
@@ -47,7 +47,18 @@ The AIoT server already aligns on API contracts, SDK workspaces, topology, secur
 | H | API/SDK/gateway command surface | `api:*`, `sdk:*`, `gateway:*` root scripts; `tools/aiot_sdk_generate.mjs`; client runtime env helpers | Done |
 | I | Repository script standard compliance | Remove `aiot:*` public scripts; `--deployment-profile` dev axis; workspace standard test; root `plugins/` dictionary | Done |
 | J | Agent/workflow entrypoint compliance | `AGENTS.md` v2 progressive loading; `PNPM_SCRIPT_SPEC.md` + `GITHUB_WORKFLOW_SPEC.md` references; `check:agent-workflow-standard`; `sdkwork_utils_ref` in `package.yml`; durable local guidance in `specs/README.md` | Done |
-| K | Postgres device persistence | `SDKWORK_AIOT_DEVICE_DATABASE_*` env wiring; async sqlx repositories; dev `--database postgres` orchestration | In progress — config resolution + fail-fast guardrails landed; repositories pending |
+| K | Postgres device persistence | `BlockingDevicePool` + dialect-aware device/credential/outbox/admin-entity repos; cloud production topology profile | Done |
+| L | Security + IAM remediation | CSPRNG secrets, gateway tenant-header hardening, H5 token env removal, `authCritical` rate limits, PR CI | Done |
+| M | Rollout OTA execution | Admin entity migrations, firmware OTA catalog, one-shot pending→offered, H5 `AiotH5AuthGate` | Done |
+| N | OTA completion + deploy manifest | MQTT/WS completion ingest, `deployments/deploy.yaml`, H5 `TokenManager`, production docs | Done |
+| O | MQTT ingest parity + Postgres CI | MQTT `finalize_protocol_ingest`, PC `TokenManager`, postgres migration parity job | Done |
+| P | Release packaging + CDN path alignment | `pnpm release:package`, CDN-relative artifact paths, checksum manifest sync, `release-smoke` CI | Done |
+| Q | Supply-chain release evidence | CycloneDX SBOM per package, `pnpm release:publish` CDN upload gate, `sbom:check` in release validation | Done |
+| R | Verification boundary + production release runbook | `cargo fmt -- --check` workspace scope, `docs/runbooks/production-release.md` | Done |
+| S | Documentation registry + deploy manifest gate | `docs/INDEX.yaml`, `check:deploy-manifest`, operator guide links | Done |
+| T | Docs standard CI + SBOM checksum parity | `check:docs-standard`, strict SBOM checksum gate, `release:publish` in CI smoke | Done |
+| U | Commercial readiness unified gate | `pnpm release:preflight`, `check:docs-index`, workflow validate expansion | Done |
+| V | Xiaozhi production intelligence | `sdkwork-aiot-intelligence-bridge`, Opus codec/uplink in adapter-xiaozhi, topology intelligence keys, uplink buffer + session media profile | Done |
 
 ## Consequences
 
@@ -65,3 +76,6 @@ The AIoT server already aligns on API contracts, SDK workspaces, topology, secur
 - `pnpm test:openapi-web-context`
 - `cargo test -p sdkwork-aiot-architecture`
 - `cargo test --workspace`
+- `pnpm release:validate`
+- `pnpm release:publish`
+- `node scripts/dev/validate-release-artifacts.mjs --strict` (after `pnpm release:package`)

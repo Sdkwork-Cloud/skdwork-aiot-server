@@ -8,6 +8,24 @@ use sdkwork_aiot_protocol::{
 };
 use sdkwork_aiot_security::DeviceAuthMode;
 
+mod opus_codec;
+mod opus_uplink;
+mod provider_downlink;
+
+pub use opus_codec::{
+    decode_xiaozhi_opus_packet_to_pcm16le as decode_xiaozhi_opus_uplink_to_pcm16le,
+    decode_xiaozhi_opus_packets_to_pcm16le, decode_xiaozhi_opus_uplink_to_wav,
+    encode_pcm16le_mono_to_opus_packets, wrap_pcm16le_mono_wav,
+};
+pub use opus_uplink::{
+    XiaozhiOpusUplinkBuffer, XiaozhiSessionMediaProfile, DEFAULT_XIAOZHI_FRAME_DURATION_MS,
+    DEFAULT_XIAOZHI_SAMPLE_RATE, MAX_UPLINK_BYTES, MAX_UPLINK_PACKETS,
+};
+pub use provider_downlink::{
+    encode_provider_audio_to_xiaozhi_opus, encode_provider_pcm_to_xiaozhi_opus_packets,
+    ProviderTtsAudio,
+};
+
 pub const XIAOZHI_BASE_PATH: &str = "/iot/xiaozhi";
 pub const XIAOZHI_WS_PATH: &str = "/iot/xiaozhi/ws";
 pub const XIAOZHI_OTA_PATH: &str = "/iot/xiaozhi/ota";
@@ -83,10 +101,37 @@ pub fn map_xiaozhi_message_class(message_type: &str) -> Option<MessageClass> {
         "listen" | "stt" | "tts" | "llm" | "alert" | "custom" => Some(MessageClass::Event),
         "iot" => Some(MessageClass::PropertyReport),
         "mcp" | "abort" | "system" => Some(MessageClass::CommandRequest),
+        "firmware_complete" | "ota_complete" | "firmware_report" => Some(MessageClass::OtaDeploy),
         "firmware" | "ota" => Some(MessageClass::OtaCheck),
         "goodbye" => Some(MessageClass::Disconnect),
         _ => None,
     }
+}
+
+pub fn resolve_xiaozhi_message_class(message_type: &str, json: &str) -> Option<MessageClass> {
+    if matches!(message_type, "firmware" | "ota")
+        && xiaozhi_firmware_payload_indicates_completion(json)
+    {
+        return Some(MessageClass::OtaDeploy);
+    }
+
+    map_xiaozhi_message_class(message_type)
+}
+
+fn xiaozhi_firmware_payload_indicates_completion(json: &str) -> bool {
+    for field in ["state", "status", "result"] {
+        if let Some(value) = json_scalar_field(json, field) {
+            let normalized = value.to_ascii_lowercase();
+            if matches!(
+                normalized.as_str(),
+                "success" | "completed" | "applied" | "ok" | "done"
+            ) {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -533,12 +578,13 @@ impl MessageCodec for XiaozhiMqttCodec {
                 "xiaozhi JSON frame must contain a type field",
             )
         })?;
-        let message_class = map_xiaozhi_message_class(&message_type).ok_or_else(|| {
-            ProtocolError::new(
-                "xiaozhi.message_type.unsupported",
-                format!("unsupported xiaozhi message type: {message_type}"),
-            )
-        })?;
+        let message_class =
+            resolve_xiaozhi_message_class(&message_type, text).ok_or_else(|| {
+                ProtocolError::new(
+                    "xiaozhi.message_type.unsupported",
+                    format!("unsupported xiaozhi message type: {message_type}"),
+                )
+            })?;
 
         let mut builder = ProtocolEnvelope::builder(XIAOZHI_MQTT_UDP_PROTOCOL_ID, message_class)
             .adapter("xiaozhi")
@@ -817,12 +863,13 @@ impl XiaozhiWebSocketCodec {
                 "xiaozhi JSON frame must contain a type field",
             )
         })?;
-        let message_class = map_xiaozhi_message_class(&message_type).ok_or_else(|| {
-            ProtocolError::new(
-                "xiaozhi.message_type.unsupported",
-                format!("unsupported xiaozhi message type: {message_type}"),
-            )
-        })?;
+        let message_class =
+            resolve_xiaozhi_message_class(&message_type, text).ok_or_else(|| {
+                ProtocolError::new(
+                    "xiaozhi.message_type.unsupported",
+                    format!("unsupported xiaozhi message type: {message_type}"),
+                )
+            })?;
 
         let mut builder = apply_context(
             ProtocolEnvelope::builder(XIAOZHI_WEBSOCKET_PROTOCOL_ID, message_class),

@@ -1,23 +1,29 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-test('postgres dev orchestration fails fast until repository migration completes', async () => {
+test('postgres dev orchestration wires SDKWORK_AIOT_DEVICE_DATABASE env', async () => {
   const moduleUrl = pathToFileURL(
     path.join(repoRoot, 'scripts/lib/aiot-device-database.mjs'),
   ).href;
-  const { mergeDeviceDatabaseEnv } = await import(moduleUrl);
+  const {
+    ENV_DEVICE_DATABASE_ENGINE,
+    ENV_DEVICE_DATABASE_TABLE_PREFIX,
+    ENV_DEVICE_DATABASE_URL,
+    ENV_DEVICE_DB_PATH,
+    mergeDeviceDatabaseEnv,
+  } = await import(moduleUrl);
 
-  assert.throws(
-    () => mergeDeviceDatabaseEnv({}, { databaseEngine: 'postgres' }),
-    /postgres dev orchestration is not ready/u,
-  );
+  const merged = mergeDeviceDatabaseEnv({}, { databaseEngine: 'postgres' });
+  assert.equal(merged[ENV_DEVICE_DATABASE_ENGINE], 'postgres');
+  assert.equal(merged[ENV_DEVICE_DATABASE_TABLE_PREFIX], 'iot_');
+  assert.match(merged[ENV_DEVICE_DATABASE_URL], /^postgres:\/\//u);
+  assert.equal(merged[ENV_DEVICE_DB_PATH], undefined);
 });
 
 test('dev orchestrator wires sqlite device db and outbox dispatch ownership', async () => {
@@ -26,6 +32,8 @@ test('dev orchestrator wires sqlite device db and outbox dispatch ownership', as
   ).href;
   const {
     ENV_DEVICE_DB_PATH,
+    ENV_DEVICE_DATABASE_ENGINE,
+    ENV_DEVICE_DATABASE_URL,
     ENV_OUTBOX_DISPATCHER_ENABLED,
     mergeDeviceDatabaseEnv,
     mergeProcessRuntimeEnv,
@@ -38,6 +46,8 @@ test('dev orchestrator wires sqlite device db and outbox dispatch ownership', as
 
   const merged = mergeDeviceDatabaseEnv({}, { databaseEngine: 'sqlite' });
   assert.equal(merged[ENV_DEVICE_DB_PATH], sqlitePath);
+  assert.equal(merged[ENV_DEVICE_DATABASE_URL], undefined);
+  assert.equal(merged[ENV_DEVICE_DATABASE_ENGINE], undefined);
   assert.ok(fs.existsSync(path.dirname(sqlitePath)));
 
   const edgeEnv = mergeProcessRuntimeEnv({ id: 'edge.device-ingress' }, merged);

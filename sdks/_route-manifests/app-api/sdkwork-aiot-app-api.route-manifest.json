@@ -93,6 +93,7 @@
         "owner": "sdkwork-aiot"
       },
       "path": "/app/v3/api/iot/devices/{deviceId}/commands",
+      "rateLimitTier": "authCritical",
       "requestContext": "WebRequestContext",
       "schemas": {
         "problem": "ProblemDetail",

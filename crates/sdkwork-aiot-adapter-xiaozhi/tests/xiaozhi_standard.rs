@@ -1,10 +1,11 @@
 use sdkwork_aiot_adapter_xiaozhi::{
-    map_xiaozhi_message_class, xiaozhi_activation_pending_response, xiaozhi_handshake_context,
-    xiaozhi_manifest, xiaozhi_ota_response, xiaozhi_routes, xiaozhi_server_hello_response,
-    XiaozhiAudioParams, XiaozhiMqttCodec, XiaozhiOtaMetadata, XiaozhiServerHello,
-    XiaozhiUdpAudioCodec, XiaozhiWebSocketCodec, AUTHORIZATION_HEADER, CLIENT_ID_HEADER,
-    DEVICE_ID_HEADER, PROTOCOL_VERSION_HEADER, XIAOZHI_ACTIVATE_PATH, XIAOZHI_BASE_PATH,
-    XIAOZHI_MQTT_UDP_PROTOCOL_ID, XIAOZHI_OTA_PATH, XIAOZHI_WEBSOCKET_PROTOCOL_ID, XIAOZHI_WS_PATH,
+    map_xiaozhi_message_class, resolve_xiaozhi_message_class, xiaozhi_activation_pending_response,
+    xiaozhi_handshake_context, xiaozhi_manifest, xiaozhi_ota_response, xiaozhi_routes,
+    xiaozhi_server_hello_response, XiaozhiAudioParams, XiaozhiMqttCodec, XiaozhiOtaMetadata,
+    XiaozhiServerHello, XiaozhiUdpAudioCodec, XiaozhiWebSocketCodec, AUTHORIZATION_HEADER,
+    CLIENT_ID_HEADER, DEVICE_ID_HEADER, PROTOCOL_VERSION_HEADER, XIAOZHI_ACTIVATE_PATH,
+    XIAOZHI_BASE_PATH, XIAOZHI_MQTT_UDP_PROTOCOL_ID, XIAOZHI_OTA_PATH,
+    XIAOZHI_WEBSOCKET_PROTOCOL_ID, XIAOZHI_WS_PATH,
 };
 use sdkwork_aiot_protocol::{
     CodecKind, InboundFrame, MessageClass, MessageCodec, ProtocolEnvelope, ProtocolPluginScope,
@@ -100,6 +101,35 @@ fn xiaozhi_message_names_map_to_standard_message_classes() {
         Some(MessageClass::CommandRequest)
     );
     assert_eq!(map_xiaozhi_message_class("unknown"), None);
+}
+
+#[test]
+fn resolve_xiaozhi_message_class_maps_firmware_completion_reports_to_ota_deploy() {
+    assert_eq!(
+        map_xiaozhi_message_class("firmware_complete"),
+        Some(MessageClass::OtaDeploy)
+    );
+    assert_eq!(
+        resolve_xiaozhi_message_class(
+            "firmware",
+            r#"{"type":"firmware","state":"success","version":"2.1.0"}"#
+        ),
+        Some(MessageClass::OtaDeploy)
+    );
+    assert_eq!(
+        resolve_xiaozhi_message_class(
+            "ota",
+            r#"{"type":"ota","status":"completed","version":"2.1.0"}"#
+        ),
+        Some(MessageClass::OtaDeploy)
+    );
+    assert_eq!(
+        resolve_xiaozhi_message_class(
+            "firmware",
+            r#"{"type":"firmware","state":"checking","version":"2.1.0"}"#
+        ),
+        Some(MessageClass::OtaCheck)
+    );
 }
 
 #[test]

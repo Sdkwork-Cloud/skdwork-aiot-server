@@ -1,0 +1,41 @@
+schemaVersion: 1
+kind: sdkwork.docs.index
+repository: sdkwork-aiot
+canon:
+  prd: docs/product/prd/PRD.md
+  techArchitecture: docs/architecture/tech/TECH_ARCHITECTURE.md
+entries:
+  - id: ADR-004
+    path: docs/adr/004-standards-alignment-roadmap.md
+    layer: architecture
+    audience: [engineering, agents]
+    status: ready
+  - id: production-readiness
+    path: docs/production-readiness.md
+    layer: operations
+    audience: [operator, engineering]
+    status: ready
+  - id: production-release-runbook
+    path: docs/runbooks/production-release.md
+    layer: operations
+    audience: [operator]
+    status: ready
+  - id: iam-integration
+    path: docs/deployment/iam-integration.md
+    layer: architecture
+    audience: [operator, engineering]
+    status: ready
+  - id: xiaozhi-protocol-parity
+    path: docs/xiaozhi-protocol-parity-matrix.md
+    layer: engineering
+    audience: [engineering]
+    status: ready
+  - id: xiaozhi-intelligence-integration
+    path: docs/architecture/XIAOZHI_INTELLIGENCE_INTEGRATION.md
+    layer: architecture
+    audience: [engineering, operator]
+    status: ready
+domains:
+  - name: iot-operations
+    path: docs/runbooks/
+    owner: sdkwork-aiot-platform

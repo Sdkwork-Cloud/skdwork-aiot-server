@@ -484,7 +484,7 @@ fn service_shells_reuse_runtime_builder_instead_of_owning_domain_logic() {
     let root = workspace_root();
 
     for service in [
-        "services/sdkwork-aiot-gateway/src/main.rs",
+        "services/sdkwork-aiot-cloud-gateway/src/main.rs",
         "services/sdkwork-aiot-admin-api/src/main.rs",
         "services/sdkwork-aiot-app-api/src/main.rs",
     ] {
@@ -721,7 +721,7 @@ fn service_shells_read_topology_surface_bind_env_keys() {
 
     let cases = [
         (
-            "services/sdkwork-aiot-gateway/src/main.rs",
+            "services/sdkwork-aiot-cloud-gateway/src/main.rs",
             "SDKWORK_AIOT_EDGE_DEVICE_INGRESS_BIND",
         ),
         (
@@ -1253,11 +1253,11 @@ fn committed_route_manifests_match_http_api_contracts() {
 #[test]
 fn gateway_readiness_wires_outbox_and_optional_mqtt_bridge_probes() {
     let root = workspace_root();
-    let gateway_lib = fs::read_to_string(root.join("services/sdkwork-aiot-gateway/src/lib.rs"))
+    let gateway_lib = fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/lib.rs"))
         .expect("gateway lib");
-    let gateway_main = fs::read_to_string(root.join("services/sdkwork-aiot-gateway/src/main.rs"))
+    let gateway_main = fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/main.rs"))
         .expect("gateway main");
-    let bridge_module = root.join("services/sdkwork-aiot-gateway/src/mqtt_bridge_readiness.rs");
+    let bridge_module = root.join("services/sdkwork-aiot-cloud-gateway/src/mqtt_bridge_readiness.rs");
 
     assert!(
         bridge_module.exists(),
@@ -1289,14 +1289,26 @@ fn service_host_supports_chained_readiness_probes() {
 }
 
 #[test]
-fn device_database_bootstrap_fails_fast_on_postgres_until_phase_k() {
+fn device_database_supports_postgres_device_repository() {
     let root = workspace_root();
-    let bootstrap =
+    let device_database =
+        fs::read_to_string(root.join("crates/sdkwork-aiot-storage-sqlx/src/device_database.rs"))
+            .expect("device database");
+    assert!(
+        device_database
+            .contains("SqliteSqlxDeviceRepository::from_blocking_pool(self.pool.clone())"),
+        "device database must open device repository from BlockingDevicePool for all engines"
+    );
+    assert!(
+        !device_database.contains("POSTGRES_DEVICE_PERSISTENCE_DEFERRED"),
+        "device database must not defer Postgres device repository after Phase K"
+    );
+    let database_bootstrap =
         fs::read_to_string(root.join("crates/sdkwork-aiot-storage-sqlx/src/database_bootstrap.rs"))
             .expect("database bootstrap");
     assert!(
-        bootstrap.contains("POSTGRES_DEVICE_PERSISTENCE_DEFERRED"),
-        "device database bootstrap must fail fast on postgres until Phase K"
+        !database_bootstrap.contains("POSTGRES_DEVICE_PERSISTENCE_DEFERRED"),
+        "database bootstrap must not retain Phase K deferral markers"
     );
 }
 
@@ -1312,5 +1324,45 @@ fn production_topology_profiles_are_guarded() {
         root.join("scripts/dev/validate-production-topology.mjs")
             .exists(),
         "production topology validator script is required"
+    );
+}
+
+#[test]
+fn xiaozhi_production_intelligence_bridge_is_declared() {
+    let root = workspace_root();
+    let workspace = fs::read_to_string(root.join("Cargo.toml")).expect("Cargo.toml");
+    assert!(
+        workspace.contains("sdkwork-aiot-intelligence-bridge"),
+        "workspace must include sdkwork-aiot-intelligence-bridge"
+    );
+
+    let topology_spec =
+        fs::read_to_string(root.join("specs/topology.spec.json")).expect("topology spec");
+    assert!(
+        topology_spec.contains(r#""intelligence""#),
+        "topology.spec.json must declare intelligence env keys"
+    );
+    assert!(
+        topology_spec.contains("SDKWORK_AIOT_INTELLIGENCE_MODE"),
+        "topology.spec.json must declare intelligence mode env key"
+    );
+
+    let adapter_cargo =
+        fs::read_to_string(root.join("crates/sdkwork-aiot-adapter-xiaozhi/Cargo.toml"))
+            .expect("adapter cargo");
+    assert!(
+        adapter_cargo.contains("audiopus"),
+        "adapter-xiaozhi must depend on audiopus for Opus codec ownership"
+    );
+
+    let gateway_lib = fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/lib.rs"))
+        .expect("gateway lib");
+    assert!(
+        gateway_lib.contains("mod xiaozhi_ws_media_session"),
+        "gateway must track websocket uplink media sessions"
+    );
+    assert!(
+        gateway_lib.contains("kernel_stack_from_env"),
+        "gateway must wire kernel intelligence stack from env"
     );
 }

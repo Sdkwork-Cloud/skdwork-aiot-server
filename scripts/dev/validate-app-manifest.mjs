@@ -51,6 +51,24 @@ function validateReleasePackages(manifest) {
           released.checksum,
           `${pkg.id} checksum must match artifacts/release/release-packages.manifest.json`,
         );
+        const cdnSuffix = String(released.path)
+          .replace(/^artifacts\/release\//u, '')
+          .replaceAll('\\', '/');
+        assert.ok(
+          typeof pkg.url === 'string' && pkg.url.endsWith(cdnSuffix),
+          `${pkg.id} url must end with ${cdnSuffix} to match packaged artifact path`,
+        );
+        if (manifest.security?.sbomRequired) {
+          const sbomPath = path.join(
+            repoRoot,
+            'artifacts/release/sbom',
+            `${pkg.id}.sbom.json`,
+          );
+          assert.ok(
+            fs.existsSync(sbomPath),
+            `${pkg.id} requires SBOM evidence at artifacts/release/sbom/${pkg.id}.sbom.json`,
+          );
+        }
       }
     }
   }

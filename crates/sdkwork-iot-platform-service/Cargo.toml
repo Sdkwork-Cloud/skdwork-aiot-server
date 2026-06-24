@@ -15,6 +15,7 @@ sdkwork-aiot-protocol.workspace = true
 sdkwork-aiot-service-host.workspace = true
 sdkwork-aiot-storage.workspace = true
 sdkwork-aiot-storage-sqlx.workspace = true
+sdkwork-database-config.workspace = true
 sdkwork-aiot-transport.workspace = true
 sdkwork-utils-rust.workspace = true
 

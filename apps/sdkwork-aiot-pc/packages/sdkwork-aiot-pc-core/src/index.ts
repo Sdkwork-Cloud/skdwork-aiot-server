@@ -6,6 +6,11 @@ export {
   type SdkworkAiotPcAppClientConfig,
 } from './sdk/aiotAppSdkClient';
 export {
+  getAiotPcTokenManager,
+  resetAiotPcTokenManager,
+  syncPcTokenManagerFromRuntimeSession,
+} from './sdk/pcTokenManager';
+export {
   normalizeHttpSdkBaseUrl,
   normalizeWebSocketSdkBaseUrl,
   readSdkBaseUrlEnvValue,

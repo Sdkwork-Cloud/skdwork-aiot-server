@@ -15,4 +15,9 @@ node_modules/
 .env.production.local
 .env.postgres
 .env.release.local
-config/*.local.toml
+# Release binaries are built locally/CI; keep manifest for checksum drift checks.
+artifacts/release/*.tar.gz
+artifacts/release/*.zip
+artifacts/release/bundle-*/
+artifacts/release/*.exe
+artifacts/release/sdkwork-aiot-*

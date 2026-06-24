@@ -22,7 +22,7 @@
 - Create `crates/sdkwork-aiot-security`: device principal and auth-level model.
 - Create `crates/sdkwork-aiot-observability`: safe trace/log field model and redaction helpers.
 - Create `crates/sdkwork-aiot-adapter-xiaozhi`: xiaozhi plugin manifest and compatibility constants.
-- Create `services/sdkwork-aiot-gateway`: standalone gateway shell using runtime builder.
+- Create `services/sdkwork-aiot-cloud-gateway`: standalone gateway shell using runtime builder.
 - Create `services/sdkwork-aiot-admin-api`: backend API shell.
 - Create `services/sdkwork-aiot-app-api`: app API shell.
 
@@ -89,7 +89,7 @@
 ## Task 7: Service Shells
 
 **Files:**
-- Modify: `services/sdkwork-aiot-gateway/src/main.rs`
+- Modify: `services/sdkwork-aiot-cloud-gateway/src/main.rs`
 - Modify: `services/sdkwork-aiot-admin-api/src/main.rs`
 - Modify: `services/sdkwork-aiot-app-api/src/main.rs`
 
@@ -111,5 +111,5 @@
 - [x] Added complete `iot_` table contract coverage and initial SQL migration coverage for all standard catalog tables.
 - [x] Added `AiotIntegrationBundle`, `AiotConfig`, storage/protocol/http/gateway/health bundle contracts for fast embedded integration and standalone assembly.
 - [x] Added `crates/sdkwork-aiot-transport` with pure Rust HTTP health/ready responses, WebSocket upgrade handshake, basic WebSocket frame decoding, and a standard transport server assembled from the shared runtime.
-- [x] Updated `services/sdkwork-aiot-gateway` to start a standalone TCP HTTP gateway by default while still allowing `SDKWORK_AIOT_GATEWAY_NO_LISTEN=1` for startup checks.
-- [x] Verified `sdkwork-aiot-gateway.exe` starts on a temporary port and returns `/healthz` with `ready=true`, then stops cleanly.
+- [x] Updated `services/sdkwork-aiot-cloud-gateway` to start a standalone TCP HTTP gateway by default while still allowing `SDKWORK_AIOT_GATEWAY_NO_LISTEN=1` for startup checks.
+- [x] Verified `sdkwork-aiot-cloud-gateway.exe` starts on a temporary port and returns `/healthz` with `ready=true`, then stops cleanly.

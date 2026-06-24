@@ -8,8 +8,10 @@ use sdkwork_aiot_service_host::{
 };
 use sdkwork_aiot_storage::OutboxEventRepository;
 
+use crate::database_bootstrap::aiot_device_blocking_pool_from_env;
 use crate::outbox::SqliteOutboxEventRepository;
 use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
+use crate::BlockingDevicePool;
 
 pub const ENV_DEVICE_DB_PATH: &str = "SDKWORK_AIOT_DEVICE_DB_PATH";
 pub const ENV_OUTBOX_DISPATCH_INTERVAL_MS: &str = "SDKWORK_AIOT_OUTBOX_DISPATCH_INTERVAL_MS";
@@ -34,7 +36,7 @@ pub fn outbox_dispatcher_enabled_from_env(default_when_unset: bool) -> bool {
     {
         Some("0") | Some("false") => false,
         Some("1") | Some("true") => true,
-        _ => default_when_unset && configured_device_db_path_from_env().is_some(),
+        _ => default_when_unset && device_database_configured_from_env(),
     }
 }
 
@@ -45,11 +47,34 @@ pub fn configured_device_db_path_from_env() -> Option<String> {
         .filter(|value| !value.is_empty())
 }
 
+fn device_database_configured_from_env() -> bool {
+    configured_device_db_path_from_env().is_some()
+        || std::env::var("SDKWORK_AIOT_DEVICE_DATABASE_URL")
+            .ok()
+            .filter(|value| !value.is_empty())
+            .is_some()
+}
+
 pub fn device_storage_ready_from_env() -> bool {
-    let Some(path) = configured_device_db_path_from_env() else {
-        return true;
-    };
-    sqlite_path_ready(&path)
+    match aiot_device_blocking_pool_from_env(None) {
+        Ok(pool) => pool
+            .run(async {
+                match pool.engine() {
+                    crate::DeviceDatabaseEngine::Sqlite => {
+                        sqlx::query_scalar::<_, i64>("SELECT 1")
+                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                            .await
+                    }
+                    crate::DeviceDatabaseEngine::Postgres => {
+                        sqlx::query_scalar::<_, i64>("SELECT 1")
+                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                            .await
+                    }
+                }
+            })
+            .is_ok(),
+        Err(_) => false,
+    }
 }
 
 pub fn sqlite_path_ready(path: &str) -> bool {
@@ -84,14 +109,21 @@ pub fn outbox_readiness_probe(
 }
 
 pub fn open_outbox_repository_from_env() -> Option<Arc<SqliteOutboxEventRepository>> {
-    let path = configured_device_db_path_from_env()?;
-    open_outbox_repository_for_path(&path)
+    open_outbox_repository_for_pool(aiot_device_blocking_pool_from_env(None).ok()?)
 }
 
 pub fn open_outbox_repository_for_path(
     path: impl AsRef<Path>,
 ) -> Option<Arc<SqliteOutboxEventRepository>> {
-    match SqliteOutboxEventRepository::open(path) {
+    let url = sqlite_connect_url(path.as_ref().to_string_lossy().as_ref());
+    let sqlite = BlockingSqlitePool::connect(&url).ok()?;
+    open_outbox_repository_for_pool(BlockingDevicePool::Sqlite(sqlite))
+}
+
+pub fn open_outbox_repository_for_pool(
+    pool: BlockingDevicePool,
+) -> Option<Arc<SqliteOutboxEventRepository>> {
+    match SqliteOutboxEventRepository::from_blocking_pool(pool) {
         Ok(repository) => Some(Arc::new(repository)),
         Err(error) => {
             eprintln!("sdkwork-aiot-storage-sqlx outbox_repository_open_error={error}");
@@ -138,16 +170,26 @@ pub fn start_outbox_dispatcher_worker(
 #[cfg(test)]
 mod outbox_worker_tests {
     use super::*;
+    use crate::test_env::{lock_env_tests, EnvGuard};
+
+    const OUTBOX_TEST_ENV_KEYS: &[&str] = &[
+        ENV_DEVICE_DB_PATH,
+        "SDKWORK_AIOT_DEVICE_DATABASE_URL",
+        "SDKWORK_AIOT_DEVICE_DATABASE_ENGINE",
+        "SDKWORK_AIOT_DEVICE_DATABASE_MODE",
+        "SDKWORK_AIOT_DEVICE_DATABASE_TABLE_PREFIX",
+        ENV_OUTBOX_DISPATCHER_ENABLED,
+        ENV_OUTBOX_LAG_READY_THRESHOLD,
+    ];
 
     #[test]
     fn outbox_dispatcher_defaults_to_gateway_only_when_db_path_is_set() {
+        let _lock = lock_env_tests();
+        let _guard = EnvGuard::clear(OUTBOX_TEST_ENV_KEYS);
         std::env::set_var(ENV_DEVICE_DB_PATH, "/tmp/aiot-device.db");
-        std::env::remove_var(ENV_OUTBOX_DISPATCHER_ENABLED);
 
         assert!(outbox_dispatcher_enabled_from_env(true));
         assert!(!outbox_dispatcher_enabled_from_env(false));
-
-        std::env::remove_var(ENV_DEVICE_DB_PATH);
     }
 
     #[test]
@@ -157,6 +199,9 @@ mod outbox_worker_tests {
             AiotOutboxWriteIntent, AiotProtocolIngestUnitOfWork, AiotProtocolStorageCommand,
             AiotStorageWriteKind,
         };
+
+        let _lock = lock_env_tests();
+        let _guard = EnvGuard::clear(OUTBOX_TEST_ENV_KEYS);
 
         let unique_suffix = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -191,8 +236,6 @@ mod outbox_worker_tests {
         assert_eq!(outbox_lag_count_from_env(), Some(1));
         assert!(!outbox_ready_from_env());
 
-        std::env::remove_var(ENV_DEVICE_DB_PATH);
-        std::env::remove_var(ENV_OUTBOX_LAG_READY_THRESHOLD);
         let _ = std::fs::remove_file(&db_path);
     }
 }

@@ -6,6 +6,7 @@ import {
 } from '@sdkwork/aiot-app-sdk';
 import { readOptionalBearerToken } from '@sdkwork/aiot-app-core';
 
+import { getAiotPcTokenManager } from './pcTokenManager';
 import { resolveAiotAppApiBaseUrl } from './sdkBaseUrls';
 
 export type SdkworkAiotPcAppClientConfig = SdkworkAiotAppClientConfig;
@@ -26,7 +27,9 @@ export function createAiotAppSdkClientConfig(
 export function initAiotAppSdkClient(
   config: SdkworkAiotPcAppClientConfig = createAiotAppSdkClientConfig(),
 ): SdkworkAiotAppClient {
-  aiotAppSdkClient = createAiotAppClient(config);
+  const client = createAiotAppClient(config);
+  client.setTokenManager(getAiotPcTokenManager());
+  aiotAppSdkClient = client;
   return aiotAppSdkClient;
 }
 

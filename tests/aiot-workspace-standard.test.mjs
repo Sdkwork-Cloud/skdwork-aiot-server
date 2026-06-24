@@ -124,3 +124,136 @@ test('sdkwork-aiot dev orchestrator resolves deployment profiles through topolog
     'aiot-dev must reject retired --hosting flag',
   );
 });
+
+test('sdkwork-aiot h5 core must not read live tokens from VITE env', () => {
+  const h5CoreSource = read(
+    'apps/sdkwork-aiot-h5/packages/sdkwork-aiot-h5-core/src/index.ts',
+  );
+  const h5SessionSource = read(
+    'apps/sdkwork-aiot-h5/packages/sdkwork-aiot-h5-core/src/sdk/h5RuntimeSession.ts',
+  );
+  const h5AuthGateSource = read(
+    'apps/sdkwork-aiot-h5/packages/sdkwork-aiot-h5-core/src/auth/AiotH5AuthGate.tsx',
+  );
+  const h5AppSource = read('apps/sdkwork-aiot-h5/src/App.tsx');
+  for (const source of [h5CoreSource, h5SessionSource, h5AuthGateSource]) {
+    assert.doesNotMatch(source, /VITE_SDKWORK_AUTH_TOKEN/u);
+    assert.doesNotMatch(source, /VITE_SDKWORK_ACCESS_TOKEN/u);
+  }
+  assert.match(h5CoreSource, /AiotH5AuthGate/u);
+  assert.match(h5AppSource, /<AiotH5AuthGate/u);
+});
+
+test('sdkwork-aiot firmware rollout OTA alignment artifacts are present', () => {
+  for (const relativePath of [
+    'database/migrations/sqlite/0002_aiot_admin_entity_schema.up.sql',
+    'database/migrations/postgres/0002_aiot_admin_entity_schema.up.sql',
+    'database/seeds/common/001_bootstrap.sql',
+    'crates/sdkwork-aiot-storage-sqlx/src/firmware_ota_catalog.rs',
+    'services/sdkwork-aiot-cloud-gateway/tests/gateway_standard.rs',
+    'deployments/deploy.yaml',
+    '.github/workflows/ci.yml',
+  ]) {
+    assert.ok(exists(relativePath), `missing rollout alignment artifact: ${relativePath}`);
+  }
+
+  const ciWorkflow = read('.github/workflows/ci.yml');
+  assert.match(ciWorkflow, /release-smoke/u);
+
+  const otaCatalog = read('crates/sdkwork-aiot-storage-sqlx/src/firmware_ota_catalog.rs');
+  assert.match(otaCatalog, /DEPLOYMENT_STATE_PENDING/u);
+  assert.match(otaCatalog, /mark_deployment_completed/u);
+  assert.match(otaCatalog, /mark_offered_deployment_completed_for_device/u);
+
+  const h5Core = read('apps/sdkwork-aiot-h5/packages/sdkwork-aiot-h5-core/src/index.ts');
+  assert.match(h5Core, /setTokenManager/u);
+  assert.match(h5Core, /getAiotH5TokenManager/u);
+
+  const gatewayTests = read('services/sdkwork-aiot-cloud-gateway/tests/gateway_standard.rs');
+  assert.match(
+    gatewayTests,
+    /rollout_aware_ota_provider_delivers_firmware_once_per_pending_deployment/u,
+  );
+  assert.match(
+    gatewayTests,
+    /xiaozhi_mqtt_session_reply_with_options_persists_protocol_storage_command/u,
+  );
+
+  const pcCore = read('apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core/src/index.ts');
+  assert.match(pcCore, /getAiotPcTokenManager/u);
+  assert.match(read('apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core/src/sdk/aiotAppSdkClient.ts'), /setTokenManager/u);
+
+  const packageJson = JSON.parse(read('package.json'));
+  assert.doesNotMatch(
+    JSON.stringify(packageJson.scripts ?? {}),
+    /cargo fmt --all/u,
+    'check must format only sdkwork-aiot workspace members, not sibling path dependencies',
+  );
+  assert.match(packageJson.scripts?.check ?? '', /cargo fmt -- --check/u);
+  assert.match(packageJson.scripts?.check ?? '', /check:docs-standard/u);
+
+  const gatewayLib = read('services/sdkwork-aiot-cloud-gateway/src/lib.rs');
+  const ingestFinalizers = gatewayLib.match(/finalize_protocol_ingest\(&result\.storage_command, &receipt\)/gu);
+  assert.ok(
+    ingestFinalizers && ingestFinalizers.length >= 2,
+    'websocket and mqtt ingress must finalize protocol ingest consistently',
+  );
+
+  const releaseScript = read('scripts/release-package.mjs');
+  assert.match(releaseScript, /windows\/x64\/server\.zip/u);
+  assert.match(releaseScript, /resolveReleaseBinaryPath/u);
+
+  const deployManifest = read('deployments/deploy.yaml');
+  assert.match(deployManifest, /self-hosted\.split-services\.production/u);
+  assert.match(deployManifest, /cloud-hosted\.split-services\.production/u);
+
+  const releasePublish = read('scripts/release-publish.mjs');
+  assert.match(releasePublish, /release:publish/u);
+  assert.match(read('scripts/release-package.mjs'), /generateReleaseSboms/u);
+
+  assert.ok(exists('docs/runbooks/production-release.md'), 'production release runbook must exist');
+
+  const docsIndex = read('docs/INDEX.yaml');
+  assert.match(docsIndex, /production-release-runbook/u);
+  assert.match(docsIndex, /kind: sdkwork\.docs\.index/u);
+
+  assert.ok(exists('scripts/release-preflight.mjs'), 'release preflight script must exist');
+});
+
+test('sdkwork-aiot production intelligence alignment artifacts are present', () => {
+  for (const relativePath of [
+    'crates/sdkwork-aiot-intelligence-bridge/Cargo.toml',
+    'crates/sdkwork-aiot-intelligence-bridge/src/lib.rs',
+    'crates/sdkwork-aiot-adapter-xiaozhi/src/opus_codec.rs',
+    'crates/sdkwork-aiot-adapter-xiaozhi/src/opus_uplink.rs',
+    'crates/sdkwork-aiot-adapter-xiaozhi/src/provider_downlink.rs',
+    'services/sdkwork-aiot-cloud-gateway/src/xiaozhi_ws_media_session.rs',
+    'docs/architecture/XIAOZHI_INTELLIGENCE_INTEGRATION.md',
+  ]) {
+    assert.ok(exists(relativePath), `missing intelligence alignment artifact: ${relativePath}`);
+  }
+
+  const topologySpec = JSON.parse(read('specs/topology.spec.json'));
+  assert.ok(topologySpec.intelligence?.mode, 'topology.spec.json must declare intelligence.mode');
+  assert.ok(
+    topologySpec.intelligence?.kernelHttpUrl,
+    'topology.spec.json must declare intelligence.kernelHttpUrl',
+  );
+  assert.ok(
+    topologySpec.intelligence?.clawRouterOpenHttpUrl,
+    'topology.spec.json must declare intelligence.clawRouterOpenHttpUrl',
+  );
+
+  const bridgeLib = read('crates/sdkwork-aiot-intelligence-bridge/src/speech.rs');
+  assert.match(bridgeLib, /decode_xiaozhi_opus_uplink_to_wav/u);
+  assert.match(bridgeLib, /asr_wav_bytes/u);
+
+  const gatewayLib = read('services/sdkwork-aiot-cloud-gateway/src/lib.rs');
+  assert.match(gatewayLib, /xiaozhi_ws_media_session/u);
+  assert.match(gatewayLib, /push_ws_uplink_packet/u);
+  assert.match(gatewayLib, /encode_provider_pcm_to_xiaozhi_opus_packets/u);
+
+  const opusCodec = read('crates/sdkwork-aiot-adapter-xiaozhi/src/opus_codec.rs');
+  assert.match(opusCodec, /audiopus/u);
+  assert.match(read('crates/sdkwork-aiot-adapter-xiaozhi/Cargo.toml'), /audiopus/u);
+});

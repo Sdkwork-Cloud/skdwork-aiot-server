@@ -3,7 +3,7 @@ import { MobileAgentPage } from '@sdkwork/aiot-h5-console-agent';
 import { MobileDevicePage } from '@sdkwork/aiot-h5-console-device';
 import { MobileIotPage } from '@sdkwork/aiot-h5-console-iot';
 import { MobileVoicePage } from '@sdkwork/aiot-h5-console-voice';
-import { initAiotH5AppSdkClient } from '@sdkwork/aiot-h5-core';
+import { AiotH5AuthGate, initAiotH5AppSdkClient } from '@sdkwork/aiot-h5-core';
 
 initAiotH5AppSdkClient();
 
@@ -51,7 +51,9 @@ function MobileShell() {
 export function App() {
   return (
     <BrowserRouter>
-      <MobileShell />
+      <AiotH5AuthGate>
+        <MobileShell />
+      </AiotH5AuthGate>
     </BrowserRouter>
   );
 }

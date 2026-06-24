@@ -6,11 +6,11 @@ use sqlx::Row;
 
 use sdkwork_utils_rust::is_blank;
 
+use crate::blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine, DeviceDbTransaction};
 use crate::credential_hash::{hash_device_credential_secret, verify_device_credential_secret};
+use crate::dialect_sql::adapt_sqlite_placeholders;
 use crate::schema::ensure_device_schema;
-use crate::sqlite_sync::{
-    read_optional_timestamp_column, read_timestamp_column, sqlite_connect_url, BlockingSqlitePool,
-};
+use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
 
 const CREDENTIAL_STATUS_ACTIVE: i32 = 1;
 const CREDENTIAL_STATUS_REVOKED: i32 = 0;
@@ -49,8 +49,29 @@ impl From<sqlx::Error> for SqliteCredentialRepositoryError {
     }
 }
 
+#[allow(dead_code)]
+enum CredentialRepoTxError {
+    Repo(SqliteCredentialRepositoryError),
+    Sql(sqlx::Error),
+}
+
+impl From<sqlx::Error> for CredentialRepoTxError {
+    fn from(error: sqlx::Error) -> Self {
+        Self::Sql(error)
+    }
+}
+
+impl CredentialRepoTxError {
+    fn into_repo(self) -> SqliteCredentialRepositoryError {
+        match self {
+            Self::Repo(error) => error,
+            Self::Sql(_) => SqliteCredentialRepositoryError::PersistenceFailure,
+        }
+    }
+}
+
 pub struct SqliteSqlxCredentialRepository {
-    db: BlockingSqlitePool,
+    db: BlockingDevicePool,
 }
 
 impl SqliteSqlxCredentialRepository {
@@ -58,21 +79,23 @@ impl SqliteSqlxCredentialRepository {
         Self::open("file:sdkwork-aiot-credential?mode=memory&cache=shared")
     }
 
-    pub fn from_blocking_pool(db: BlockingSqlitePool) -> Result<Self, sqlx::Error> {
+    pub fn from_blocking_pool(db: BlockingDevicePool) -> Result<Self, sqlx::Error> {
         ensure_device_schema(&db)?;
         Ok(Self { db })
     }
 
     pub fn open(path_or_uri: impl AsRef<Path>) -> Result<Self, sqlx::Error> {
         let url = sqlite_connect_url(path_or_uri.as_ref().to_string_lossy().as_ref());
-        let db = BlockingSqlitePool::connect(&url)?;
-        Self::from_blocking_pool(db)
+        let sqlite = BlockingSqlitePool::connect(&url)?;
+        Self::from_blocking_pool(BlockingDevicePool::Sqlite(sqlite))
     }
 
     pub fn verify_bearer_token(&self, device_id: &str, token: &str) -> bool {
         self.verify_bearer_token_scoped(None, None, device_id, token)
     }
 
+    /// Verifies a device bearer token. Tenant and organization scope are resolved from
+    /// stored credentials — client-supplied tenant headers are not trusted.
     pub fn verify_bearer_token_scoped(
         &self,
         tenant_id: Option<i64>,
@@ -84,13 +107,17 @@ impl SqliteSqlxCredentialRepository {
             return false;
         }
         let now = current_rfc3339_timestamp();
+        let device_id = device_id.to_string();
+        let token = token.to_string();
         self.db
-            .run::<_, bool, sqlx::Error>(async {
-                let mut query = String::from(
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let mut query = adapt_sqlite_placeholders(
+                    dialect,
                     "SELECT credential_hash FROM iot_device_credential
-                     WHERE device_id = ?1
-                       AND status = ?2
-                       AND (expires_at IS NULL OR expires_at > ?3)",
+                 WHERE device_id = ?1
+                   AND status = ?2
+                   AND (expires_at IS NULL OR expires_at > ?3)",
                 );
                 if tenant_id.is_some() {
                     query.push_str(" AND tenant_id = ?4");
@@ -98,27 +125,56 @@ impl SqliteSqlxCredentialRepository {
                 if organization_id.is_some() {
                     query.push_str(" AND organization_id = ?5");
                 }
+                let query = adapt_sqlite_placeholders(dialect, &query);
 
-                let mut sql_query = sqlx::query(&query)
-                    .bind(device_id)
-                    .bind(CREDENTIAL_STATUS_ACTIVE)
-                    .bind(&now);
-                if let Some(tenant_id) = tenant_id {
-                    sql_query = sql_query.bind(tenant_id);
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let mut sql_query = sqlx::query(&query)
+                            .bind(&device_id)
+                            .bind(CREDENTIAL_STATUS_ACTIVE)
+                            .bind(&now);
+                        if let Some(tenant_id) = tenant_id {
+                            sql_query = sql_query.bind(tenant_id);
+                        }
+                        if let Some(organization_id) = organization_id {
+                            sql_query = sql_query.bind(organization_id);
+                        }
+                        let rows = sql_query
+                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        Ok::<bool, sqlx::Error>(rows.into_iter().any(|row| {
+                            row.try_get::<String, _>("credential_hash")
+                                .ok()
+                                .filter(|stored| !stored.is_empty())
+                                .is_some_and(|stored| {
+                                    verify_device_credential_secret(&stored, token.as_bytes())
+                                })
+                        }))
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let mut sql_query = sqlx::query(&query)
+                            .bind(&device_id)
+                            .bind(CREDENTIAL_STATUS_ACTIVE)
+                            .bind(&now);
+                        if let Some(tenant_id) = tenant_id {
+                            sql_query = sql_query.bind(tenant_id);
+                        }
+                        if let Some(organization_id) = organization_id {
+                            sql_query = sql_query.bind(organization_id);
+                        }
+                        let rows = sql_query
+                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        Ok::<bool, sqlx::Error>(rows.into_iter().any(|row| {
+                            row.try_get::<String, _>("credential_hash")
+                                .ok()
+                                .filter(|stored| !stored.is_empty())
+                                .is_some_and(|stored| {
+                                    verify_device_credential_secret(&stored, token.as_bytes())
+                                })
+                        }))
+                    }
                 }
-                if let Some(organization_id) = organization_id {
-                    sql_query = sql_query.bind(organization_id);
-                }
-
-                let rows = sql_query.fetch_all(self.db.pool()).await?;
-                Ok(rows.into_iter().any(|row| {
-                    row.try_get::<String, _>("credential_hash")
-                        .ok()
-                        .filter(|stored| !stored.is_empty())
-                        .is_some_and(|stored| {
-                            verify_device_credential_secret(&stored, token.as_bytes())
-                        })
-                }))
             })
             .unwrap_or(false)
     }
@@ -128,20 +184,36 @@ impl SqliteSqlxCredentialRepository {
             return false;
         }
         let now = current_rfc3339_timestamp();
+        let device_id = device_id.to_string();
         self.db
-            .run::<_, bool, sqlx::Error>(async {
-                let count: i64 = sqlx::query_scalar(
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let sql = adapt_sqlite_placeholders(
+                    dialect,
                     "SELECT COUNT(1) FROM iot_device_credential
-                     WHERE device_id = ?1
-                       AND status = ?2
-                       AND (expires_at IS NULL OR expires_at > ?3)",
-                )
-                .bind(device_id)
-                .bind(CREDENTIAL_STATUS_ACTIVE)
-                .bind(now)
-                .fetch_one(self.db.pool())
-                .await?;
-                Ok(count > 0)
+                 WHERE device_id = ?1
+                   AND status = ?2
+                   AND (expires_at IS NULL OR expires_at > ?3)",
+                );
+                let count: i64 = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        sqlx::query_scalar(&sql)
+                            .bind(&device_id)
+                            .bind(CREDENTIAL_STATUS_ACTIVE)
+                            .bind(&now)
+                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        sqlx::query_scalar(&sql)
+                            .bind(&device_id)
+                            .bind(CREDENTIAL_STATUS_ACTIVE)
+                            .bind(&now)
+                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                            .await?
+                    }
+                };
+                Ok::<bool, sqlx::Error>(count > 0)
             })
             .unwrap_or(false)
     }
@@ -151,56 +223,91 @@ impl SqliteSqlxCredentialRepository {
         command: SqliteCredentialCreateCommand,
     ) -> Result<SqliteDeviceCredentialRecord, SqliteCredentialRepositoryError> {
         let now = current_rfc3339_timestamp();
-        self.db.with_transaction(|tx| {
-            Box::pin(async move {
-                let next_id: i64 = sqlx::query_scalar(
-                    "SELECT COALESCE(MAX(id), 0) + 1 FROM iot_device_credential",
-                )
-                .fetch_one(&mut **tx)
-                .await
-                .map_err(|_| SqliteCredentialRepositoryError::PersistenceFailure)?;
-                let credential_id = format!("credential-{next_id:04}");
-                let issued_secret = generate_device_secret(&command.device_id, next_id);
-                let credential_hash = hash_device_credential_secret(issued_secret.as_bytes());
+        self.db
+            .with_device_transaction(|mut tx, dialect| {
+                Box::pin(async move {
+                    let next_id_sql = adapt_sqlite_placeholders(
+                        dialect,
+                        "SELECT COALESCE(MAX(id), 0) + 1 FROM iot_device_credential",
+                    );
+                    let next_id: i64 = match &mut tx {
+                        DeviceDbTransaction::Sqlite(connection) => {
+                            sqlx::query_scalar(&next_id_sql)
+                                .fetch_one(&mut **connection)
+                                .await?
+                        }
+                        DeviceDbTransaction::Postgres(connection) => {
+                            sqlx::query_scalar(&next_id_sql)
+                                .fetch_one(&mut **connection)
+                                .await?
+                        }
+                    };
+                    let credential_id = format!("credential-{next_id:04}");
+                    let issued_secret = generate_device_secret(&command.device_id, next_id);
+                    let credential_hash = hash_device_credential_secret(issued_secret.as_bytes());
 
-                sqlx::query(
-                    "INSERT INTO iot_device_credential (
+                    let insert_sql = adapt_sqlite_placeholders(
+                        dialect,
+                        "INSERT INTO iot_device_credential (
                             id, uuid, tenant_id, organization_id, data_scope, device_id,
                             credential_type, credential_hash, credential_ref, expires_at,
                             status, created_at, updated_at, version
                         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 0)",
-                )
-                .bind(next_id)
-                .bind(&credential_id)
-                .bind(command.association.tenant_id)
-                .bind(command.association.organization_id)
-                .bind(command.association.data_scope)
-                .bind(&command.device_id)
-                .bind(&command.credential_type)
-                .bind(credential_hash)
-                .bind(&credential_id)
-                .bind(command.expires_at.as_deref())
-                .bind(CREDENTIAL_STATUS_ACTIVE)
-                .bind(&now)
-                .bind(&now)
-                .execute(&mut **tx)
-                .await
-                .map_err(|_| SqliteCredentialRepositoryError::PersistenceFailure)?;
+                    );
+                    match &mut tx {
+                        DeviceDbTransaction::Sqlite(connection) => {
+                            sqlx::query(&insert_sql)
+                                .bind(next_id)
+                                .bind(&credential_id)
+                                .bind(command.association.tenant_id)
+                                .bind(command.association.organization_id)
+                                .bind(command.association.data_scope)
+                                .bind(&command.device_id)
+                                .bind(&command.credential_type)
+                                .bind(credential_hash)
+                                .bind(&credential_id)
+                                .bind(command.expires_at.as_deref())
+                                .bind(CREDENTIAL_STATUS_ACTIVE)
+                                .bind(&now)
+                                .bind(&now)
+                                .execute(&mut **connection)
+                                .await?;
+                        }
+                        DeviceDbTransaction::Postgres(connection) => {
+                            sqlx::query(&insert_sql)
+                                .bind(next_id)
+                                .bind(&credential_id)
+                                .bind(command.association.tenant_id)
+                                .bind(command.association.organization_id)
+                                .bind(command.association.data_scope)
+                                .bind(&command.device_id)
+                                .bind(&command.credential_type)
+                                .bind(credential_hash)
+                                .bind(&credential_id)
+                                .bind(command.expires_at.as_deref())
+                                .bind(CREDENTIAL_STATUS_ACTIVE)
+                                .bind(&now)
+                                .bind(&now)
+                                .execute(&mut **connection)
+                                .await?;
+                        }
+                    }
 
-                Ok(SqliteDeviceCredentialRecord {
-                    credential_id,
-                    tenant_id: command.association.tenant_id,
-                    organization_id: command.association.organization_id,
-                    device_id: command.device_id,
-                    credential_type: command.credential_type,
-                    status: "active".to_string(),
-                    expires_at: command.expires_at,
-                    created_at: now.clone(),
-                    revoked_at: None,
-                    issued_secret: Some(issued_secret),
+                    Ok(SqliteDeviceCredentialRecord {
+                        credential_id,
+                        tenant_id: command.association.tenant_id,
+                        organization_id: command.association.organization_id,
+                        device_id: command.device_id,
+                        credential_type: command.credential_type,
+                        status: "active".to_string(),
+                        expires_at: command.expires_at,
+                        created_at: now.clone(),
+                        revoked_at: None,
+                        issued_secret: Some(issued_secret),
+                    })
                 })
             })
-        })
+            .map_err(CredentialRepoTxError::into_repo)
     }
 
     pub fn list_credentials(
@@ -208,24 +315,47 @@ impl SqliteSqlxCredentialRepository {
         association: &AiotStorageAssociation,
         device_id: &str,
     ) -> Vec<SqliteDeviceCredentialRecord> {
+        let association = association.clone();
+        let device_id = device_id.to_string();
         self.db
-            .run::<_, Vec<SqliteDeviceCredentialRecord>, sqlx::Error>(async {
-                let rows = sqlx::query(
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let sql = adapt_sqlite_placeholders(
+                    dialect,
                     "SELECT uuid, tenant_id, organization_id, device_id, credential_type, status,
-                            expires_at, created_at, updated_at
-                     FROM iot_device_credential
-                     WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3
-                     ORDER BY id ASC",
-                )
-                .bind(association.tenant_id)
-                .bind(association.organization_id)
-                .bind(device_id)
-                .fetch_all(self.db.pool())
-                .await?;
-                Ok(rows
-                    .into_iter()
-                    .filter_map(|row| row_to_credential_record(&row).ok())
-                    .collect::<Vec<_>>())
+                        expires_at, created_at, updated_at
+                 FROM iot_device_credential
+                 WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3
+                 ORDER BY id ASC",
+                );
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let rows = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        Ok::<Vec<SqliteDeviceCredentialRecord>, sqlx::Error>(
+                            rows.iter()
+                                .filter_map(|row| row_to_credential_record(row).ok())
+                                .collect(),
+                        )
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let rows = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        Ok::<Vec<SqliteDeviceCredentialRecord>, sqlx::Error>(
+                            rows.iter()
+                                .filter_map(|row| row_to_credential_record_postgres(row).ok())
+                                .collect(),
+                        )
+                    }
+                }
             })
             .unwrap_or_default()
     }
@@ -236,21 +366,43 @@ impl SqliteSqlxCredentialRepository {
         device_id: &str,
         credential_id: &str,
     ) -> Option<SqliteDeviceCredentialRecord> {
+        let association = association.clone();
+        let device_id = device_id.to_string();
+        let credential_id = credential_id.to_string();
         self.db
-            .run(async {
-                let row = sqlx::query(
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let sql = adapt_sqlite_placeholders(
+                    dialect,
                     "SELECT uuid, tenant_id, organization_id, device_id, credential_type, status,
-                            expires_at, created_at
-                     FROM iot_device_credential
-                     WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 AND uuid = ?4",
-                )
-                .bind(association.tenant_id)
-                .bind(association.organization_id)
-                .bind(device_id)
-                .bind(credential_id)
-                .fetch_optional(self.db.pool())
-                .await?;
-                row.as_ref().map(row_to_credential_record).transpose()
+                        expires_at, created_at
+                 FROM iot_device_credential
+                 WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 AND uuid = ?4",
+                );
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let row = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(&credential_id)
+                            .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        row.as_ref().map(row_to_credential_record).transpose()
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let row = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(&credential_id)
+                            .fetch_optional(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        row.as_ref()
+                            .map(row_to_credential_record_postgres)
+                            .transpose()
+                    }
+                }
             })
             .ok()
             .flatten()
@@ -263,25 +415,48 @@ impl SqliteSqlxCredentialRepository {
         credential_id: &str,
     ) -> Result<(), SqliteCredentialRepositoryError> {
         let now = current_rfc3339_timestamp();
+        let association = association.clone();
+        let device_id = device_id.to_string();
+        let credential_id = credential_id.to_string();
         let updated = self
             .db
-            .run(async {
-                sqlx::query(
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let sql = adapt_sqlite_placeholders(
+                    dialect,
                     "UPDATE iot_device_credential
                      SET status = ?1, updated_at = ?2
                      WHERE tenant_id = ?3 AND organization_id = ?4 AND device_id = ?5 AND uuid = ?6",
-                )
-                .bind(CREDENTIAL_STATUS_REVOKED)
-                .bind(&now)
-                .bind(association.tenant_id)
-                .bind(association.organization_id)
-                .bind(device_id)
-                .bind(credential_id)
-                .execute(self.db.pool())
-                .await
-                .map(|result| result.rows_affected())
+                );
+                let result = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        sqlx::query(&sql)
+                            .bind(CREDENTIAL_STATUS_REVOKED)
+                            .bind(&now)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(&credential_id)
+                            .execute(pool.sqlite_pool().expect("sqlite pool"))
+                            .await
+                            .map(|result| result.rows_affected())
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        sqlx::query(&sql)
+                            .bind(CREDENTIAL_STATUS_REVOKED)
+                            .bind(&now)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(&credential_id)
+                            .execute(pool.postgres_pool().expect("postgres pool"))
+                            .await
+                            .map(|result| result.rows_affected())
+                    }
+                }?;
+                Ok(result)
             })
-            .map_err(|_| SqliteCredentialRepositoryError::PersistenceFailure)?;
+            .map_err(|_: sqlx::Error| SqliteCredentialRepositoryError::PersistenceFailure)?;
         if updated == 0 {
             return Err(SqliteCredentialRepositoryError::CredentialNotFound);
         }
@@ -292,19 +467,79 @@ impl SqliteSqlxCredentialRepository {
 fn row_to_credential_record(
     row: &sqlx::sqlite::SqliteRow,
 ) -> Result<SqliteDeviceCredentialRecord, sqlx::Error> {
-    let status_code: i32 = row.try_get("status")?;
     Ok(SqliteDeviceCredentialRecord {
         credential_id: row.try_get("uuid")?,
         tenant_id: row.try_get("tenant_id")?,
         organization_id: row.try_get("organization_id")?,
         device_id: row.try_get("device_id")?,
         credential_type: row.try_get("credential_type")?,
-        status: credential_status_label(status_code).to_string(),
-        expires_at: read_optional_timestamp_column(row, "expires_at")?,
-        created_at: read_timestamp_column(row, "created_at")?,
+        status: credential_status_label(row.try_get::<i64, _>("status")? as i32).to_string(),
+        expires_at: read_optional_timestamp_column_sqlite(row, "expires_at")?,
+        created_at: read_timestamp_column_sqlite(row, "created_at")?,
         revoked_at: None,
         issued_secret: None,
     })
+}
+
+fn row_to_credential_record_postgres(
+    row: &sqlx::postgres::PgRow,
+) -> Result<SqliteDeviceCredentialRecord, sqlx::Error> {
+    Ok(SqliteDeviceCredentialRecord {
+        credential_id: row.try_get("uuid")?,
+        tenant_id: row.try_get("tenant_id")?,
+        organization_id: row.try_get("organization_id")?,
+        device_id: row.try_get("device_id")?,
+        credential_type: row.try_get("credential_type")?,
+        status: credential_status_label(row.try_get::<i64, _>("status")? as i32).to_string(),
+        expires_at: read_optional_timestamp_column_postgres(row, "expires_at")?,
+        created_at: read_timestamp_column_postgres(row, "created_at")?,
+        revoked_at: None,
+        issued_secret: None,
+    })
+}
+
+fn read_timestamp_column_sqlite(
+    row: &sqlx::sqlite::SqliteRow,
+    column: &'static str,
+) -> Result<String, sqlx::Error> {
+    row.try_get::<String, _>(column).or_else(|_| {
+        let value: i64 = row.try_get(column)?;
+        Ok(value.to_string())
+    })
+}
+
+fn read_timestamp_column_postgres(
+    row: &sqlx::postgres::PgRow,
+    column: &'static str,
+) -> Result<String, sqlx::Error> {
+    row.try_get::<String, _>(column).or_else(|_| {
+        let value: i64 = row.try_get(column)?;
+        Ok(value.to_string())
+    })
+}
+
+fn read_optional_timestamp_column_sqlite(
+    row: &sqlx::sqlite::SqliteRow,
+    column: &'static str,
+) -> Result<Option<String>, sqlx::Error> {
+    if row.try_get::<Option<String>, _>(column)?.is_none()
+        && row.try_get::<Option<i64>, _>(column)?.is_none()
+    {
+        return Ok(None);
+    }
+    read_timestamp_column_sqlite(row, column).map(Some)
+}
+
+fn read_optional_timestamp_column_postgres(
+    row: &sqlx::postgres::PgRow,
+    column: &'static str,
+) -> Result<Option<String>, sqlx::Error> {
+    if row.try_get::<Option<String>, _>(column)?.is_none()
+        && row.try_get::<Option<i64>, _>(column)?.is_none()
+    {
+        return Ok(None);
+    }
+    read_timestamp_column_postgres(row, column).map(Some)
 }
 
 fn credential_status_label(status: i32) -> &'static str {
@@ -315,18 +550,13 @@ fn credential_status_label(status: i32) -> &'static str {
     }
 }
 
-fn generate_device_secret(device_id: &str, sequence: i64) -> String {
+fn generate_device_secret(_device_id: &str, _sequence: i64) -> String {
+    use rand_core::{OsRng, RngCore};
     use sdkwork_utils_rust::sha256_hash;
-    let seed = format!(
-        "{}:{}:{}",
-        device_id,
-        sequence,
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|value| value.as_nanos())
-            .unwrap_or(0)
-    );
-    sha256_hash(seed.as_bytes())
+
+    let mut bytes = [0u8; 32];
+    OsRng.fill_bytes(&mut bytes);
+    sha256_hash(&bytes)
 }
 
 fn current_rfc3339_timestamp() -> String {

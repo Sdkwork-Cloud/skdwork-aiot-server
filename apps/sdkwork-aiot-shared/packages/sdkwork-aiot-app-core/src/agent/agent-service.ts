@@ -2,7 +2,6 @@ import type { SdkworkAiotAppClient } from '@sdkwork/aiot-app-sdk';
 
 import {
   createAiotCommandService,
-  createLocalAssistantReply,
   pollCommandResult,
   type AiotCommandService,
 } from '../command/command-service';
@@ -119,8 +118,16 @@ export function createAiotAgentService(
         });
 
         const completed = await pollCommandResult(options.aiotClient, input.deviceId, command.commandId);
-        const replyText = extractAssistantText(completed?.result?.resultPayload)
-          ?? createLocalAssistantReply(input.text);
+        const replyText = extractAssistantText(completed?.result?.resultPayload);
+        if (!replyText) {
+          const missingReplyError = new Error(
+            '设备未返回 assistant.chat 回复，请确认设备在线且已启用智能体能力。',
+          );
+          pendingAssistant.content = missingReplyError.message;
+          pendingAssistant.status = 'failed';
+          pendingAssistant.createdAt = nowIso();
+          throw missingReplyError;
+        }
 
         pendingAssistant.content = replyText;
         pendingAssistant.status = 'completed';

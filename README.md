@@ -9,7 +9,11 @@ Quick verification:
 ```bash
 pnpm check
 pnpm verify
+pnpm deploy:validate
+pnpm release:preflight
 ```
+
+Production release: [docs/runbooks/production-release.md](docs/runbooks/production-release.md). Unified preflight gate: `pnpm release:preflight` (deploy + release + optional CDN publish).
 
 Root directory dictionary (active capabilities):
 
@@ -21,7 +25,7 @@ Root directory dictionary (active capabilities):
 | `services/` | Runnable gateway and app/backend API binaries |
 | `sdks/` | OpenAPI authorities, route manifests, generated SDK families |
 | `configs/` | Topology profile env templates |
-| `deployments/` | Deployment/release handoff placeholder |
+| `deployments/` | Deployment profiles and release handoff (`deploy.yaml`) |
 | `scripts/` | Dev orchestration and contract tests |
 | `docs/` | ADRs, topology, production readiness |
 | `specs/` | Component and topology contracts |
@@ -108,7 +112,7 @@ Activation challenge registry:
 Optional integration test with real Redis:
 
 - Set `SDKWORK_AIOT_GATEWAY_TEST_REDIS_URL=redis://127.0.0.1:6379/0` before
-  running `cargo test -p sdkwork-aiot-gateway -- --nocapture --test-threads=1`
+  running `cargo test -p sdkwork-aiot-cloud-gateway -- --nocapture --test-threads=1`
   to enable the Redis-backed end-to-end activation registry test.
 
 Simulator MCP tool catalog:
@@ -204,7 +208,7 @@ Enable it:
 
 ```powershell
 $env:SDKWORK_AIOT_GATEWAY_MQTT_BRIDGE_ENABLE='1'
-cargo run -p sdkwork-aiot-gateway
+cargo run -p sdkwork-aiot-cloud-gateway
 ```
 
 Key runtime knobs:
@@ -264,10 +268,17 @@ Extension points are limited to declared public exports, runtime entrypoints, SD
 
 ### Verification
 
-- `cargo fmt --all -- --check`
+- `cargo fmt -- --check`
 - `cargo test --workspace`
 - `cargo check --workspace`
 
 ### Owner And Status
 
 Owner and lifecycle status are tracked in `specs/component.spec.json`.
+
+## Documentation Canon
+
+- [docs/README.md](docs/README.md)
+- [docs/product/prd/PRD.md](docs/product/prd/PRD.md)
+- [docs/architecture/tech/TECH_ARCHITECTURE.md](docs/architecture/tech/TECH_ARCHITECTURE.md)
+

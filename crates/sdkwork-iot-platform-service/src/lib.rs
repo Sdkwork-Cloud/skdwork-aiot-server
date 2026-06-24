@@ -2,11 +2,15 @@
 
 mod pagination;
 
+use pagination::{paginated_collection_body, PageQuery};
+
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use pagination::{paginated_collection_body, PageQuery};
+use crate::firmware_rollout_planner::{
+    firmware_deployment_payload_json, resolve_rollout_target_device_ids, rollout_force_from_policy,
+};
 use sdkwork_aiot_contract::{
     AiotRequestContext, IOT_PERMISSION_COMMANDS_CANCEL, IOT_PERMISSION_COMMANDS_EXECUTE,
     IOT_PERMISSION_COMMANDS_READ, IOT_PERMISSION_DEVICES_DELETE, IOT_PERMISSION_DEVICES_READ,
@@ -36,6 +40,7 @@ use sdkwork_aiot_transport::{build_health_response, HttpRequest, HttpResponse, H
 use sdkwork_iot_device_service::{CapabilityDefinition, CapabilityKind, ProtocolProfile};
 use sdkwork_utils_rust::{base64url_decode, hex_encode, hmac_sha256, secure_compare};
 
+mod firmware_rollout_planner;
 mod service_stores;
 mod sqlite_admin;
 
@@ -1159,6 +1164,19 @@ pub fn standard_api_route_contracts() -> Vec<AiotApiRouteContract> {
     ]
 }
 
+fn auth_critical_rate_limit_tier(operation_id: &str) -> Option<&'static str> {
+    match operation_id {
+        "devices.commands.create"
+        | "devices.create"
+        | "devices.delete"
+        | "devices.credentials.create"
+        | "devices.credentials.delete"
+        | "devices.commands.cancel"
+        | "firmwareRollouts.create" => Some("authCritical"),
+        _ => None,
+    }
+}
+
 pub fn standard_route_manifest_document(surface: AiotApiSurface) -> serde_json::Value {
     let (package_name, api_surface, prefix, api_authority, sdk_family, crate_root) = match surface {
         AiotApiSurface::App => (
@@ -1189,7 +1207,7 @@ pub fn standard_route_manifest_document(surface: AiotApiSurface) -> serde_json::
                 .next()
                 .unwrap_or("iot")
                 .to_string();
-            serde_json::json!({
+            let mut route_entry = serde_json::json!({
                 "method": route.method,
                 "path": route.path,
                 "operationId": route.operation_id,
@@ -1219,7 +1237,11 @@ pub fn standard_route_manifest_document(surface: AiotApiSurface) -> serde_json::
                 "source": {
                     "file": "crates/sdkwork-iot-platform-service/src/lib.rs"
                 }
-            })
+            });
+            if let Some(tier) = auth_critical_rate_limit_tier(route.operation_id) {
+                route_entry["rateLimitTier"] = serde_json::Value::String(tier.to_string());
+            }
+            route_entry
         })
         .collect::<Vec<_>>();
 
@@ -2059,8 +2081,11 @@ impl AiotApiServer {
         payload: AiotFirmwareRolloutCreatePayload,
     ) -> Result<AiotFirmwareRolloutRecord, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
+        let devices = self.device_repository.list_devices(&association);
+        let target_device_ids =
+            resolve_rollout_target_device_ids(&payload.target_policy_json, &devices);
         self.firmware_repository
-            .create_rollout(association, payload)
+            .create_rollout(association, payload, &target_device_ids)
             .map_err(firmware_repository_error_to_response)
     }
 
@@ -4074,8 +4099,10 @@ enum AiotFirmwareRepositoryError {
 struct InMemoryAiotFirmwareRepositoryState {
     next_artifact_id: u64,
     next_rollout_id: u64,
+    next_deployment_id: u64,
     artifacts: BTreeMap<String, AiotFirmwareArtifactRecord>,
     rollouts: BTreeMap<String, AiotFirmwareRolloutRecord>,
+    deployments: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -4244,6 +4271,7 @@ impl InMemoryAiotFirmwareRepository {
         &self,
         association: AiotStorageAssociation,
         payload: AiotFirmwareRolloutCreatePayload,
+        target_device_ids: &[String],
     ) -> Result<AiotFirmwareRolloutRecord, AiotFirmwareRepositoryError> {
         let mut state = self.state.lock().expect("in-memory firmware repo poisoned");
         let artifact_key = scoped_firmware_artifact_key(&association, &payload.artifact_id);
@@ -4257,14 +4285,31 @@ impl InMemoryAiotFirmwareRepository {
         }
         state.next_rollout_id += 1;
         let record = AiotFirmwareRolloutRecord {
-            rollout_id,
+            rollout_id: rollout_id.clone(),
             tenant_id: association.tenant_id,
             organization_id: association.organization_id,
-            artifact_id: payload.artifact_id,
-            target_policy_json: payload.target_policy_json,
+            artifact_id: payload.artifact_id.clone(),
+            target_policy_json: payload.target_policy_json.clone(),
             status: "accepted".to_string(),
         };
         state.rollouts.insert(key, record.clone());
+
+        let force = rollout_force_from_policy(&payload.target_policy_json);
+        for device_id in target_device_ids {
+            state.next_deployment_id += 1;
+            let deployment_id = format!("firmware-deployment-{:04}", state.next_deployment_id);
+            let deployment_key = scoped_firmware_deployment_key(&association, &deployment_id);
+            let deployment_json = firmware_deployment_payload_json(
+                &deployment_id,
+                &association,
+                &rollout_id,
+                &payload.artifact_id,
+                device_id,
+                force,
+            );
+            state.deployments.insert(deployment_key, deployment_json);
+        }
+
         Ok(record)
     }
 
@@ -4874,6 +4919,16 @@ fn scoped_firmware_rollout_key(association: &AiotStorageAssociation, rollout_id:
     format!(
         "{}:{}:{}",
         association.tenant_id, association.organization_id, rollout_id
+    )
+}
+
+fn scoped_firmware_deployment_key(
+    association: &AiotStorageAssociation,
+    deployment_id: &str,
+) -> String {
+    format!(
+        "{}:{}:{}",
+        association.tenant_id, association.organization_id, deployment_id
     )
 }
 

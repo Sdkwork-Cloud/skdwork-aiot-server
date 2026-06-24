@@ -22,6 +22,10 @@ const ENTITY_CAPABILITY_MODEL: &str = "capability_model";
 const ENTITY_FIRMWARE_ARTIFACT: &str = "firmware_artifact";
 const ENTITY_FIRMWARE_ROLLOUT: &str = "firmware_rollout";
 
+use crate::firmware_rollout_planner::{
+    firmware_deployment_payload_json, rollout_force_from_policy, ENTITY_FIRMWARE_DEPLOYMENT,
+};
+
 #[derive(Clone)]
 pub struct AiotCatalogRepositoryHandle {
     memory: InMemoryAiotCatalogRepository,
@@ -657,6 +661,7 @@ impl AiotFirmwareRepositoryHandle {
         &self,
         association: AiotStorageAssociation,
         payload: AiotFirmwareRolloutCreatePayload,
+        target_device_ids: &[String],
     ) -> Result<AiotFirmwareRolloutRecord, AiotFirmwareRepositoryError> {
         if let Some(store) = &self.store {
             if self
@@ -670,8 +675,8 @@ impl AiotFirmwareRepositoryHandle {
                 rollout_id: rollout_id.clone(),
                 tenant_id: association.tenant_id,
                 organization_id: association.organization_id,
-                artifact_id: payload.artifact_id,
-                target_policy_json: payload.target_policy_json,
+                artifact_id: payload.artifact_id.clone(),
+                target_policy_json: payload.target_policy_json.clone(),
                 status: "accepted".to_string(),
             };
             store
@@ -682,9 +687,18 @@ impl AiotFirmwareRepositoryHandle {
                     &firmware_rollout_json(&record),
                 )
                 .map_err(|_| AiotFirmwareRepositoryError::RolloutNotFound)?;
+            plan_firmware_deployments(
+                store.as_ref(),
+                &association,
+                &rollout_id,
+                &payload.artifact_id,
+                &payload.target_policy_json,
+                target_device_ids,
+            );
             return Ok(record);
         }
-        self.memory.create_rollout(association, payload)
+        self.memory
+            .create_rollout(association, payload, target_device_ids)
     }
 
     pub fn list_rollouts(
@@ -778,6 +792,45 @@ fn next_firmware_rollout_id(
         .len()
         + 1;
     format!("firmware-rollout-{next:04}")
+}
+
+fn next_firmware_deployment_id(
+    store: &SqlitePersistedEntityRepository,
+    association: &AiotStorageAssociation,
+) -> String {
+    let next = store
+        .list_entities(association, ENTITY_FIRMWARE_DEPLOYMENT)
+        .len()
+        + 1;
+    format!("firmware-deployment-{next:04}")
+}
+
+fn plan_firmware_deployments(
+    store: &SqlitePersistedEntityRepository,
+    association: &AiotStorageAssociation,
+    rollout_id: &str,
+    artifact_id: &str,
+    target_policy_json: &str,
+    target_device_ids: &[String],
+) {
+    let force = rollout_force_from_policy(target_policy_json);
+    for device_id in target_device_ids {
+        let deployment_id = next_firmware_deployment_id(store, association);
+        let payload_json = firmware_deployment_payload_json(
+            &deployment_id,
+            association,
+            rollout_id,
+            artifact_id,
+            device_id,
+            force,
+        );
+        let _ = store.upsert_entity(
+            association,
+            ENTITY_FIRMWARE_DEPLOYMENT,
+            &deployment_id,
+            &payload_json,
+        );
+    }
 }
 
 fn build_firmware_artifact_record(

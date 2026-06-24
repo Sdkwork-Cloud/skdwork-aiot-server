@@ -14,7 +14,17 @@ This document tracks production readiness for the SDKWork AIoT server after the 
 | OTLP HTTP trace export | Done | `SDKWORK_AIOT_OTLP_ENDPOINT`, OTLP/HTTP JSON in `sdkwork-aiot-observability` |
 | Protocol ingest persistence | Done | Gateway `protocol_ingest_from_env()` + `SqlxProtocolIngestUnitOfWork` |
 | Transactional outbox publish worker | Done | `SqliteOutboxEventRepository`, `AiotOutboxDispatcher`, gateway worker + `/readyz` lag probe |
-| Release package checksum sync | Done | `pnpm release:package` writes SHA-256 into `sdkwork.app.config.json` |
+| Release package checksum sync | Done | `pnpm release:package`, `artifacts/release/release-packages.manifest.json`, CI `release-smoke` job |
+| Release SBOM evidence | Done | `artifacts/release/sbom/*.sbom.json`, `pnpm sbom:check`, generated during `release:package` |
+| CDN publish gate | Done | `pnpm release:publish` validates archives, checksums, and SBOM before operator upload |
+| Production release runbook | Done | `docs/runbooks/production-release.md` |
+| Rust fmt workspace boundary | Done | `cargo fmt -- --check` scopes to AIoT members only (not sibling path deps) |
+| Deploy manifest topology alignment | Done | `pnpm check:deploy-manifest` validates `deployments/deploy.yaml` against production topology profiles |
+| Documentation registry | Done | `docs/INDEX.yaml` registers canon, runbooks, and operational docs |
+| Repository docs standard | Done | `pnpm check:docs-standard` (`DOCUMENTATION_SPEC.md`) |
+| SBOM checksum parity | Done | `pnpm sbom:check --strict` matches app manifest checksums |
+| Commercial readiness gate | Done | `pnpm release:preflight` runs deploy + release + optional publish checks |
+| Docs index registry validation | Done | `pnpm check:docs-index` resolves `docs/INDEX.yaml` paths |
 | App/backend HTTP (Axum + web framework) | Done | `sdkwork-router-iot-app-api`, `sdkwork-router-iot-backend-api`, `resolve_api_request_from_web_context` |
 | Gateway device ingress HTTP | Done | `sdkwork-aiot-transport` minimal stack per ADR 002 |
 | CORS + security headers + rate limiting | Done | `sdkwork-iot-platform-service` |
@@ -24,7 +34,7 @@ This document tracks production readiness for the SDKWork AIoT server after the 
 | Route manifest + OpenAPI alignment | Done | `sdks/_route-manifests/*`, architecture tests |
 | Workspace verification | Done | `pnpm check`, `pnpm verify`, targeted `cargo test` crates |
 | Production topology guardrails | Done | `pnpm check:production-topology`, production env profiles |
-| Postgres device persistence (cloud HA) | Planned | Phase K — `SDKWORK_AIOT_DEVICE_DATABASE_*` with async repositories |
+| Postgres device persistence (cloud HA) | Done | `BlockingDevicePool` + dialect-aware device/credential/outbox/admin-entity repos; `SDKWORK_AIOT_DEVICE_DATABASE_*` in cloud production topology |
 
 ## Shared SQLite Without Persistent Path
 
@@ -48,10 +58,13 @@ Run before promoting a release candidate:
 pnpm check
 pnpm verify
 pnpm check:production-topology
+pnpm check:deploy-manifest
+pnpm release:preflight
 pnpm release:validate
+pnpm release:publish
 ```
 
-Release artifacts remain disabled in `sdkwork.app.config.json` until `pnpm release:build` and `pnpm release:package` publish real checksums.
+After `pnpm release:build` and `pnpm release:package`, server install packages in `sdkwork.app.config.json` are enabled with SHA-256 checksums. Packaged archives land under `artifacts/release/linux/x64/server.tar.gz` and `artifacts/release/windows/x64/server.zip`, matching the CDN URL suffixes in the app manifest. CycloneDX SBOM evidence is written to `artifacts/release/sbom/`. Run `pnpm release:publish` to verify the release candidate, then upload archives and SBOM files to the CDN URLs before customer download.
 
 ## Production Environment Checklist
 
@@ -71,7 +84,7 @@ $env:SDKWORK_AIOT_CORS_ALLOWED_ORIGINS='https://console.example.com'
 # $env:SDKWORK_AIOT_STRUCTURED_TRACE='1'
 # Optional OTLP/HTTP JSON export (OpenTelemetry collector / Jaeger OTLP receiver):
 # $env:SDKWORK_AIOT_OTLP_ENDPOINT='http://127.0.0.1:4318/v1/traces'
-# $env:SDKWORK_AIOT_OTLP_SERVICE_NAME='sdkwork-aiot-gateway'
+# $env:SDKWORK_AIOT_OTLP_SERVICE_NAME='sdkwork-aiot-cloud-gateway'
 # Optional gateway replica identity for metrics/traces:
 # $env:SDKWORK_AIOT_GATEWAY_NODE_ID='gateway-a'
 # Do NOT set SDKWORK_AIOT_DEV_MODE in production
@@ -84,3 +97,5 @@ Gateway device access in production:
 3. Device connects with `Device-Id` + `Authorization: Bearer <issuedSecret>`.
 
 When `SDKWORK_AIOT_DEVICE_DB_PATH` is configured on gateway, admin-api, and app-api, credential verification uses the shared SQLite database. Admin-api also persists custom products and firmware artifacts/rollouts in the same database via migration `0002` (`iot_admin_entity`).
+
+For cloud-hosted Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `configs/topology/cloud-hosted.split-services.production.env`). Device, credential, outbox, and admin-entity repositories share one `BlockingDevicePool` opened from those env keys.

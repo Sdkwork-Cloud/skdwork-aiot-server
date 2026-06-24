@@ -1,13 +1,13 @@
-//! Device schema bootstrap through `sqlx` pools.
+//! Device schema bootstrap through engine-aware blocking pools.
 
 use std::collections::BTreeSet;
 
 use sqlx::Row;
 
-use crate::sqlite_sync::BlockingSqlitePool;
+use crate::blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine};
 use crate::{migration_catalog, SqlMigration};
 
-pub(crate) fn ensure_device_schema(pool: &BlockingSqlitePool) -> Result<(), sqlx::Error> {
+pub(crate) fn ensure_device_schema(pool: &BlockingDevicePool) -> Result<(), sqlx::Error> {
     pool.execute_batch_sql(
         "CREATE TABLE IF NOT EXISTS iot_schema_version (
             version TEXT NOT NULL PRIMARY KEY,
@@ -33,19 +33,33 @@ pub(crate) fn ensure_device_schema(pool: &BlockingSqlitePool) -> Result<(), sqlx
 }
 
 async fn load_applied_schema_versions(
-    pool: &BlockingSqlitePool,
+    pool: &BlockingDevicePool,
 ) -> Result<BTreeSet<String>, sqlx::Error> {
-    let rows = sqlx::query("SELECT version FROM iot_schema_version ORDER BY version ASC")
-        .fetch_all(pool.pool())
-        .await?;
-    Ok(rows
-        .into_iter()
-        .filter_map(|row| row.try_get::<String, _>("version").ok())
-        .collect())
+    let sql = pool.adapt_sql("SELECT version FROM iot_schema_version ORDER BY version ASC");
+    match pool.engine() {
+        DeviceDatabaseEngine::Sqlite => {
+            let rows = sqlx::query(&sql)
+                .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                .await?;
+            Ok(rows
+                .into_iter()
+                .filter_map(|row| row.try_get::<String, _>("version").ok())
+                .collect())
+        }
+        DeviceDatabaseEngine::Postgres => {
+            let rows = sqlx::query(&sql)
+                .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                .await?;
+            Ok(rows
+                .into_iter()
+                .filter_map(|row| row.try_get::<String, _>("version").ok())
+                .collect())
+        }
+    }
 }
 
 fn bootstrap_legacy_schema_version(
-    pool: &BlockingSqlitePool,
+    pool: &BlockingDevicePool,
     applied_versions: &mut BTreeSet<String>,
 ) -> Result<(), sqlx::Error> {
     if !applied_versions.is_empty() {
@@ -53,11 +67,22 @@ fn bootstrap_legacy_schema_version(
     }
 
     let legacy_device_table: i64 = pool.run(async {
-        sqlx::query_scalar(
-            "SELECT COUNT(1) FROM sqlite_master WHERE type = 'table' AND name = 'iot_device'",
-        )
-        .fetch_one(pool.pool())
-        .await
+        match pool.engine() {
+            DeviceDatabaseEngine::Sqlite => {
+                sqlx::query_scalar(
+                    "SELECT COUNT(1) FROM sqlite_master WHERE type = 'table' AND name = 'iot_device'",
+                )
+                .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                .await
+            }
+            DeviceDatabaseEngine::Postgres => {
+                sqlx::query_scalar(
+                    "SELECT COUNT(1) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'iot_device'",
+                )
+                .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                .await
+            }
+        }
     })?;
     if legacy_device_table == 0 {
         return Ok(());
@@ -72,19 +97,35 @@ fn bootstrap_legacy_schema_version(
 }
 
 fn record_applied_schema_version(
-    pool: &BlockingSqlitePool,
+    pool: &BlockingDevicePool,
     migration: &SqlMigration,
 ) -> Result<(), sqlx::Error> {
     pool.run(async {
-        sqlx::query(
-            "INSERT OR IGNORE INTO iot_schema_version (version, name, schema_version, applied_at) VALUES (?1, ?2, ?3, ?4)",
-        )
-        .bind(migration.version)
-        .bind(migration.name)
-        .bind(migration.schema_version)
-        .bind(default_timestamp())
-        .execute(pool.pool())
-        .await?;
+        let applied_at = default_timestamp();
+        match pool.engine() {
+            DeviceDatabaseEngine::Sqlite => {
+                sqlx::query(
+                    "INSERT OR IGNORE INTO iot_schema_version (version, name, schema_version, applied_at) VALUES (?1, ?2, ?3, ?4)",
+                )
+                .bind(migration.version)
+                .bind(migration.name)
+                .bind(migration.schema_version)
+                .bind(applied_at)
+                .execute(pool.sqlite_pool().expect("sqlite pool"))
+                .await?;
+            }
+            DeviceDatabaseEngine::Postgres => {
+                sqlx::query(
+                    "INSERT INTO iot_schema_version (version, name, schema_version, applied_at) VALUES ($1, $2, $3, $4) ON CONFLICT (version) DO NOTHING",
+                )
+                .bind(migration.version)
+                .bind(migration.name)
+                .bind(migration.schema_version)
+                .bind(applied_at)
+                .execute(pool.postgres_pool().expect("postgres pool"))
+                .await?;
+            }
+        }
         Ok(())
     })
 }
@@ -101,16 +142,17 @@ mod tests {
 
     #[test]
     fn ensure_device_schema_applies_migrations() {
-        let pool =
+        let sqlite =
             BlockingSqlitePool::connect("file:sdkwork-aiot-schema-test?mode=memory&cache=shared")
                 .expect("connect");
+        let pool = BlockingDevicePool::Sqlite(sqlite);
         ensure_device_schema(&pool).expect("schema");
         let version = pool
             .run(async {
                 sqlx::query_scalar::<_, String>(
                     "SELECT schema_version FROM iot_schema_version LIMIT 1",
                 )
-                .fetch_optional(pool.pool())
+                .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
                 .await
             })
             .expect("version query");

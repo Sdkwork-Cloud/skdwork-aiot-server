@@ -109,6 +109,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "audiopus"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3743519567e9135cf6f9f1a509851cb0c8e4cb9d66feb286668afb1923bec458"
+dependencies = [
+ "audiopus_sys",
+]
+
+[[package]]
+name = "audiopus_sys"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "927791de46f70facea982dbfaf19719a41ce6064443403be631a85de6a58fff9"
+dependencies = [
+ "log",
+ "pkg-config",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -285,6 +304,17 @@ checksum = "773f3b9af64447d2ce9850330c473515014aa235e6a783b02db81ff39e4a3dad"
 dependencies = [
  "crypto-common",
  "inout",
+]
+
+[[package]]
+name = "clawrouter-open-sdk"
+version = "0.1.0"
+dependencies = [
+ "http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1227,6 +1257,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
+name = "mime_guess"
+version = "2.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7c44f8e672c00fe5308fa235f821cb4198414e1c77935c1ab6948d3fd78550e"
+dependencies = [
+ "mime",
+ "unicase",
+]
+
+[[package]]
 name = "mio"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1692,6 +1732,7 @@ dependencies = [
  "base64",
  "bytes",
  "futures-core",
+ "futures-util",
  "http",
  "http-body",
  "http-body-util",
@@ -1700,6 +1741,7 @@ dependencies = [
  "hyper-util",
  "js-sys",
  "log",
+ "mime_guess",
  "percent-encoding",
  "pin-project-lite",
  "quinn",
@@ -1908,6 +1950,7 @@ name = "sdkwork-aiot-adapter-xiaozhi"
 version = "0.1.0"
 dependencies = [
  "aes",
+ "audiopus",
  "ctr",
  "sdkwork-aiot-protocol",
  "sdkwork-aiot-security",
@@ -1972,13 +2015,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "sdkwork-aiot-gateway"
+name = "sdkwork-aiot-cloud-gateway"
 version = "0.1.0"
 dependencies = [
  "ctrlc",
  "redis",
  "rumqttc",
  "sdkwork-aiot-adapter-xiaozhi",
+ "sdkwork-aiot-intelligence-bridge",
  "sdkwork-aiot-observability",
  "sdkwork-aiot-protocol",
  "sdkwork-aiot-service-host",
@@ -1987,6 +2031,20 @@ dependencies = [
  "sdkwork-aiot-transport",
  "sdkwork-utils-rust",
  "sqlx",
+]
+
+[[package]]
+name = "sdkwork-aiot-intelligence-bridge"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "clawrouter-open-sdk",
+ "sdkwork-aiot-adapter-xiaozhi",
+ "sdkwork-utils-rust",
+ "serde",
+ "serde_json",
+ "tokio",
+ "ureq",
 ]
 
 [[package]]
@@ -2028,6 +2086,7 @@ version = "0.1.0"
 name = "sdkwork-aiot-storage-sqlx"
 version = "0.1.0"
 dependencies = [
+ "rand_core 0.6.4",
  "sdkwork-aiot-database-host",
  "sdkwork-aiot-service-host",
  "sdkwork-aiot-storage",
@@ -2105,6 +2164,7 @@ dependencies = [
  "sdkwork-database-sqlx",
  "serde",
  "serde_json",
+ "sqlx",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -2200,6 +2260,7 @@ dependencies = [
  "sdkwork-aiot-storage",
  "sdkwork-aiot-storage-sqlx",
  "sdkwork-aiot-transport",
+ "sdkwork-database-config",
  "sdkwork-iot-device-service",
  "sdkwork-utils-rust",
  "sdkwork-web-core",
@@ -3123,6 +3184,12 @@ name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20"
+
+[[package]]
+name = "unicase"
+version = "2.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbc4bc3a9f746d862c45cb89d705aa10f187bb96c76001afab07a0d35ce60142"
 
 [[package]]
 name = "unicode-bidi"

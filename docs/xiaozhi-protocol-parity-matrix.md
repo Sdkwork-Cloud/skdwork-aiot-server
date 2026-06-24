@@ -37,6 +37,7 @@ git submodule update --init external/xiaozhi-esp32
 | MCP payload-only frame handling | Implemented | MCP frames with `jsonrpc`/`id` only (no `method`/`result`/`error`) are ignored without automatic `tools/list` follow-up, aligned with external parser behavior. |
 | ID preservation (numeric + string) | Implemented | Correlation ID and JSON literal preserved (`xiaozhi.mcp.id_json`). |
 | Initialize/tools list/tools call simulator path | Implemented (simulator grade) | Supports `initialize`, `tools/list`, `tools/call`, string/numeric IDs, and unknown-method errors. |
+| Production intelligence bridge (`SDKWORK_AIOT_INTELLIGENCE_MODE=kernel`) | Implemented (integration grade) | `sdkwork-aiot-intelligence-bridge` routes speech via Claw Router ASR/TTS and agent turns via kernel runtime HTTP; MCP `tools/list` + `tools/call` use kernel session tool catalog/execute; Opus codec/uplink owned by `sdkwork-aiot-adapter-xiaozhi`. See [XIAOZHI_INTELLIGENCE_INTEGRATION.md](architecture/XIAOZHI_INTELLIGENCE_INTEGRATION.md). |
 | `tools/list` cursor pagination and `withUserTools` | Implemented (simulator grade) | Cursor-based paging and user-only tool visibility toggling are available in simulator reply path. |
 | Simulator MCP tool provider override | Implemented (simulator grade) | Optional file-driven catalog via `SDKWORK_AIOT_XIAOZHI_SIMULATOR_MCP_TOOLS_PATH`, with built-in fallback. |
 | `tools/call` precondition + argument validation | Implemented (simulator grade) | Precondition errors align with external (`Missing params`, `Missing name`, `Invalid arguments`); required args return `Missing valid argument: <name>` for missing/type mismatch; integer range violations return external-style errors (`Value is below minimum allowed: <min>`, `Value exceeds maximum allowed: <max>`); integer inputs accept JSON numbers and truncate toward int semantics before range checks. |
@@ -64,7 +65,7 @@ git submodule update --init external/xiaozhi-esp32
 | Device-initiated MQTT `goodbye` (no echo) | Implemented | Gateway closes UDP session without replying `goodbye`; ignores mismatched `session_id`, aligned with `mqtt_protocol.cc`. |
 | Server-initiated MQTT `goodbye` | Implemented (simulator grade) | `xiaozhi_mqtt_server_teardown_reply` emits `goodbye` with `close_audio_channel`; bridge removes session on teardown. Operator control: `GET /internal/bridge/sessions`, `DELETE /internal/bridge/sessions/{session_id}`. |
 | Bridge session control API | Implemented | Internal endpoints list active MQTT+UDP bridge sessions and disconnect by `session_id`, publishing server-initiated `goodbye` when bridge is enabled. |
-| UDP uplink → speech reply path | Implemented (simulator grade) | Bridge decodes uplink Opus and calls `xiaozhi_mqtt_udp_uplink_speech_reply` for STT/LLM/TTS + encrypted UDP downlink. |
+| UDP uplink → speech reply path | Implemented | Simulator: immediate STT/LLM/TTS on UDP packet. Production (`kernel`): UDP packets buffer in `xiaozhi_ws_media_session`; `listen/detect` triggers ASR via buffered WAV. |
 | UDP packet shape (`type/flags/len/ssrc/timestamp/sequence`) | Implemented | `XiaozhiUdpAudioCodec` encode/decode. |
 | UDP AES-CTR payload encryption/decryption | Implemented | Key/nonce hex profile, deterministic tests; server outbound encoding via `XiaozhiMqttUdpSession::encode_outbound_audio`. |
 | UDP server→device downlink (MQTT path) | Implemented (simulator grade) | `MqttSessionReply.outbound_udp_packets` + bridge shared UDP socket sends encrypted Opus to learned peer address. |
@@ -115,9 +116,9 @@ git submodule update --init external/xiaozhi-esp32
 
 1. Distributed bridge rate limits and richer trace hooks (control plane exists; advanced backpressure optional).
 2. Multi-node activation challenge coordination hardening for distributed, non-shared-file deployments (managed DB/Redis backend and operational guidance).
-3. Production MCP tool registry parity (beyond simulator) with live capability source and auth controls.
+3. Production MCP auth hardening (device capability registry + deny-by-default policy presets for kernel mode).
 4. End-to-end integration tests with real MQTT broker and live UDP sockets in CI profile.
-5. Real ASR/LLM/TTS pipeline integration (simulator uses placeholder Opus and fixed text).
+5. CI profile with live kernel agent-server + claw-router for production intelligence smoke tests.
 
 ## Operator Notes: Activation Registry Backend & Metrics
 
@@ -132,7 +133,7 @@ Prometheus scrape example:
 
 ```yaml
 scrape_configs:
-  - job_name: sdkwork-aiot-gateway
+  - job_name: sdkwork-aiot-cloud-gateway
     static_configs:
       - targets: ['127.0.0.1:18080']
     metrics_path: /internal/bridge/metrics
@@ -153,7 +154,7 @@ scrape_configs:
 Enable the bridge worker threads:
 
 ```bash
-SDKWORK_AIOT_GATEWAY_MQTT_BRIDGE_ENABLE=1 cargo run -p sdkwork-aiot-gateway
+SDKWORK_AIOT_GATEWAY_MQTT_BRIDGE_ENABLE=1 cargo run -p sdkwork-aiot-cloud-gateway
 ```
 
 List active bridge sessions (internal route; requires `SDKWORK_AIOT_DEV_MODE=1` or `SDKWORK_AIOT_INTERNAL_TOKEN`):

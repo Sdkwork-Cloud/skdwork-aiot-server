@@ -1,0 +1,141 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  workspace-verify:
+    name: Workspace verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Checkout workspace dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent="$(dirname "$GITHUB_WORKSPACE")"
+          checkout_dep() {
+            local name="$1"
+            local path="${parent}/${name}"
+            if [[ -d "${path}/.git" ]]; then
+              echo "dependency already present: ${name}"
+              return 0
+            fi
+            gh repo clone "${GITHUB_REPOSITORY_OWNER}/${name}" "${path}" -- --depth 1
+          }
+          checkout_dep sdkwork-app-topology
+          checkout_dep sdkwork-database
+          checkout_dep sdkwork-appbase
+          checkout_dep sdkwork-web-framework
+          checkout_dep sdkwork-utils
+          checkout_dep sdkwork-specs
+
+      - name: Install workspace dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Run workspace verification
+        run: pnpm verify
+
+  postgres-migration-parity:
+    name: Postgres migration parity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Run postgres migration parity checks
+        run: pnpm test:postgres-migration-parity
+
+  release-smoke:
+    name: Release package smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release server binaries
+        run: pnpm release:build
+
+      - name: Package release artifacts and sync checksums
+        run: pnpm release:package
+
+      - name: Validate release manifest against app config
+        run: pnpm check:app-manifest
+
+      - name: Verify packaged archive checksums
+        run: node scripts/dev/validate-release-artifacts.mjs --strict
+
+      - name: Verify release SBOM evidence
+        run: pnpm sbom:check --strict
+
+      - name: Verify CDN publish gate
+        run: pnpm release:publish

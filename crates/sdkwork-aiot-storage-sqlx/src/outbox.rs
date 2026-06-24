@@ -7,39 +7,56 @@ use sdkwork_aiot_storage::{
 };
 use sqlx::Row;
 
+use crate::blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine, DeviceDbTransaction};
+use crate::dialect_sql::adapt_sqlite_placeholders;
 use crate::schema::ensure_device_schema;
 use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
+use crate::SqlDialect;
 
 const OUTBOX_RETRY_BASE_SECONDS: i64 = 5;
 const OUTBOX_CLAIM_LEASE_SECONDS: i64 = 60;
 
 pub struct SqliteOutboxEventRepository {
-    db: BlockingSqlitePool,
+    db: BlockingDevicePool,
 }
 
 impl SqliteOutboxEventRepository {
-    pub fn from_blocking_pool(db: BlockingSqlitePool) -> Result<Self, sqlx::Error> {
+    pub fn from_blocking_pool(db: BlockingDevicePool) -> Result<Self, sqlx::Error> {
         ensure_device_schema(&db)?;
         Ok(Self { db })
     }
 
     pub fn open(path_or_uri: impl AsRef<Path>) -> Result<Self, sqlx::Error> {
         let url = sqlite_connect_url(path_or_uri.as_ref().to_string_lossy().as_ref());
-        let db = BlockingSqlitePool::connect(&url)?;
-        Self::from_blocking_pool(db)
+        let sqlite = BlockingSqlitePool::connect(&url)?;
+        Self::from_blocking_pool(BlockingDevicePool::Sqlite(sqlite))
     }
 }
 
 impl OutboxEventRepository for SqliteOutboxEventRepository {
     fn pending_lag_count(&self) -> u64 {
         self.db
-            .run::<_, u64, sqlx::Error>(async {
-                let count: i64 =
-                    sqlx::query_scalar("SELECT COUNT(1) FROM iot_outbox_event WHERE status = ?1")
-                        .bind(OUTBOX_STATUS_PENDING)
-                        .fetch_one(self.db.pool())
-                        .await?;
-                Ok(count.max(0) as u64)
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let sql = adapt_sqlite_placeholders(
+                    dialect,
+                    "SELECT COUNT(1) FROM iot_outbox_event WHERE status = ?1",
+                );
+                let count: i64 = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        sqlx::query_scalar(&sql)
+                            .bind(OUTBOX_STATUS_PENDING)
+                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        sqlx::query_scalar(&sql)
+                            .bind(OUTBOX_STATUS_PENDING)
+                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                            .await?
+                    }
+                };
+                Ok::<u64, sqlx::Error>(count.max(0) as u64)
             })
             .unwrap_or(0)
     }
@@ -54,72 +71,95 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
             SystemTime::now() + Duration::from_secs(OUTBOX_CLAIM_LEASE_SECONDS as u64),
         );
         self.db
-            .with_transaction(|tx| {
+            .with_device_transaction(|mut tx, dialect| {
                 let now = now.clone();
                 let lease_until = lease_until.clone();
                 Box::pin(async move {
-                    sqlx::query(
+                    let reclaim_sql = adapt_sqlite_placeholders(
+                        dialect,
                         "UPDATE iot_outbox_event
                          SET status = ?1, next_attempt_at = NULL
                          WHERE status = ?2
                            AND next_attempt_at IS NOT NULL
                            AND next_attempt_at <= ?3",
-                    )
-                    .bind(OUTBOX_STATUS_PENDING)
-                    .bind(OUTBOX_STATUS_CLAIMED)
-                    .bind(&now)
-                    .execute(&mut **tx)
-                    .await?;
+                    );
+                    match &mut tx {
+                        DeviceDbTransaction::Sqlite(connection) => {
+                            sqlx::query(&reclaim_sql)
+                                .bind(OUTBOX_STATUS_PENDING)
+                                .bind(OUTBOX_STATUS_CLAIMED)
+                                .bind(&now)
+                                .execute(&mut **connection)
+                                .await?;
+                        }
+                        DeviceDbTransaction::Postgres(connection) => {
+                            sqlx::query(&reclaim_sql)
+                                .bind(OUTBOX_STATUS_PENDING)
+                                .bind(OUTBOX_STATUS_CLAIMED)
+                                .bind(&now)
+                                .execute(&mut **connection)
+                                .await?;
+                        }
+                    }
 
-                    sqlx::query(
-                        "UPDATE iot_outbox_event
-                         SET status = ?1, next_attempt_at = ?2
-                         WHERE rowid IN (
-                           SELECT rowid FROM iot_outbox_event
-                           WHERE status = ?3
-                             AND (next_attempt_at IS NULL OR next_attempt_at <= ?4)
-                           ORDER BY created_at ASC
-                           LIMIT ?5
-                         )",
-                    )
-                    .bind(OUTBOX_STATUS_CLAIMED)
-                    .bind(&lease_until)
-                    .bind(OUTBOX_STATUS_PENDING)
-                    .bind(&now)
-                    .bind(limit)
-                    .execute(&mut **tx)
-                    .await?;
+                    let claim_sql = outbox_claim_sql(dialect);
+                    match &mut tx {
+                        DeviceDbTransaction::Sqlite(connection) => {
+                            sqlx::query(&claim_sql)
+                                .bind(OUTBOX_STATUS_CLAIMED)
+                                .bind(&lease_until)
+                                .bind(OUTBOX_STATUS_PENDING)
+                                .bind(&now)
+                                .bind(limit)
+                                .execute(&mut **connection)
+                                .await?;
+                        }
+                        DeviceDbTransaction::Postgres(connection) => {
+                            sqlx::query(&claim_sql)
+                                .bind(OUTBOX_STATUS_CLAIMED)
+                                .bind(&lease_until)
+                                .bind(OUTBOX_STATUS_PENDING)
+                                .bind(&now)
+                                .bind(limit)
+                                .execute(&mut **connection)
+                                .await?;
+                        }
+                    }
 
-                    let rows = sqlx::query(
+                    let select_sql = adapt_sqlite_placeholders(
+                        dialect,
                         "SELECT tenant_id, organization_id, event_id, event_type, event_version, aggregate_type, aggregate_id, payload, trace_id, attempt_count
                          FROM iot_outbox_event
                          WHERE status = ?1 AND next_attempt_at = ?2
                          ORDER BY created_at ASC
                          LIMIT ?3",
-                    )
-                    .bind(OUTBOX_STATUS_CLAIMED)
-                    .bind(&lease_until)
-                    .bind(limit)
-                    .fetch_all(&mut **tx)
-                    .await?;
-
-                    Ok(rows
-                        .into_iter()
-                        .filter_map(|row| {
-                            Some(AiotOutboxPendingEvent {
-                                tenant_id: row.try_get("tenant_id").ok()?,
-                                organization_id: row.try_get("organization_id").ok()?,
-                                event_id: row.try_get::<String, _>("event_id").ok()?,
-                                event_type: row.try_get("event_type").ok()?,
-                                event_version: row.try_get("event_version").ok()?,
-                                aggregate_type: row.try_get("aggregate_type").ok()?,
-                                aggregate_id: row.try_get("aggregate_id").ok()?,
-                                payload_json: row.try_get("payload").ok()?,
-                                trace_id: row.try_get("trace_id").ok(),
-                                attempt_count: row.try_get("attempt_count").ok()?,
-                            })
-                        })
-                        .collect())
+                    );
+                    match &mut tx {
+                        DeviceDbTransaction::Sqlite(connection) => {
+                            let rows = sqlx::query(&select_sql)
+                                .bind(OUTBOX_STATUS_CLAIMED)
+                                .bind(&lease_until)
+                                .bind(limit)
+                                .fetch_all(&mut **connection)
+                                .await?;
+                            Ok(rows
+                                .iter()
+                                .filter_map(row_to_pending_event)
+                                .collect::<Vec<_>>())
+                        }
+                        DeviceDbTransaction::Postgres(connection) => {
+                            let rows = sqlx::query(&select_sql)
+                                .bind(OUTBOX_STATUS_CLAIMED)
+                                .bind(&lease_until)
+                                .bind(limit)
+                                .fetch_all(&mut **connection)
+                                .await?;
+                            Ok(rows
+                                .iter()
+                                .filter_map(row_to_pending_event_postgres)
+                                .collect::<Vec<_>>())
+                        }
+                    }
                 })
             })
             .map_err(|_: sqlx::Error| OutboxEventRepositoryError::PersistenceFailure)
@@ -131,24 +171,41 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
         event_id: &str,
     ) -> Result<(), OutboxEventRepositoryError> {
         let now = current_rfc3339_timestamp();
+        let event_id = event_id.to_string();
         let changed = self
             .db
-            .run::<_, i64, sqlx::Error>(async {
-                let result = sqlx::query(
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let sql = adapt_sqlite_placeholders(
+                    dialect,
                     "UPDATE iot_outbox_event
                      SET status = ?1, published_at = ?2, next_attempt_at = NULL
                      WHERE tenant_id = ?3 AND event_id = ?4 AND status = ?5",
-                )
-                .bind(OUTBOX_STATUS_PUBLISHED)
-                .bind(&now)
-                .bind(tenant_id)
-                .bind(event_id)
-                .bind(OUTBOX_STATUS_CLAIMED)
-                .execute(self.db.pool())
-                .await?;
-                Ok(result.rows_affected() as i64)
+                );
+                let changed: i64 = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => sqlx::query(&sql)
+                        .bind(OUTBOX_STATUS_PUBLISHED)
+                        .bind(&now)
+                        .bind(tenant_id)
+                        .bind(&event_id)
+                        .bind(OUTBOX_STATUS_CLAIMED)
+                        .execute(pool.sqlite_pool().expect("sqlite pool"))
+                        .await?
+                        .rows_affected() as i64,
+                    DeviceDatabaseEngine::Postgres => sqlx::query(&sql)
+                        .bind(OUTBOX_STATUS_PUBLISHED)
+                        .bind(&now)
+                        .bind(tenant_id)
+                        .bind(&event_id)
+                        .bind(OUTBOX_STATUS_CLAIMED)
+                        .execute(pool.postgres_pool().expect("postgres pool"))
+                        .await?
+                        .rows_affected()
+                        as i64,
+                };
+                Ok::<i64, sqlx::Error>(changed)
             })
-            .map_err(|_| OutboxEventRepositoryError::PersistenceFailure)?;
+            .map_err(|_: sqlx::Error| OutboxEventRepositoryError::PersistenceFailure)?;
         if changed == 0 {
             return Err(OutboxEventRepositoryError::NotFound);
         }
@@ -161,22 +218,42 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
         event_id: &str,
         max_attempts: u32,
     ) -> Result<(), OutboxEventRepositoryError> {
+        let event_id = event_id.to_string();
         let changed = self
             .db
-            .run::<_, i64, sqlx::Error>(async {
-                let row = sqlx::query(
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let select_sql = adapt_sqlite_placeholders(
+                    dialect,
                     "SELECT attempt_count FROM iot_outbox_event
                      WHERE tenant_id = ?1 AND event_id = ?2 AND status = ?3",
-                )
-                .bind(tenant_id)
-                .bind(event_id)
-                .bind(OUTBOX_STATUS_CLAIMED)
-                .fetch_optional(self.db.pool())
-                .await?;
-                let Some(row) = row else {
-                    return Ok(0_i64);
+                );
+                let attempt_count: i32 = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let row = sqlx::query(&select_sql)
+                            .bind(tenant_id)
+                            .bind(&event_id)
+                            .bind(OUTBOX_STATUS_CLAIMED)
+                            .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        let Some(row) = row else {
+                            return Ok(0_i64);
+                        };
+                        row.try_get("attempt_count")?
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let row = sqlx::query(&select_sql)
+                            .bind(tenant_id)
+                            .bind(&event_id)
+                            .bind(OUTBOX_STATUS_CLAIMED)
+                            .fetch_optional(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        let Some(row) = row else {
+                            return Ok(0_i64);
+                        };
+                        row.try_get("attempt_count")?
+                    }
                 };
-                let attempt_count: i32 = row.try_get("attempt_count")?;
                 let next_attempt = attempt_count + 1;
                 let backoff_seconds =
                     OUTBOX_RETRY_BASE_SECONDS.saturating_mul(1_i64 << next_attempt.min(6));
@@ -187,27 +264,101 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                 } else {
                     OUTBOX_STATUS_PENDING
                 };
-                let result = sqlx::query(
+                let update_sql = adapt_sqlite_placeholders(
+                    dialect,
                     "UPDATE iot_outbox_event
                      SET attempt_count = ?1, next_attempt_at = ?2, status = ?3
                      WHERE tenant_id = ?4 AND event_id = ?5 AND status = ?6",
-                )
-                .bind(next_attempt)
-                .bind(next_attempt_at)
-                .bind(status)
-                .bind(tenant_id)
-                .bind(event_id)
-                .bind(OUTBOX_STATUS_CLAIMED)
-                .execute(self.db.pool())
-                .await?;
-                Ok(result.rows_affected() as i64)
+                );
+                let changed: i64 = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => sqlx::query(&update_sql)
+                        .bind(next_attempt)
+                        .bind(next_attempt_at)
+                        .bind(status)
+                        .bind(tenant_id)
+                        .bind(&event_id)
+                        .bind(OUTBOX_STATUS_CLAIMED)
+                        .execute(pool.sqlite_pool().expect("sqlite pool"))
+                        .await?
+                        .rows_affected() as i64,
+                    DeviceDatabaseEngine::Postgres => sqlx::query(&update_sql)
+                        .bind(next_attempt)
+                        .bind(next_attempt_at)
+                        .bind(status)
+                        .bind(tenant_id)
+                        .bind(&event_id)
+                        .bind(OUTBOX_STATUS_CLAIMED)
+                        .execute(pool.postgres_pool().expect("postgres pool"))
+                        .await?
+                        .rows_affected()
+                        as i64,
+                };
+                Ok::<i64, sqlx::Error>(changed)
             })
-            .map_err(|_| OutboxEventRepositoryError::PersistenceFailure)?;
+            .map_err(|_: sqlx::Error| OutboxEventRepositoryError::PersistenceFailure)?;
         if changed == 0 {
             return Err(OutboxEventRepositoryError::NotFound);
         }
         Ok(())
     }
+}
+
+fn outbox_claim_sql(dialect: SqlDialect) -> String {
+    let sql = match dialect {
+        SqlDialect::Sqlite => {
+            "UPDATE iot_outbox_event
+             SET status = ?1, next_attempt_at = ?2
+             WHERE rowid IN (
+               SELECT rowid FROM iot_outbox_event
+               WHERE status = ?3
+                 AND (next_attempt_at IS NULL OR next_attempt_at <= ?4)
+               ORDER BY created_at ASC
+               LIMIT ?5
+             )"
+        }
+        SqlDialect::Postgres => {
+            "UPDATE iot_outbox_event
+             SET status = ?1, next_attempt_at = ?2
+             WHERE id IN (
+               SELECT id FROM iot_outbox_event
+               WHERE status = ?3
+                 AND (next_attempt_at IS NULL OR next_attempt_at <= ?4)
+               ORDER BY created_at ASC
+               LIMIT ?5
+             )"
+        }
+    };
+    adapt_sqlite_placeholders(dialect, sql)
+}
+
+fn row_to_pending_event(row: &sqlx::sqlite::SqliteRow) -> Option<AiotOutboxPendingEvent> {
+    Some(AiotOutboxPendingEvent {
+        tenant_id: row.try_get("tenant_id").ok()?,
+        organization_id: row.try_get("organization_id").ok()?,
+        event_id: row.try_get("event_id").ok()?,
+        event_type: row.try_get("event_type").ok()?,
+        event_version: row.try_get("event_version").ok()?,
+        aggregate_type: row.try_get("aggregate_type").ok()?,
+        aggregate_id: row.try_get("aggregate_id").ok()?,
+        payload_json: row.try_get("payload").ok()?,
+        trace_id: row.try_get("trace_id").ok(),
+        attempt_count: row.try_get("attempt_count").ok()?,
+    })
+}
+
+fn row_to_pending_event_postgres(row: &sqlx::postgres::PgRow) -> Option<AiotOutboxPendingEvent> {
+    Some(AiotOutboxPendingEvent {
+        tenant_id: row.try_get("tenant_id").ok()?,
+        organization_id: row.try_get("organization_id").ok()?,
+        event_id: row.try_get("event_id").ok()?,
+        event_type: row.try_get("event_type").ok()?,
+        event_version: row.try_get("event_version").ok()?,
+        aggregate_type: row.try_get("aggregate_type").ok()?,
+        aggregate_id: row.try_get("aggregate_id").ok()?,
+        payload_json: row.try_get("payload").ok()?,
+        trace_id: row.try_get("trace_id").ok(),
+        attempt_count: row.try_get("attempt_count").ok()?,
+    })
 }
 
 fn current_rfc3339_timestamp() -> String {

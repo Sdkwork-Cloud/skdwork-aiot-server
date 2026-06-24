@@ -29,12 +29,12 @@ impl MessageCodec for FakeCodec {
 
 #[test]
 fn health_response_is_plain_http_and_safe_for_load_balancers() {
-    let response = build_health_response("sdkwork-aiot-gateway", true);
+    let response = build_health_response("sdkwork-aiot-cloud-gateway", true);
 
     assert_eq!(response.status, HttpStatus::Ok);
     assert_eq!(response.header("content-type"), Some("application/json"));
     assert!(response.body.contains("\"ready\":true"));
-    assert!(response.body.contains("sdkwork-aiot-gateway"));
+    assert!(response.body.contains("sdkwork-aiot-cloud-gateway"));
 }
 
 #[test]

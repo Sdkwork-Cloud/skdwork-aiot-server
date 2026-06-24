@@ -45,13 +45,14 @@ mod tests {
 
     #[test]
     fn credential_hash_supports_pepper_and_legacy_sha256() {
+        let _lock = crate::test_env::lock_env_tests();
+        let _guard = crate::test_env::EnvGuard::clear(&[ENV_CREDENTIAL_PEPPER]);
         std::env::set_var(ENV_CREDENTIAL_PEPPER, "test-pepper-value");
         let secret = b"device-secret-001";
         let stored = hash_device_credential_secret(secret);
         assert!(stored.starts_with(HMAC_SHA256_V1_PREFIX));
         assert!(verify_device_credential_secret(&stored, secret));
         assert!(!verify_device_credential_secret(&stored, b"wrong"));
-        std::env::remove_var(ENV_CREDENTIAL_PEPPER);
 
         let legacy_secret = b"legacy-secret";
         let legacy_stored = sha256_hash(legacy_secret);

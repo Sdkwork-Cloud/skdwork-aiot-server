@@ -24,8 +24,8 @@ pnpm dev:server:sqlite:split-services:cloud
 | --- | --- | --- |
 | `application.app-http` | application | `sdkwork-aiot-app-api` |
 | `application.admin-http` | application | `sdkwork-aiot-admin-api` |
-| `edge.device-ingress` | edge | `sdkwork-aiot-gateway` |
-| `platform.api-gateway` | platform | `sdkwork-api-gateway` (sibling repo) |
+| `edge.device-ingress` | edge | `sdkwork-aiot-cloud-gateway` |
+| `platform.api-gateway` | platform | `sdkwork-api-cloud-gateway` (sibling repo) |
 
 Edge ingress is never proxied by the platform gateway.
 

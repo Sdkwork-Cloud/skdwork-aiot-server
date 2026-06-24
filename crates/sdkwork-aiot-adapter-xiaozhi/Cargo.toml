@@ -9,6 +9,7 @@ sdkwork-aiot-protocol.workspace = true
 sdkwork-aiot-security.workspace = true
 aes = "0.8"
 ctr = "0.9"
+audiopus = "0.2.0"
 
 [dev-dependencies]
 sdkwork-aiot-service-host.workspace = true

@@ -16,7 +16,8 @@ members = [
     "crates/sdkwork-router-iot-app-api",
     "crates/sdkwork-router-iot-backend-api",
     "crates/sdkwork-aiot-architecture",
-    "services/sdkwork-aiot-gateway",
+    "crates/sdkwork-aiot-intelligence-bridge",
+    "services/sdkwork-aiot-cloud-gateway",
     "services/sdkwork-aiot-xiaozhi-simulator-ui",
     "services/sdkwork-aiot-admin-api",
     "services/sdkwork-aiot-app-api",
@@ -35,7 +36,8 @@ axum = "0.8.8"
 http-body-util = "0.1.3"
 tokio = { version = "1.48", features = ["macros", "rt-multi-thread", "net", "signal", "sync"] }
 tower = { version = "0.5.3", features = ["util"] }
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "sqlite"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "sqlite", "postgres"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
 
 # SDKWork workspace members - declared once at workspace root
 sdkwork-aiot-contract = { path = "crates/sdkwork-aiot-contract" }
@@ -53,6 +55,8 @@ sdkwork-iot-platform-service = { path = "crates/sdkwork-iot-platform-service" }
 sdkwork-router-iot-app-api = { path = "crates/sdkwork-router-iot-app-api" }
 sdkwork-router-iot-backend-api = { path = "crates/sdkwork-router-iot-backend-api" }
 sdkwork-aiot-architecture = { path = "crates/sdkwork-aiot-architecture" }
+sdkwork-aiot-intelligence-bridge = { path = "crates/sdkwork-aiot-intelligence-bridge" }
+clawrouter-open-sdk = { path = "../sdkwork-claw-router/sdks/clawrouter-open-sdk/clawrouter-open-sdk-rust/generated/server-openapi" }
 
 sdkwork-database-config = { path = "../sdkwork-database/crates/sdkwork-database-config" }
 sdkwork-database-lifecycle = { path = "../sdkwork-database/crates/sdkwork-database-lifecycle" }

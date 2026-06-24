@@ -138,7 +138,7 @@
     "runtimeEntrypoints": [
       "sdkwork_aiot_service_host::AiotRuntime::builder",
       "sdkwork_aiot_service_host::standard_aiot_runtime",
-      "services/sdkwork-aiot-gateway",
+      "services/sdkwork-aiot-cloud-gateway",
       "services/sdkwork-aiot-admin-api",
       "services/sdkwork-aiot-app-api"
     ],
@@ -215,7 +215,10 @@
     "commands": [
       "pnpm check",
       "pnpm verify",
-      "cargo fmt --all -- --check",
+      "pnpm deploy:validate",
+      "pnpm release:validate",
+      "pnpm release:preflight",
+      "cargo fmt -- --check",
       "cargo test --workspace"
     ]
   }

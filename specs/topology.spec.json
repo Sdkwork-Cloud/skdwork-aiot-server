@@ -4,14 +4,8 @@
   "appId": "sdkwork-aiot",
   "archetype": "application-rest-edge-device",
   "profileRoot": "configs/topology",
-  "profilePattern": "{hosting}.{serviceLayout}.{environment}.env",
+  "profilePattern": "{deploymentProfile}.{serviceLayout}.{environment}.env",
   "vocabulary": {
-    "hosting": {
-      "allowed": [
-        "self-hosted",
-        "cloud-hosted"
-      ]
-    },
     "serviceLayout": {
       "allowed": [
         "split-services"
@@ -29,29 +23,35 @@
         "platform",
         "edge"
       ]
+    },
+    "deploymentProfile": {
+      "allowed": [
+        "standalone",
+        "cloud"
+      ]
     }
   },
   "defaults": {
-    "developmentProfileId": "self-hosted.split-services.development",
-    "productionProfileId": "cloud-hosted.split-services.production",
+    "developmentProfileId": "standalone.split-services.development",
+    "productionProfileId": "cloud.split-services.production",
     "gatewayBind": "127.0.0.1:3900"
   },
   "profileFiles": {
-    "self-hosted.split-services.development": "configs/topology/self-hosted.split-services.development.env",
-    "cloud-hosted.split-services.development": "configs/topology/cloud-hosted.split-services.development.env",
-    "self-hosted.split-services.production": "configs/topology/self-hosted.split-services.production.env",
-    "cloud-hosted.split-services.production": "configs/topology/cloud-hosted.split-services.production.env"
+    "standalone.split-services.development": "configs/topology/standalone.split-services.development.env",
+    "cloud.split-services.development": "configs/topology/cloud.split-services.development.env",
+    "standalone.split-services.production": "configs/topology/standalone.split-services.production.env",
+    "cloud.split-services.production": "configs/topology/cloud.split-services.production.env"
   },
   "envKeys": {
-    "hosting": "SDKWORK_AIOT_HOSTING",
     "serviceLayout": "SDKWORK_AIOT_SERVICE_LAYOUT",
     "environment": "SDKWORK_AIOT_ENVIRONMENT",
     "profileId": "SDKWORK_AIOT_PROFILE_ID",
-    "clientHosting": "VITE_SDKWORK_AIOT_HOSTING",
     "gatewayAutostart": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_AUTOSTART",
-    "cloudGatewayBind": "SDKWORK_API_GATEWAY_BIND",
+    "cloudGatewayBind": "SDKWORK_API_CLOUD_GATEWAY_BIND",
     "apiGatewayBaseUrl": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL",
-    "clientApiGatewayBaseUrl": "VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL"
+    "clientApiGatewayBaseUrl": "VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL",
+    "deploymentProfile": "SDKWORK_AIOT_DEPLOYMENT_PROFILE",
+    "clientDeploymentProfile": "VITE_SDKWORK_AIOT_DEPLOYMENT_PROFILE"
   },
   "surfaces": {
     "application.app-http": {
@@ -91,8 +91,8 @@
       "protocols": [
         "http"
       ],
-      "owner": "sdkwork-api-gateway",
-      "bindEnv": "SDKWORK_API_GATEWAY_BIND",
+      "owner": "sdkwork-api-cloud-gateway",
+      "bindEnv": "SDKWORK_API_CLOUD_GATEWAY_BIND",
       "httpUrlEnv": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL",
       "clientHttpEnv": "VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL",
       "autostartEnv": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_AUTOSTART"
@@ -123,10 +123,22 @@
     "outboxLagReadyThreshold": "SDKWORK_AIOT_OUTBOX_LAG_READY_THRESHOLD",
     "outboxWebhookUrl": "SDKWORK_AIOT_OUTBOX_WEBHOOK_URL"
   },
+  "intelligence": {
+    "mode": "SDKWORK_AIOT_INTELLIGENCE_MODE",
+    "kernelHttpUrl": "SDKWORK_AIOT_INTELLIGENCE_KERNEL_HTTP_URL",
+    "kernelAgentId": "SDKWORK_AIOT_INTELLIGENCE_KERNEL_AGENT_ID",
+    "clawRouterOpenHttpUrl": "SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL",
+    "clawRouterApiKey": "SDKWORK_CLAW_ROUTER_API_KEY",
+    "asrModel": "SDKWORK_AIOT_INTELLIGENCE_ASR_MODEL",
+    "ttsModel": "SDKWORK_AIOT_INTELLIGENCE_TTS_MODEL",
+    "ttsVoice": "SDKWORK_AIOT_INTELLIGENCE_TTS_VOICE",
+    "ttsResponseFormat": "SDKWORK_AIOT_INTELLIGENCE_TTS_RESPONSE_FORMAT",
+    "ttsSampleRate": "SDKWORK_AIOT_INTELLIGENCE_TTS_SAMPLE_RATE"
+  },
   "components": {
     "edgeGateway": {
-      "crate": "sdkwork-aiot-gateway",
-      "binary": "sdkwork-aiot-gateway"
+      "crate": "sdkwork-aiot-cloud-gateway",
+      "binary": "sdkwork-aiot-cloud-gateway"
     },
     "appApi": {
       "crate": "sdkwork-aiot-app-api",
@@ -137,14 +149,14 @@
       "binary": "sdkwork-aiot-admin-api"
     },
     "cloudGateway": {
-      "crate": "sdkwork-api-gateway-api-server",
-      "binary": "sdkwork-api-gateway",
-      "repository": "sdkwork-api-gateway"
+      "crate": "sdkwork-api-cloud-gateway-api-server",
+      "binary": "sdkwork-api-cloud-gateway",
+      "repository": "sdkwork-api-cloud-gateway"
     }
   },
   "orchestration": {
     "profiles": {
-      "self-hosted.split-services.development": {
+      "standalone.split-services.development": {
         "processes": [
           {
             "id": "application.app-http",
@@ -160,15 +172,15 @@
           },
           {
             "id": "edge.device-ingress",
-            "crate": "sdkwork-aiot-gateway",
-            "binary": "sdkwork-aiot-gateway",
+            "crate": "sdkwork-aiot-cloud-gateway",
+            "binary": "sdkwork-aiot-cloud-gateway",
             "required": true
           },
           {
             "id": "platform.api-gateway",
-            "crate": "sdkwork-api-gateway-api-server",
-            "binary": "sdkwork-api-gateway",
-            "repository": "sdkwork-api-gateway",
+            "crate": "sdkwork-api-cloud-gateway-api-server",
+            "binary": "sdkwork-api-cloud-gateway",
+            "repository": "sdkwork-api-cloud-gateway",
             "required": false
           }
         ],
@@ -178,13 +190,13 @@
           "edge.device-ingress"
         ]
       },
-      "cloud-hosted.split-services.development": {
+      "cloud.split-services.development": {
         "processes": [
           {
             "id": "platform.api-gateway",
-            "crate": "sdkwork-api-gateway-api-server",
-            "binary": "sdkwork-api-gateway",
-            "repository": "sdkwork-api-gateway",
+            "crate": "sdkwork-api-cloud-gateway-api-server",
+            "binary": "sdkwork-api-cloud-gateway",
+            "repository": "sdkwork-api-cloud-gateway",
             "required": true
           },
           {
@@ -201,8 +213,8 @@
           },
           {
             "id": "edge.device-ingress",
-            "crate": "sdkwork-aiot-gateway",
-            "binary": "sdkwork-aiot-gateway",
+            "crate": "sdkwork-aiot-cloud-gateway",
+            "binary": "sdkwork-aiot-cloud-gateway",
             "required": true
           }
         ],
@@ -211,6 +223,41 @@
           "application.app-http",
           "application.admin-http",
           "edge.device-ingress"
+        ]
+      },
+      "cloud.split-services.production": {
+        "processes": [
+          {
+            "id": "application.app-http",
+            "crate": "sdkwork-aiot-app-api",
+            "binary": "sdkwork-aiot-app-api",
+            "required": true
+          },
+          {
+            "id": "application.admin-http",
+            "crate": "sdkwork-aiot-admin-api",
+            "binary": "sdkwork-aiot-admin-api",
+            "required": true
+          },
+          {
+            "id": "edge.device-ingress",
+            "crate": "sdkwork-aiot-cloud-gateway",
+            "binary": "sdkwork-aiot-cloud-gateway",
+            "required": true
+          },
+          {
+            "id": "platform.api-gateway",
+            "crate": "sdkwork-api-cloud-gateway-api-server",
+            "binary": "sdkwork-api-cloud-gateway",
+            "repository": "sdkwork-api-cloud-gateway",
+            "required": false
+          }
+        ],
+        "healthSurfaces": [
+          "application.app-http",
+          "application.admin-http",
+          "edge.device-ingress",
+          "platform.api-gateway"
         ]
       }
     }
@@ -223,8 +270,38 @@
       "SDKWORK_AIOT_GATEWAY_BIND",
       "SDKWORK_AIOT_APP_API_BIND",
       "SDKWORK_AIOT_ADMIN_API_BIND",
-      "SDKWORK_AIOT_XIAOZHI_SIMULATOR_GATEWAY_HTTP"
+      "SDKWORK_AIOT_XIAOZHI_SIMULATOR_GATEWAY_HTTP",
+      "SDKWORK_AIOT_HOSTING",
+      "VITE_SDKWORK_AIOT_HOSTING"
     ],
-    "notes": "Delete retired keys from active code paths; list retained here for migration audits only."
+    "notes": "Delete retired keys from active code paths; list retained here for migration audits only.",
+    "vocabulary": {
+      "hosting": [
+        "self-hosted",
+        "cloud-hosted"
+      ]
+    }
+  },
+  "packaging": {
+    "cloudConfigFiles": [
+      "sdkwork-api-cloud-gateway.aiot.development.toml",
+      "sdkwork-api-cloud-gateway.aiot.production.toml"
+    ],
+    "targets": [
+      {
+        "id": "container-noarch-cloud-container-config-bundle-tar-gz",
+        "profile": "container",
+        "platform": "container",
+        "architecture": "noarch",
+        "formats": [
+          "tar.gz"
+        ],
+        "runner": "ubuntu-24.04",
+        "outputGlob": "dist/cloud-config/sdkwork-aiot-api-gateway-config-*.tar.gz",
+        "deploymentProfile": "cloud",
+        "runtimeTarget": "container",
+        "variant": "config-bundle"
+      }
+    ]
   }
 }

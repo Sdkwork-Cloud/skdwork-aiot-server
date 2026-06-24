@@ -8,7 +8,7 @@ const outputDir = path.join(root, 'artifacts/release');
 mkdirSync(outputDir, { recursive: true });
 
 const binaries = [
-  { crate: 'sdkwork-aiot-gateway', windows: 'sdkwork-aiot-gateway.exe', unix: 'sdkwork-aiot-gateway' },
+  { crate: 'sdkwork-aiot-cloud-gateway', windows: 'sdkwork-aiot-cloud-gateway.exe', unix: 'sdkwork-aiot-cloud-gateway' },
   { crate: 'sdkwork-aiot-app-api', windows: 'sdkwork-aiot-app-api.exe', unix: 'sdkwork-aiot-app-api' },
   { crate: 'sdkwork-aiot-admin-api', windows: 'sdkwork-aiot-admin-api.exe', unix: 'sdkwork-aiot-admin-api' },
 ];

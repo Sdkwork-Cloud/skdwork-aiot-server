@@ -2,27 +2,37 @@
 
 use sdkwork_database_sqlx::PoolError;
 
+use crate::blocking_device_pool::BlockingDevicePool;
 use crate::schema::ensure_device_schema;
 use crate::{
-    aiot_device_blocking_pool, BlockingSqlitePool, SqlitePersistedEntityRepository,
+    aiot_device_blocking_pool_from_env, SqlitePersistedEntityRepository,
     SqliteSqlxCredentialRepository, SqliteSqlxDeviceRepository,
 };
 
-/// Shared SQLite pool backing device, credential, and admin-entity repositories.
+/// Shared device database pool backing device, credential, and admin-entity repositories.
 #[derive(Debug, Clone)]
 pub struct AiotDeviceDatabase {
-    pool: BlockingSqlitePool,
+    pool: BlockingDevicePool,
 }
 
 impl AiotDeviceDatabase {
     pub fn open(device_db_path: Option<&str>) -> Result<Self, PoolError> {
-        let pool = aiot_device_blocking_pool(device_db_path)?;
+        let pool = aiot_device_blocking_pool_from_env(device_db_path)?;
         ensure_device_schema(&pool).map_err(PoolError::PoolCreation)?;
         Ok(Self { pool })
     }
 
-    pub fn blocking_pool(&self) -> BlockingSqlitePool {
+    pub fn from_pool(pool: BlockingDevicePool) -> Result<Self, PoolError> {
+        ensure_device_schema(&pool).map_err(PoolError::PoolCreation)?;
+        Ok(Self { pool })
+    }
+
+    pub fn blocking_pool(&self) -> BlockingDevicePool {
         self.pool.clone()
+    }
+
+    pub fn engine(&self) -> crate::DeviceDatabaseEngine {
+        self.pool.engine()
     }
 
     pub fn device_repository(&self) -> Result<SqliteSqlxDeviceRepository, sqlx::Error> {
@@ -47,7 +57,25 @@ pub fn open_aiot_device_database(
     AiotDeviceDatabase::open(device_db_path)
 }
 
-/// Opens the device database using path args, env path, explicit SQLite database env, or memory default.
+/// Opens the device database using path args, env path, explicit database env, or memory default.
 pub fn open_aiot_device_database_from_env() -> Result<AiotDeviceDatabase, PoolError> {
     open_aiot_device_database(None)
+}
+
+#[cfg(test)]
+mod device_database_tests {
+    use super::*;
+    use crate::sqlite_sync::BlockingSqlitePool;
+    use crate::BlockingDevicePool;
+    use sdkwork_aiot_storage::AiotDeviceRepository;
+
+    #[test]
+    fn open_from_sqlite_blocking_pool_bootstraps_schema() {
+        let sqlite =
+            BlockingSqlitePool::connect("file:aiot-device-db-test?mode=memory&cache=shared")
+                .expect("connect");
+        let database =
+            AiotDeviceDatabase::from_pool(BlockingDevicePool::Sqlite(sqlite)).expect("database");
+        assert!(database.device_repository().expect("repo").storage_ready());
+    }
 }

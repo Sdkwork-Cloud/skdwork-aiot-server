@@ -43,6 +43,12 @@ Read `sdkwork.app.config.json` only when the task touches AIoT application behav
 - `scripts/`, `tools/`, `docs/`, `tests/`: thin command entrypoints, validators, documentation, and verification assets.
 - `package.json`, `Cargo.toml`: language/build manifests.
 
+## Documentation Canon
+
+- [docs/README.md](docs/README.md)
+- [docs/product/prd/PRD.md](docs/product/prd/PRD.md)
+- [docs/architecture/tech/TECH_ARCHITECTURE.md](docs/architecture/tech/TECH_ARCHITECTURE.md)
+
 ## Spec Resolution Order
 
 Use dynamic progressive loading:
@@ -85,8 +91,9 @@ Use canonical root package scripts from `PNPM_SCRIPT_SPEC.md`:
 - `pnpm build`, `pnpm test`, `pnpm check`, `pnpm verify`, `pnpm clean`: standard root lifecycle commands.
 - `pnpm check:pnpm-script-standard`: validate package script standardization.
 - `pnpm check:agent-workflow-standard`: validate AGENTS and GitHub packaging workflow standardization.
+- `pnpm check:docs-standard`: validate Canon docs layout per `DOCUMENTATION_SPEC.md`.
 - `pnpm api:check`, `pnpm sdk:check`, `pnpm db:validate`, `pnpm test:topology-validate`, `pnpm test:topology-baggage`: contract and topology gates.
-- `cargo fmt --all --check`, `cargo clippy --workspace --tests -- -D warnings`, `cargo test --workspace`: Rust verification.
+- `cargo fmt -- --check`, `cargo clippy --workspace --tests -- -D warnings`, `cargo test --workspace`: Rust verification.
 
 Run the narrowest relevant check first, then broader verification when API contracts, SDK generation, persistence, security, packaging, or cross-package boundaries change. Repository-specific structure, security, and verification notes live in `specs/README.md`.
 

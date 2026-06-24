@@ -5,13 +5,12 @@ use sdkwork_database_sqlx::{
     create_pool_from_config, create_pool_from_env, DatabasePool, PoolError,
 };
 
+use crate::blocking_device_pool::BlockingDevicePool;
 use crate::outbox_worker::configured_device_db_path_from_env;
+use crate::postgres_sync::BlockingPostgresPool;
 use crate::sqlite_sync::BlockingSqlitePool;
 
 pub const AIOT_DEVICE_DATABASE_SERVICE_NAME: &str = "AIOT_DEVICE";
-
-/// Returned when callers request Postgres before Phase K repository migration lands.
-pub const POSTGRES_DEVICE_PERSISTENCE_DEFERRED: &str = "Postgres device repositories require Phase K migration; use SDKWORK_AIOT_DEVICE_DB_PATH for SQLite file persistence until SDKWORK_AIOT_DEVICE_DATABASE postgres pools are supported";
 
 const EXPLICIT_DEVICE_DATABASE_ENV_KEYS: &[&str] = &[
     "SDKWORK_AIOT_DEVICE_DATABASE_URL",
@@ -65,11 +64,6 @@ pub fn resolve_device_database_config_from_env(
     if explicit_device_database_env_configured() {
         let config = DatabaseConfig::from_env(AIOT_DEVICE_DATABASE_SERVICE_NAME)
             .map_err(|error| PoolError::DatabaseConfig(error.to_string()))?;
-        if config.engine == DatabaseEngine::Postgres {
-            return Err(PoolError::DatabaseConfig(
-                POSTGRES_DEVICE_PERSISTENCE_DEFERRED.to_owned(),
-            ));
-        }
         return Ok(config);
     }
     Ok(aiot_device_sqlite_memory_config())
@@ -108,14 +102,14 @@ pub async fn aiot_device_pool_from_env() -> Result<Option<DatabasePool>, PoolErr
 /// Opens a synchronous SQLite pool through `sdkwork-database-sqlx` for legacy sync repositories.
 pub fn aiot_device_blocking_pool(
     device_db_path: Option<&str>,
-) -> Result<BlockingSqlitePool, PoolError> {
+) -> Result<BlockingDevicePool, PoolError> {
     aiot_device_blocking_pool_from_env(device_db_path)
 }
 
-/// Opens a synchronous SQLite pool from path, env path, explicit SQLite database env, or memory default.
+/// Opens a synchronous device pool from path, env path, explicit database env, or memory default.
 pub fn aiot_device_blocking_pool_from_env(
     device_db_path: Option<&str>,
-) -> Result<BlockingSqlitePool, PoolError> {
+) -> Result<BlockingDevicePool, PoolError> {
     let config = resolve_device_database_config_from_env(device_db_path)?;
     match config.engine {
         DatabaseEngine::Sqlite => {
@@ -125,47 +119,52 @@ pub fn aiot_device_blocking_pool_from_env(
             let sqlite_pool = database_pool.as_sqlite().ok_or_else(|| {
                 PoolError::DatabaseConfig("AIoT device database requires SQLite engine".to_owned())
             })?;
-            BlockingSqlitePool::from_pool(sqlite_pool.clone()).map_err(PoolError::PoolCreation)
+            BlockingSqlitePool::from_pool(sqlite_pool.clone())
+                .map(BlockingDevicePool::Sqlite)
+                .map_err(PoolError::PoolCreation)
         }
-        DatabaseEngine::Postgres => Err(PoolError::DatabaseConfig(
-            POSTGRES_DEVICE_PERSISTENCE_DEFERRED.to_owned(),
-        )),
+        DatabaseEngine::Postgres => {
+            let runtime = tokio::runtime::Runtime::new()
+                .map_err(|error| PoolError::DatabaseConfig(format!("tokio runtime: {error}")))?;
+            let database_pool = runtime.block_on(create_pool_from_config(config))?;
+            let postgres_pool = database_pool.as_postgres().ok_or_else(|| {
+                PoolError::DatabaseConfig(
+                    "AIoT device database requires Postgres engine".to_owned(),
+                )
+            })?;
+            BlockingPostgresPool::from_pool(postgres_pool.clone())
+                .map(BlockingDevicePool::Postgres)
+                .map_err(PoolError::PoolCreation)
+        }
     }
 }
 
 #[cfg(test)]
 mod database_bootstrap_tests {
     use super::*;
+    use crate::test_env::{lock_env_tests, EnvGuard, DEVICE_DATABASE_ENV_KEYS};
 
     #[test]
     fn resolve_device_database_config_defaults_to_shared_memory_without_env() {
-        for key in EXPLICIT_DEVICE_DATABASE_ENV_KEYS {
-            std::env::remove_var(key);
-        }
-        std::env::remove_var("SDKWORK_AIOT_DEVICE_DB_PATH");
+        let _lock = lock_env_tests();
+        let _guard = EnvGuard::clear(DEVICE_DATABASE_ENV_KEYS);
 
-        let config = resolve_device_database_config(None);
+        let config = resolve_device_database_config_from_env(None).expect("config");
         assert_eq!(config.engine, DatabaseEngine::Sqlite);
         assert!(config.url.contains("mode=memory"));
     }
 
     #[test]
-    fn resolve_device_database_config_from_env_rejects_postgres_until_phase_k() {
-        std::env::remove_var("SDKWORK_AIOT_DEVICE_DB_PATH");
-        for key in EXPLICIT_DEVICE_DATABASE_ENV_KEYS {
-            std::env::remove_var(key);
-        }
+    fn resolve_device_database_config_from_env_accepts_postgres_engine() {
+        let _lock = lock_env_tests();
+        let _guard = EnvGuard::clear(DEVICE_DATABASE_ENV_KEYS);
         std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_ENGINE", "postgres");
         std::env::set_var(
             "SDKWORK_AIOT_DEVICE_DATABASE_URL",
             "postgres://localhost/aiot",
         );
 
-        let error = resolve_device_database_config_from_env(None)
-            .expect_err("postgres must fail fast before repository migration");
-        assert!(error.to_string().contains("Phase K"));
-
-        std::env::remove_var("SDKWORK_AIOT_DEVICE_DATABASE_ENGINE");
-        std::env::remove_var("SDKWORK_AIOT_DEVICE_DATABASE_URL");
+        let config = resolve_device_database_config_from_env(None).expect("postgres config");
+        assert_eq!(config.engine, DatabaseEngine::Postgres);
     }
 }

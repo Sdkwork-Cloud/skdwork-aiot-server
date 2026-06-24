@@ -26,7 +26,7 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const API_GATEWAY_REPO = path.resolve(REPO_ROOT, '..', 'sdkwork-api-gateway');
+const API_GATEWAY_REPO = path.resolve(REPO_ROOT, '..', 'sdkwork-api-cloud-gateway');
 const HEALTH_PATH = '/healthz';
 const HEALTH_TIMEOUT_MS = 2000;
 const STARTUP_WAIT_MS = 500;
@@ -146,19 +146,19 @@ function createCargoServiceProcess({ label, packageName, binary, env }) {
 function createPlatformGatewayProcess(env) {
   const bind = resolveGatewayBind(env, env.SDKWORK_AIOT_HOSTING ?? 'self-hosted');
   return {
-    label: 'sdkwork-api-gateway',
+    label: 'sdkwork-api-cloud-gateway',
     command: cargoCommand(),
     args: [
       'run',
       '-p',
-      'sdkwork-api-gateway-api-server',
+      'sdkwork-api-cloud-gateway-api-server',
       '--bin',
-      'sdkwork-api-gateway',
+      'sdkwork-api-cloud-gateway',
     ],
     cwd: API_GATEWAY_REPO,
     env: {
       ...env,
-      SDKWORK_API_GATEWAY_BIND: bind,
+      SDKWORK_API_CLOUD_GATEWAY_BIND: bind,
     },
   };
 }

@@ -720,6 +720,7 @@
         "owner": "sdkwork-aiot"
       },
       "path": "/backend/v3/api/iot/devices",
+      "rateLimitTier": "authCritical",
       "requestContext": "WebRequestContext",
       "schemas": {
         "problem": "ProblemDetail",
@@ -819,6 +820,7 @@
         "owner": "sdkwork-aiot"
       },
       "path": "/backend/v3/api/iot/devices/{deviceId}",
+      "rateLimitTier": "authCritical",
       "requestContext": "WebRequestContext",
       "schemas": {
         "problem": "ProblemDetail",
@@ -918,6 +920,7 @@
         "owner": "sdkwork-aiot"
       },
       "path": "/backend/v3/api/iot/devices/{deviceId}/credentials",
+      "rateLimitTier": "authCritical",
       "requestContext": "WebRequestContext",
       "schemas": {
         "problem": "ProblemDetail",
@@ -951,6 +954,7 @@
         "owner": "sdkwork-aiot"
       },
       "path": "/backend/v3/api/iot/devices/{deviceId}/credentials/{credentialId}",
+      "rateLimitTier": "authCritical",
       "requestContext": "WebRequestContext",
       "schemas": {
         "problem": "ProblemDetail",
@@ -1116,6 +1120,7 @@
         "owner": "sdkwork-aiot"
       },
       "path": "/backend/v3/api/iot/devices/{deviceId}/commands/{commandId}/cancel",
+      "rateLimitTier": "authCritical",
       "requestContext": "WebRequestContext",
       "schemas": {
         "problem": "ProblemDetail",
@@ -1413,6 +1418,7 @@
         "owner": "sdkwork-aiot"
       },
       "path": "/backend/v3/api/iot/firmware_rollouts",
+      "rateLimitTier": "authCritical",
       "requestContext": "WebRequestContext",
       "schemas": {
         "problem": "ProblemDetail",

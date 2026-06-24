@@ -17,17 +17,24 @@ pub struct BlockingSqlitePool {
 }
 
 impl BlockingSqlitePool {
+    fn build_runtime() -> Result<Arc<Runtime>, StorageSqliteError> {
+        Ok(Arc::new(
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .map_err(|error| {
+                    StorageSqliteError::Configuration(format!("tokio runtime: {error}").into())
+                })?,
+        ))
+    }
+
     pub fn from_pool(pool: SqlitePool) -> Result<Self, StorageSqliteError> {
-        let runtime = Arc::new(Runtime::new().map_err(|error| {
-            StorageSqliteError::Configuration(format!("tokio runtime: {error}").into())
-        })?);
+        let runtime = Self::build_runtime()?;
         Ok(Self { pool, runtime })
     }
 
     pub fn connect(url: &str) -> Result<Self, StorageSqliteError> {
-        let runtime = Arc::new(Runtime::new().map_err(|error| {
-            StorageSqliteError::Configuration(format!("tokio runtime: {error}").into())
-        })?);
+        let runtime = Self::build_runtime()?;
         let pool = runtime.block_on(SqlitePool::connect(url))?;
         Ok(Self { pool, runtime })
     }
@@ -122,6 +129,7 @@ where
     Ok(query.execute(executor).await?.rows_affected())
 }
 
+#[allow(dead_code)]
 pub fn read_timestamp_column(
     row: &sqlx::sqlite::SqliteRow,
     index: &str,
@@ -131,6 +139,7 @@ pub fn read_timestamp_column(
         .or_else(|_| row.try_get::<i64, _>(index).map(|value| value.to_string()))
 }
 
+#[allow(dead_code)]
 pub fn read_optional_timestamp_column(
     row: &sqlx::sqlite::SqliteRow,
     index: &str,

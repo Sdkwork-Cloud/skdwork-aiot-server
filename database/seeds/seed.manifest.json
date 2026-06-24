@@ -6,13 +6,13 @@
   "activeLocales": ["zh-CN"],
   "profiles": {
     "minimal": {
-      "common": [],
+      "common": ["common/001_bootstrap.sql"],
       "locales": {
         "zh-CN": []
       }
     },
     "standard": {
-      "common": [],
+      "common": ["common/001_bootstrap.sql"],
       "locales": {
         "zh-CN": []
       }

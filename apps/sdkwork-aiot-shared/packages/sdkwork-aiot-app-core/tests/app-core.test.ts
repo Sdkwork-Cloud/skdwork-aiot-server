@@ -45,6 +45,39 @@ describe('aiot-app-core command service', () => {
 });
 
 describe('aiot-app-core agent service', () => {
+  it('marks assistant messages failed when device returns no reply payload', async () => {
+    const service = createAiotAgentService({
+      aiotClient: {
+        iot: {
+          devicesCommandsCreate: vi.fn().mockResolvedValue({
+            code: '202',
+            data: {
+              commandId: 'cmd-empty',
+              deviceId: 'dev-1',
+              capabilityName: 'assistant',
+              commandName: 'chat',
+              status: 'accepted',
+              createdAt: '2026-06-18T00:00:00.000Z',
+            },
+          }),
+          devicesEventsList: vi.fn().mockResolvedValue({ data: [] }),
+        },
+      } as never,
+    });
+
+    const session = service.createSession('dev-1');
+    await expect(
+      service.sendMessage({
+        deviceId: 'dev-1',
+        sessionId: session.id,
+        text: '打开客厅灯',
+      }),
+    ).rejects.toThrow('assistant.chat');
+
+    const messages = service.getMessages(session.id);
+    expect(messages[1]?.status).toBe('failed');
+  });
+
   it('marks assistant messages failed when command execution fails', async () => {
     const service = createAiotAgentService({
       aiotClient: {

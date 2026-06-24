@@ -1,0 +1,18 @@
+[package]
+name = "sdkwork-aiot-intelligence-bridge"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Production Xiaozhi intelligence bridge via sdkwork-kernel and sdkwork-claw-router"
+
+[dependencies]
+clawrouter-open-sdk = { path = "../../../sdkwork-claw-router/sdks/clawrouter-open-sdk/clawrouter-open-sdk-rust/generated/server-openapi" }
+sdkwork-aiot-adapter-xiaozhi = { path = "../sdkwork-aiot-adapter-xiaozhi" }
+sdkwork-utils-rust.workspace = true
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+base64 = "0.22"
+ureq = { version = "2.12", default-features = false, features = ["tls"] }
+
+[dev-dependencies]
