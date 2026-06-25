@@ -2121,7 +2121,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sdkwork-appbase-iam-bootstrap"
+name = "sdkwork-iam-bootstrap"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -2228,7 +2228,7 @@ dependencies = [
  "password-hash",
  "rand_core 0.6.4",
  "reqwest",
- "sdkwork-appbase-iam-bootstrap",
+ "sdkwork-iam-bootstrap",
  "sdkwork-database-sqlx",
  "sdkwork-iam-context-service",
  "sdkwork-utils-rust",

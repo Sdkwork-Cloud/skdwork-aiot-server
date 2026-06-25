@@ -36,7 +36,7 @@ Inactive standard directories are documented rather than omitted without explana
 
 ## Development (topology v2)
 
-Default profile: `self-hosted.split-services.development` (`specs/topology.spec.json`).
+Default profile: `standalone.split-services.development` (`specs/topology.spec.json`).
 
 ```bash
 pnpm dev

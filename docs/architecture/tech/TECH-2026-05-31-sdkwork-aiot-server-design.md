@@ -62,10 +62,10 @@ Normative constraints:
 Relevant appbase packages:
 
 ```text
-apps/sdkwork-appbase/packages/common/iam/sdkwork-iam-contracts
-apps/sdkwork-appbase/packages/common/iam/sdkwork-iam-sdk-ports
-apps/sdkwork-appbase/packages/common/iam/sdkwork-iam-service
-apps/sdkwork-appbase/packages/common/iam/sdkwork-iam-runtime
+apps/sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-contracts
+apps/sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-sdk-ports
+apps/sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-service
+apps/sdkwork-iam/apps/sdkwork-iam-common/packages/sdkwork-iam-runtime
 apps/sdkwork-appbase/packages/native-rust/iam/sdkwork-iam-core-rust
 apps/sdkwork-appbase/packages/native-rust/iam/sdkwork-iam-http-rust
 apps/sdkwork-appbase/packages/native-rust/iam/sdkwork-iam-storage-sqlx-rust

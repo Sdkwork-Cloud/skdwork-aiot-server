@@ -27,7 +27,7 @@ test('sqlite and postgres admin-entity migrations stay paired', () => {
 });
 
 test('cloud production topology declares postgres device database env', () => {
-  const envText = read('configs/topology/cloud-hosted.split-services.production.env');
+  const envText = read('configs/topology/cloud.split-services.production.env');
   assert.match(envText, /SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres/u);
   assert.match(envText, /SDKWORK_AIOT_DEVICE_DATABASE_URL=/u);
 });

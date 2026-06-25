@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   DEFAULT_DEV_PROFILE_ID,
+  IAM_APPLICATION_BOOTSTRAP_ENV,
   listHealthSurfaces,
   listOrchestrationProcesses,
   loadProfile,
@@ -244,7 +245,7 @@ async function main() {
   ) || DEFAULT_DEV_PROFILE_ID;
   const profileEnv = loadProfile(profileId);
   const runtimeEnv = mergeDeviceDatabaseEnv(
-    mergeRuntimeEnv(process.env, profileEnv, {
+    mergeRuntimeEnv(process.env, profileEnv, IAM_APPLICATION_BOOTSTRAP_ENV, {
       SDKWORK_AIOT_PROFILE_ID: profileId,
       SDKWORK_AIOT_DEV_MODE: '1',
     }),

@@ -99,5 +99,5 @@ Gateway device access in production:
 
 When `SDKWORK_AIOT_DEVICE_DB_PATH` is configured on gateway, admin-api, and app-api, credential verification uses the shared SQLite database. Admin-api also persists custom products and firmware artifacts/rollouts in the same database via migration `0002` (`iot_admin_entity`).
 
-For cloud-hosted Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `configs/topology/cloud-hosted.split-services.production.env`). Device, credential, outbox, and admin-entity repositories share one `BlockingDevicePool` opened from those env keys.
+For cloud-hosted Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `configs/topology/cloud.split-services.production.env`). Device, credential, outbox, and admin-entity repositories share one `BlockingDevicePool` opened from those env keys.
 

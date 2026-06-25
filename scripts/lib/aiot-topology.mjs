@@ -16,6 +16,12 @@ const __dirname = path.dirname(__filename);
 export const REPO_ROOT = path.resolve(__dirname, '..', '..');
 export const SPEC_PATH = path.join(REPO_ROOT, 'specs/topology.spec.json');
 
+export const IAM_APPLICATION_BOOTSTRAP_ENV = {
+  SDKWORK_APP_ROOT: REPO_ROOT,
+  SDKWORK_IAM_APP_ROOT: path.resolve(REPO_ROOT, '..', 'sdkwork-iam'),
+  SDKWORK_AIOT_APP_ROOT: REPO_ROOT,
+};
+
 const spec = loadTopologySpec(SPEC_PATH);
 const runtime = createTopologyRuntime(spec, REPO_ROOT);
 

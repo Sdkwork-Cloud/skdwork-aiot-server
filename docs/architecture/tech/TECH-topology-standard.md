@@ -7,7 +7,7 @@ Platform standard: `../sdkwork-specs/APP_RUNTIME_TOPOLOGY_ADOPTION.md`
 
 ## Default dev profile
 
-`self-hosted.split-services.development` — start the split-service stack with:
+`standalone.split-services.development` — start the split-service stack with:
 
 ```bash
 pnpm dev
