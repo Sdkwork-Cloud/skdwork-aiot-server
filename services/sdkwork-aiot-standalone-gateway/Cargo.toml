@@ -1,0 +1,16 @@
+[package]
+name = "sdkwork-aiot-standalone-gateway"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "sdkwork-aiot-standalone-gateway"
+path = "src/main.rs"
+
+[dependencies]
+axum.workspace = true
+sdkwork-iot-platform-service.workspace = true
+sdkwork-routes-iot-app-api.workspace = true
+sdkwork-routes-iot-backend-api.workspace = true
+tokio.workspace = true

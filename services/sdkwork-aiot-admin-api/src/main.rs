@@ -37,9 +37,9 @@ async fn main() {
 
     let bind_addr = std::env::var("SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_BIND")
         .unwrap_or_else(|_| "127.0.0.1:18081".to_string());
-    let router = sdkwork_router_iot_backend_api::build_wrapped_backend_api_router(server).await;
+    let router = sdkwork_routes_iot_backend_api::build_wrapped_backend_api_router(server).await;
     if let Err(error) =
-        sdkwork_router_iot_backend_api::serve_backend_api_router(&bind_addr, router).await
+        sdkwork_routes_iot_backend_api::serve_backend_api_router(&bind_addr, router).await
     {
         eprintln!("sdkwork-aiot-admin-api serve_error={error}");
         std::process::exit(1);

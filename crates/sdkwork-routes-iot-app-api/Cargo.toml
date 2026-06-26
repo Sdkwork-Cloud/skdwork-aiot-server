@@ -1,9 +1,9 @@
 [package]
-name = "sdkwork-router-iot-backend-api"
+name = "sdkwork-routes-iot-app-api"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "SDKWork AIoT backend-api Axum router with sdkwork-web-framework integration."
+description = "SDKWork AIoT app-api Axum router with sdkwork-web-framework integration."
 build = "build.rs"
 
 [dependencies]

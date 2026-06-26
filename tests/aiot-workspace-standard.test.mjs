@@ -97,8 +97,8 @@ test('sdkwork-aiot uses responsibility-specific Rust crate names', () => {
     'crates/sdkwork-iot-device-service/Cargo.toml',
     'crates/sdkwork-aiot-service-host/Cargo.toml',
     'crates/sdkwork-iot-platform-service/Cargo.toml',
-    'crates/sdkwork-router-iot-app-api/Cargo.toml',
-    'crates/sdkwork-router-iot-backend-api/Cargo.toml',
+    'crates/sdkwork-routes-iot-app-api/Cargo.toml',
+    'crates/sdkwork-routes-iot-backend-api/Cargo.toml',
   ]) {
     assert.ok(exists(cratePath), `${cratePath} must exist`);
   }

@@ -318,11 +318,11 @@ fn service_shells_mount_sdkwork_web_framework_routers() {
     for (service, router_crate) in [
         (
             "services/sdkwork-aiot-app-api/src/main.rs",
-            "sdkwork_router_iot_app_api",
+            "sdkwork_routes_iot_app_api",
         ),
         (
             "services/sdkwork-aiot-admin-api/src/main.rs",
-            "sdkwork_router_iot_backend_api",
+            "sdkwork_routes_iot_backend_api",
         ),
     ] {
         let source = fs::read_to_string(root.join(service)).expect(service);
@@ -361,8 +361,8 @@ fn workspace_declares_sdkwork_web_framework_dependencies() {
     }
 
     for crate_dir in [
-        "crates/sdkwork-router-iot-app-api",
-        "crates/sdkwork-router-iot-backend-api",
+        "crates/sdkwork-routes-iot-app-api",
+        "crates/sdkwork-routes-iot-backend-api",
         "crates/sdkwork-aiot-app-context",
     ] {
         assert!(
@@ -513,7 +513,7 @@ fn service_shells_reuse_runtime_builder_instead_of_owning_domain_logic() {
                 "{service} must route through the shared HTTP API component"
             );
             assert!(
-                source.contains("sdkwork_router_iot"),
+                source.contains("sdkwork_routes_iot"),
                 "{service} must mount sdkwork-web-framework routers"
             );
             assert!(

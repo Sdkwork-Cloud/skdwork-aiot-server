@@ -13,11 +13,12 @@ members = [
     "crates/sdkwork-aiot-transport",
     "crates/sdkwork-aiot-app-context",
     "crates/sdkwork-iot-platform-service",
-    "crates/sdkwork-router-iot-app-api",
-    "crates/sdkwork-router-iot-backend-api",
+    "crates/sdkwork-routes-iot-app-api",
+    "crates/sdkwork-routes-iot-backend-api",
     "crates/sdkwork-aiot-architecture",
     "crates/sdkwork-aiot-intelligence-bridge",
     "services/sdkwork-aiot-cloud-gateway",
+    "services/sdkwork-aiot-standalone-gateway",
     "services/sdkwork-aiot-xiaozhi-simulator-ui",
     "services/sdkwork-aiot-admin-api",
     "services/sdkwork-aiot-app-api",
@@ -52,8 +53,8 @@ sdkwork-aiot-adapter-xiaozhi = { path = "crates/sdkwork-aiot-adapter-xiaozhi" }
 sdkwork-aiot-transport = { path = "crates/sdkwork-aiot-transport" }
 sdkwork-aiot-app-context = { path = "crates/sdkwork-aiot-app-context" }
 sdkwork-iot-platform-service = { path = "crates/sdkwork-iot-platform-service" }
-sdkwork-router-iot-app-api = { path = "crates/sdkwork-router-iot-app-api" }
-sdkwork-router-iot-backend-api = { path = "crates/sdkwork-router-iot-backend-api" }
+sdkwork-routes-iot-app-api = { path = "crates/sdkwork-routes-iot-app-api" }
+sdkwork-routes-iot-backend-api = { path = "crates/sdkwork-routes-iot-backend-api" }
 sdkwork-aiot-architecture = { path = "crates/sdkwork-aiot-architecture" }
 sdkwork-aiot-intelligence-bridge = { path = "crates/sdkwork-aiot-intelligence-bridge" }
 clawrouter-open-sdk = { path = "../sdkwork-claw-router/sdks/clawrouter-open-sdk/clawrouter-open-sdk-rust/generated/server-openapi" }

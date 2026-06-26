@@ -26,7 +26,7 @@ This document tracks production readiness for the SDKWork AIoT server after the 
 | SBOM checksum parity | Done | `pnpm sbom:check --strict` matches app manifest checksums |
 | Commercial readiness gate | Done | `pnpm release:preflight` runs deploy + release + optional publish checks |
 | Docs index registry validation | Done | `pnpm check:docs-index` resolves `docs/INDEX.yaml` paths |
-| App/backend HTTP (Axum + web framework) | Done | `sdkwork-router-iot-app-api`, `sdkwork-router-iot-backend-api`, `resolve_api_request_from_web_context` |
+| App/backend HTTP (Axum + web framework) | Done | `sdkwork-routes-iot-app-api`, `sdkwork-routes-iot-backend-api`, `resolve_api_request_from_web_context` |
 | Gateway device ingress HTTP | Done | `sdkwork-aiot-transport` minimal stack per ADR 002 |
 | CORS + security headers + rate limiting | Done | `sdkwork-iot-platform-service` |
 | Production device auth fail-closed | Done | Gateway dev/prod token rules |

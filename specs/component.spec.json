@@ -132,8 +132,8 @@
       "crates/sdkwork-aiot-observability",
       "crates/sdkwork-aiot-adapter-xiaozhi",
       "crates/sdkwork-iot-platform-service",
-      "crates/sdkwork-router-iot-app-api",
-      "crates/sdkwork-router-iot-backend-api"
+      "crates/sdkwork-routes-iot-app-api",
+      "crates/sdkwork-routes-iot-backend-api"
     ],
     "runtimeEntrypoints": [
       "sdkwork_aiot_service_host::AiotRuntime::builder",

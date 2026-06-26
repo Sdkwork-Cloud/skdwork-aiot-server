@@ -58,7 +58,7 @@
     "test:app-openapi-context": "node --test scripts/dev/sdkwork-aiot-app-openapi-context.test.mjs",
     "test:openapi-web-context": "node --test scripts/dev/sdkwork-aiot-openapi-web-context.test.mjs",
     "test:topology-validate": "node ../sdkwork-app-topology/scripts/sdkwork-topology.mjs validate --root .",
-    "db:materialize:contract": "node ../sdkwork-specs/tools/materialize-database-contract-from-baseline.mjs --root . --baseline database/ddl/baseline/postgres/0001_aiot_legacy_baseline.sql --module-id aiot --owner aiot-platform --prefixes iot_ --engines postgres,sqlite",
+    "db:materialize:contract": "node ../sdkwork-specs/tools/materialize-database-contract-from-baseline.mjs --root . --baseline database/ddl/baseline/postgres/0001_aiot_legacy_baseline.sql --module-id aiot --owner aiot-platform --prefixes aiot_ --engines postgres",
     "db:validate": "node ../sdkwork-specs/tools/check-database-framework-standard.mjs --root .",
     "db:plan": "cargo run --manifest-path ../sdkwork-database/Cargo.toml -p sdkwork-database-cli -- --app-root . plan",
     "db:init": "cargo run --manifest-path ../sdkwork-database/Cargo.toml -p sdkwork-database-cli -- --app-root . init",
@@ -77,6 +77,7 @@
     "check:docs-standard": "node ../sdkwork-specs/tools/check-repository-docs-standard.mjs --root . --profile application",
     "release:package": "node scripts/release-package.mjs",
     "gateway:package:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs bundle --root .",
-    "gateway:validate:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs validate --root ."
+    "gateway:validate:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs validate --root .",
+    "test:contract:database": "node ../sdkwork-specs/tools/check-database-framework-standard.mjs --root ."
   }
 }

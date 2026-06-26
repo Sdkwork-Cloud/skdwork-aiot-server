@@ -54,6 +54,15 @@
     "clientDeploymentProfile": "VITE_SDKWORK_AIOT_DEPLOYMENT_PROFILE"
   },
   "surfaces": {
+    "application.public-ingress": {
+      "connectivityPlane": "application",
+      "protocols": [
+        "http"
+      ],
+      "bindEnv": "SDKWORK_AIOT_APPLICATION_PUBLIC_INGRESS_BIND",
+      "httpUrlEnv": "SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL",
+      "clientHttpEnv": "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL"
+    },
     "application.app-http": {
       "connectivityPlane": "application",
       "protocols": [
@@ -148,6 +157,10 @@
       "crate": "sdkwork-aiot-admin-api",
       "binary": "sdkwork-aiot-admin-api"
     },
+    "standaloneGateway": {
+      "crate": "sdkwork-aiot-standalone-gateway",
+      "binary": "sdkwork-aiot-standalone-gateway"
+    },
     "cloudGateway": {
       "crate": "sdkwork-api-cloud-gateway-api-server",
       "binary": "sdkwork-api-cloud-gateway",
@@ -159,15 +172,9 @@
       "standalone.split-services.development": {
         "processes": [
           {
-            "id": "application.app-http",
-            "crate": "sdkwork-aiot-app-api",
-            "binary": "sdkwork-aiot-app-api",
-            "required": true
-          },
-          {
-            "id": "application.admin-http",
-            "crate": "sdkwork-aiot-admin-api",
-            "binary": "sdkwork-aiot-admin-api",
+            "id": "application.public-ingress",
+            "crate": "sdkwork-aiot-standalone-gateway",
+            "binary": "sdkwork-aiot-standalone-gateway",
             "required": true
           },
           {
@@ -185,8 +192,7 @@
           }
         ],
         "healthSurfaces": [
-          "application.app-http",
-          "application.admin-http",
+          "application.public-ingress",
           "edge.device-ingress"
         ]
       },
@@ -200,15 +206,9 @@
             "required": true
           },
           {
-            "id": "application.app-http",
-            "crate": "sdkwork-aiot-app-api",
-            "binary": "sdkwork-aiot-app-api",
-            "required": true
-          },
-          {
-            "id": "application.admin-http",
-            "crate": "sdkwork-aiot-admin-api",
-            "binary": "sdkwork-aiot-admin-api",
+            "id": "application.public-ingress",
+            "crate": "sdkwork-aiot-standalone-gateway",
+            "binary": "sdkwork-aiot-standalone-gateway",
             "required": true
           },
           {
@@ -220,23 +220,16 @@
         ],
         "healthSurfaces": [
           "platform.api-gateway",
-          "application.app-http",
-          "application.admin-http",
+          "application.public-ingress",
           "edge.device-ingress"
         ]
       },
       "cloud.split-services.production": {
         "processes": [
           {
-            "id": "application.app-http",
-            "crate": "sdkwork-aiot-app-api",
-            "binary": "sdkwork-aiot-app-api",
-            "required": true
-          },
-          {
-            "id": "application.admin-http",
-            "crate": "sdkwork-aiot-admin-api",
-            "binary": "sdkwork-aiot-admin-api",
+            "id": "application.public-ingress",
+            "crate": "sdkwork-aiot-standalone-gateway",
+            "binary": "sdkwork-aiot-standalone-gateway",
             "required": true
           },
           {
@@ -254,8 +247,7 @@
           }
         ],
         "healthSurfaces": [
-          "application.app-http",
-          "application.admin-http",
+          "application.public-ingress",
           "edge.device-ingress",
           "platform.api-gateway"
         ]

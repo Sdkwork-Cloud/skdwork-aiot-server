@@ -1,11 +1,11 @@
-# sdkwork-router-iot-app-api
+# sdkwork-routes-iot-app-api
 
 Domain: iot
 Capability: app-api-router
 Package type: rust-crate
 Status: standard
 
-This README is the SDKWork module entrypoint for `sdkwork-router-iot-app-api`. The machine-readable component contract is `../../specs/component.spec.json`; canonical standards are under `../../../sdkwork-specs/`.
+This README is the SDKWork module entrypoint for `sdkwork-routes-iot-app-api`. The machine-readable component contract is `../../specs/component.spec.json`; canonical standards are under `../../../sdkwork-specs/`.
 
 ## Public API
 
@@ -35,7 +35,7 @@ Add or adjust routes through OpenAPI authority updates, route manifest regenerat
 
 ## Verification
 
-- `cargo test -p sdkwork-router-iot-app-api`
+- `cargo test -p sdkwork-routes-iot-app-api`
 - `pnpm api:check`
 
 ## Owner And Status

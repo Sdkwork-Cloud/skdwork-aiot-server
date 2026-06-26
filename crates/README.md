@@ -10,8 +10,8 @@ Rust libraries for the SDKWork AIoT server workspace.
 | `sdkwork-aiot-adapter-xiaozhi` | Xiaozhi compatibility plugin |
 | `sdkwork-aiot-transport` | Device ingress transport (HTTP/WebSocket/MQTT/UDP) |
 | `sdkwork-iot-platform-service` | Shared HTTP API handlers and route contracts |
-| `sdkwork-router-iot-app-api` | App-api Axum router with `sdkwork-web-framework` |
-| `sdkwork-router-iot-backend-api` | Backend-api Axum router with `sdkwork-web-framework` |
+| `sdkwork-routes-iot-app-api` | App-api Axum router with `sdkwork-web-framework` |
+| `sdkwork-routes-iot-backend-api` | Backend-api Axum router with `sdkwork-web-framework` |
 | `sdkwork-aiot-service-host` | In-process runtime composition |
 | `sdkwork-aiot-storage*` | Persistence ports and SQLx repositories |
 | `sdkwork-aiot-database-host` | sdkwork-database bootstrap and lifecycle host |

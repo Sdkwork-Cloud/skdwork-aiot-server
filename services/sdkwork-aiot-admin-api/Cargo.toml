@@ -7,5 +7,5 @@ license.workspace = true
 [dependencies]
 sdkwork-iot-platform-service.workspace = true
 sdkwork-aiot-service-host.workspace = true
-sdkwork-router-iot-backend-api.workspace = true
+sdkwork-routes-iot-backend-api.workspace = true
 tokio.workspace = true

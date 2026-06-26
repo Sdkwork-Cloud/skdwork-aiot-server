@@ -40,7 +40,7 @@ The AIoT server already aligns on API contracts, SDK workspaces, topology, secur
 | --- | --- | --- | --- |
 | A | Workflow, root dictionary, route/OpenAPI metadata | `sdkwork.workflow.json`, route manifests, OpenAPI extensions, architecture tests | Done |
 | B | Web framework core adoption | `sdkwork-web-framework` workspace deps; custom transport uses framework context + interceptor semantics | Done |
-| C | Route crate split + Axom servers | `sdkwork-router-iot-app-api`, `sdkwork-router-iot-backend-api`, Tokio/Axum service shells | Done |
+| C | Route crate split + Axom servers | `sdkwork-routes-iot-app-api`, `sdkwork-routes-iot-backend-api`, Tokio/Axum service shells | Done |
 | D | Database framework adoption | `sdkwork-database-config` bootstrap + `sdkwork-database-sqlx` pool helpers; repository SQL via sqlx pools | Done |
 | E | Crate rename cleanup | `sdkwork-iot-device-service`, `sdkwork-aiot-service-host`, `sdkwork-iot-platform-service`; no forbidden `core/runtime` crate names | Done |
 | F | Shared persistence + `apis/` authority layout | Single `AiotDeviceDatabase` pool for device/credential/admin entities; authored OpenAPI under `apis/` | Done |
