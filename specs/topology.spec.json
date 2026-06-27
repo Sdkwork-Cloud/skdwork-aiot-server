@@ -162,7 +162,7 @@
       "binary": "sdkwork-aiot-standalone-gateway"
     },
     "cloudGateway": {
-      "crate": "sdkwork-api-cloud-gateway-api-server",
+      "crate": "sdkwork-api-cloud-gateway",
       "binary": "sdkwork-api-cloud-gateway",
       "repository": "sdkwork-api-cloud-gateway"
     }
@@ -185,7 +185,7 @@
           },
           {
             "id": "platform.api-gateway",
-            "crate": "sdkwork-api-cloud-gateway-api-server",
+            "crate": "sdkwork-api-cloud-gateway",
             "binary": "sdkwork-api-cloud-gateway",
             "repository": "sdkwork-api-cloud-gateway",
             "required": false
@@ -200,7 +200,7 @@
         "processes": [
           {
             "id": "platform.api-gateway",
-            "crate": "sdkwork-api-cloud-gateway-api-server",
+            "crate": "sdkwork-api-cloud-gateway",
             "binary": "sdkwork-api-cloud-gateway",
             "repository": "sdkwork-api-cloud-gateway",
             "required": true
@@ -240,7 +240,7 @@
           },
           {
             "id": "platform.api-gateway",
-            "crate": "sdkwork-api-cloud-gateway-api-server",
+            "crate": "sdkwork-api-cloud-gateway",
             "binary": "sdkwork-api-cloud-gateway",
             "repository": "sdkwork-api-cloud-gateway",
             "required": false

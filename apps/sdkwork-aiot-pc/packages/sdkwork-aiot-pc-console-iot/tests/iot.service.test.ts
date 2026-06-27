@@ -29,7 +29,7 @@ describe("sdkwork-aiot-pc-console-iot service", () => {
       data: [
         {
           id: "42",
-          tenantId: "tenant-1",
+          tenantId: "100001",
           organizationId: "org-1",
           deviceId: "gateway-42",
           displayName: "Gateway 42",

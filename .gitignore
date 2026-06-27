@@ -21,3 +21,7 @@ artifacts/release/*.zip
 artifacts/release/bundle-*/
 artifacts/release/*.exe
 artifacts/release/sdkwork-aiot-*
+
+# SDKWork local runtime state
+.runtime/
+**/.runtime/
