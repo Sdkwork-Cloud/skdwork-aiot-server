@@ -229,16 +229,16 @@ function runTypeScript(ctx) {
   const packageJson = loadJson(packageFile);
   const hasBuildScript = Boolean(packageJson?.scripts?.build);
 
-  if (ctx.action === 'check') {
-    run('npm', ['pack', '--dry-run'], { cwd: ctx.projectDir });
-    return;
-  }
-
   run('npm', ['install'], { cwd: ctx.projectDir });
   if (hasBuildScript) {
     run('npm', ['run', 'build'], { cwd: ctx.projectDir });
   } else {
     log('No build script found in package.json, skipping build.');
+  }
+
+  if (ctx.action === 'check') {
+    run('npm', ['pack', '--dry-run'], { cwd: ctx.projectDir });
+    return;
   }
 
   if (ctx.action === 'build') {
@@ -261,9 +261,15 @@ function runDart(ctx) {
   ensureFile(pubspec, 'pubspec.yaml');
 
   run('dart', ['pub', 'get'], { cwd: ctx.projectDir });
+
+  if (ctx.action === 'check' || ctx.action === 'build') {
+    run('dart', ['analyze'], { cwd: ctx.projectDir });
+    return;
+  }
+
   run('dart', ['pub', 'publish', '--dry-run'], { cwd: ctx.projectDir });
 
-  if (ctx.action === 'check' || ctx.action === 'build' || ctx.dryRun) {
+  if (ctx.dryRun) {
     return;
   }
 
@@ -506,9 +512,15 @@ function runFlutter(ctx) {
   ensureFile(pubspec, 'pubspec.yaml');
 
   run('dart', ['pub', 'get'], { cwd: ctx.projectDir });
+
+  if (ctx.action === 'check' || ctx.action === 'build') {
+    run('dart', ['analyze'], { cwd: ctx.projectDir });
+    return;
+  }
+
   run('dart', ['pub', 'publish', '--dry-run'], { cwd: ctx.projectDir });
 
-  if (ctx.action === 'check' || ctx.action === 'build' || ctx.dryRun) {
+  if (ctx.dryRun) {
     return;
   }
 

@@ -148,17 +148,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mode_defaults_to_simulator() {
+    fn intelligence_mode_from_env_values() {
+        let previous = std::env::var(ENV_INTELLIGENCE_MODE).ok();
+
         std::env::remove_var(ENV_INTELLIGENCE_MODE);
         assert_eq!(intelligence_mode_from_env(), IntelligenceMode::Simulator);
-    }
 
-    #[test]
-    fn mode_kernel_aliases() {
         std::env::set_var(ENV_INTELLIGENCE_MODE, "kernel");
         assert_eq!(intelligence_mode_from_env(), IntelligenceMode::Kernel);
         std::env::set_var(ENV_INTELLIGENCE_MODE, "production");
         assert_eq!(intelligence_mode_from_env(), IntelligenceMode::Kernel);
-        std::env::remove_var(ENV_INTELLIGENCE_MODE);
+
+        match previous {
+            Some(value) => std::env::set_var(ENV_INTELLIGENCE_MODE, value),
+            None => std::env::remove_var(ENV_INTELLIGENCE_MODE),
+        }
     }
 }

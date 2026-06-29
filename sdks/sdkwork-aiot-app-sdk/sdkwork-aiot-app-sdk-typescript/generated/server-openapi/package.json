@@ -1,7 +1,8 @@
 {
   "name": "@sdkwork/aiot-app-sdk",
-  "version": "0.1.3",
-  "description": "sdkwork-aiot-app-sdk",
+  "version": "0.1.8",
+  "private": true,
+  "description": "Generator-owned TypeScript transport SDK for sdkwork-aiot-app-sdk.",
   "author": "SDKWork Team",
   "license": "MIT",
   "type": "module",

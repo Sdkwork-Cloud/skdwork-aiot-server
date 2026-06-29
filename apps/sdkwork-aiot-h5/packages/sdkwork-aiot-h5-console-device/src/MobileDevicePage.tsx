@@ -10,14 +10,14 @@ export function MobileDevicePage() {
     setIsLoading(true);
     setLastError(null);
     void getAiotH5AppSdkClient()
-      .iot.devicesList()
-      .then((response) => {
+      .iot.devices.list()
+      .then((page) => {
         setDevices(
-          Array.isArray(response.data)
-            ? response.data.map((device) => ({
-                deviceId: device.deviceId || device.id,
-                displayName: device.displayName || device.deviceId || device.id,
-                status: device.status,
+          Array.isArray(page.items)
+            ? page.items.map((device) => ({
+                deviceId: String(device.deviceId ?? device.id ?? ''),
+                displayName: String(device.displayName ?? device.deviceId ?? device.id ?? ''),
+                status: String(device.status ?? ''),
               }))
             : [],
         );

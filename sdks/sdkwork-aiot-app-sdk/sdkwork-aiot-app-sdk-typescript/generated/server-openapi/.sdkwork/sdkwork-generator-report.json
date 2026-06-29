@@ -12,7 +12,7 @@
   "mode": "apply",
   "hasChanges": true,
   "hasDestructiveChanges": false,
-  "changeFingerprint": "4709067f6718ec6cd47987fb555683e7da406e7508a73c01d9d90d4a709bedd4",
+  "changeFingerprint": "a6752778619c88d3ec76d0d5d72d016e7b62c52e0001c8b5a9449d02c4660ea4",
   "changeImpact": {
     "schemaVersion": 1,
     "areas": [
@@ -135,33 +135,35 @@
   },
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.3",
+    "version": "0.1.8",
     "language": "typescript",
     "sdkType": "app",
+    "protocol": "http",
     "outputPath": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
     "packageName": "@sdkwork/aiot-app-sdk"
   },
   "versioning": {
-    "resolvedVersion": "0.1.3",
+    "resolvedVersion": "0.1.8",
     "localVersions": [
-      "0.1.2"
+      "0.1.7"
     ]
   },
   "stats": {
-    "totalFiles": 42,
-    "models": 18,
+    "totalFiles": 55,
+    "models": 31,
     "apis": 1,
-    "types": 20
+    "types": 33
   },
   "warnings": [],
   "syncSummary": {
     "dryRun": false,
+    "controlPlaneEnabled": true,
     "writtenFiles": 3,
     "skippedScaffoldFiles": 2,
-    "skippedUnchangedGeneratedFiles": 37,
+    "skippedUnchangedGeneratedFiles": 50,
     "deletedGeneratedFiles": 0,
     "changeSummaryPath": ".sdkwork/sdkwork-generator-changes.json",
-    "changeFingerprint": "4709067f6718ec6cd47987fb555683e7da406e7508a73c01d9d90d4a709bedd4",
+    "changeFingerprint": "a6752778619c88d3ec76d0d5d72d016e7b62c52e0001c8b5a9449d02c4660ea4",
     "changes": {
       "createdGeneratedFiles": [],
       "updatedGeneratedFiles": [
@@ -197,6 +199,9 @@
         "src/types/aiot-event.ts",
         "src/types/aiot-twin-response.ts",
         "src/types/common.ts",
+        "src/types/devices-retrieve-response.ts",
+        "src/types/devices-twin-retrieve-response.ts",
+        "src/types/field-error.ts",
         "src/types/index.ts",
         "src/types/json-value.ts",
         "src/types/media-access.ts",
@@ -205,7 +210,17 @@
         "src/types/media-kind.ts",
         "src/types/media-resource.ts",
         "src/types/media-source.ts",
+        "src/types/page-info.ts",
+        "src/types/problem-detail.ts",
         "src/types/problem-details.ts",
+        "src/types/sdk-work-api-response.ts",
+        "src/types/sdk-work-command-data.ts",
+        "src/types/sdk-work-command-response.ts",
+        "src/types/sdk-work-list-response.ts",
+        "src/types/sdk-work-page-data.ts",
+        "src/types/sdk-work-platform-error-code.ts",
+        "src/types/sdk-work-resource-data.ts",
+        "src/types/sdk-work-resource-response.ts",
         "tsconfig.json"
       ],
       "deletedGeneratedFiles": [],

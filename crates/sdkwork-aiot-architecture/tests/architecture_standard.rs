@@ -817,7 +817,7 @@ fn sdk_families_have_openapi_sources_and_generation_manifests() {
             "sdks/sdkwork-aiot-backend-sdk",
             "apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json",
             "/backend/v3/api/iot",
-            "/backend/v3/api/iot",
+            "/backend/v3/api",
             "@sdkwork/aiot-backend-sdk",
         ),
     ] {
@@ -835,8 +835,17 @@ fn sdk_families_have_openapi_sources_and_generation_manifests() {
 
         assert!(openapi_text.contains(r#""openapi": "3.1.2""#));
         assert!(openapi_text.contains(openapi_prefix));
-        assert!(openapi_text.contains(r#""Authorization""#));
-        assert!(openapi_text.contains(r#""Access-Token""#));
+        assert!(openapi_text.contains(r#""AuthToken""#));
+        assert!(openapi_text.contains(r#""AccessToken""#));
+        assert!(openapi_text.contains(r#""name": "Access-Token""#));
+        assert!(
+            !openapi_text.contains(r#""SdkworkAccessToken""#),
+            "{family} OpenAPI must not use retired SdkworkAccessToken security scheme"
+        );
+        assert!(
+            !openapi_text.contains(r#""name": "Sdkwork-Access-Token""#),
+            "{family} OpenAPI must not declare Sdkwork-Access-Token client header"
+        );
         assert!(
             !openapi_text.contains(r#""name": "X-Sdkwork-Tenant-Id""#),
             "{family} OpenAPI must not expose client-writable tenant context headers"
@@ -1043,16 +1052,15 @@ fn event_openapi_contracts_use_typed_event_payload_and_media_resource_fields() {
         fs::read_to_string(root.join("apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json"))
             .expect("backend openapi");
 
-    assert!(app_openapi.contains(r#""AiotEventListResponse""#));
     assert!(app_openapi.contains(r#""AiotEvent""#));
     assert!(app_openapi.contains(r##""$ref": "#/components/schemas/AiotEvent""##));
+    assert!(app_openapi.contains(r##""$ref": "#/components/schemas/SdkWorkListResponse""##));
     assert!(app_openapi.contains(r##""$ref": "#/components/schemas/MediaResource""##));
     assert!(!app_openapi.contains(r#""eventImageUrl""#));
     assert!(!app_openapi.contains(r#""eventAudioUrl""#));
 
-    assert!(backend_openapi.contains(r#""AiotEventListResponse""#));
     assert!(backend_openapi.contains(r#""AiotEvent""#));
-    assert!(backend_openapi.contains(r##""$ref": "#/components/schemas/AiotEventListResponse""##));
+    assert!(backend_openapi.contains(r##""$ref": "#/components/schemas/SdkWorkListResponse""##));
     assert!(backend_openapi.contains(r##""$ref": "#/components/schemas/MediaResource""##));
     assert!(!backend_openapi.contains(r#""eventImageUrl""#));
     assert!(!backend_openapi.contains(r#""eventAudioUrl""#));
@@ -1069,17 +1077,17 @@ fn command_openapi_contracts_use_media_resource_for_request_and_result_payloads(
             .expect("backend openapi");
 
     assert!(app_openapi.contains(r#""AiotCommandCreateRequest""#));
-    assert!(app_openapi.contains(r#""AiotCommandResponse""#));
     assert!(app_openapi.contains(r#""AiotCommandResult""#));
+    assert!(app_openapi.contains(r##""$ref": "#/components/schemas/SdkWorkCommandResponse""##));
     assert!(app_openapi.contains(r#""requestMediaResourceId""#));
     assert!(app_openapi.contains(r#""resultMediaResourceId""#));
     assert!(app_openapi.contains(r##""$ref": "#/components/schemas/MediaResource""##));
     assert!(!app_openapi.contains(r#""requestAudioUrl""#));
     assert!(!app_openapi.contains(r#""resultAudioUrl""#));
 
-    assert!(backend_openapi.contains(r#""AiotCommandListResponse""#));
     assert!(backend_openapi.contains(r#""AiotCommand""#));
     assert!(backend_openapi.contains(r#""AiotCommandResult""#));
+    assert!(backend_openapi.contains(r##""$ref": "#/components/schemas/SdkWorkListResponse""##));
     assert!(backend_openapi.contains(r#""requestMediaResourceId""#));
     assert!(backend_openapi.contains(r#""resultMediaResourceId""#));
     assert!(backend_openapi.contains(r##""$ref": "#/components/schemas/MediaResource""##));
@@ -1253,11 +1261,14 @@ fn committed_route_manifests_match_http_api_contracts() {
 #[test]
 fn gateway_readiness_wires_outbox_and_optional_mqtt_bridge_probes() {
     let root = workspace_root();
-    let gateway_lib = fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/lib.rs"))
-        .expect("gateway lib");
-    let gateway_main = fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/main.rs"))
-        .expect("gateway main");
-    let bridge_module = root.join("services/sdkwork-aiot-cloud-gateway/src/mqtt_bridge_readiness.rs");
+    let gateway_lib =
+        fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/lib.rs"))
+            .expect("gateway lib");
+    let gateway_main =
+        fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/main.rs"))
+            .expect("gateway main");
+    let bridge_module =
+        root.join("services/sdkwork-aiot-cloud-gateway/src/mqtt_bridge_readiness.rs");
 
     assert!(
         bridge_module.exists(),
@@ -1355,8 +1366,9 @@ fn xiaozhi_production_intelligence_bridge_is_declared() {
         "adapter-xiaozhi must depend on audiopus for Opus codec ownership"
     );
 
-    let gateway_lib = fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/lib.rs"))
-        .expect("gateway lib");
+    let gateway_lib =
+        fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/lib.rs"))
+            .expect("gateway lib");
     assert!(
         gateway_lib.contains("mod xiaozhi_ws_media_session"),
         "gateway must track websocket uplink media sessions"

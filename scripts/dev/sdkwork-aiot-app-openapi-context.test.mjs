@@ -61,7 +61,7 @@ assert.doesNotMatch(
 );
 assert.match(
   generatedIotApi,
-  /async devicesList\(\)/u,
+  /async list\(/u,
   'generated AIoT app SDK must expose token-scoped device list without tenant params',
 );
 

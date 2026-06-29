@@ -3,12 +3,13 @@
   "generator": "@sdkwork/sdk-generator",
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.3",
+    "version": "0.1.8",
     "language": "typescript",
     "sdkType": "app",
+    "protocol": "http",
     "packageName": "@sdkwork/aiot-app-sdk"
   },
-  "changeFingerprint": "4709067f6718ec6cd47987fb555683e7da406e7508a73c01d9d90d4a709bedd4",
+  "changeFingerprint": "a6752778619c88d3ec76d0d5d72d016e7b62c52e0001c8b5a9449d02c4660ea4",
   "changes": {
     "createdGeneratedFiles": [],
     "updatedGeneratedFiles": [
@@ -44,6 +45,9 @@
       "src/types/aiot-event.ts",
       "src/types/aiot-twin-response.ts",
       "src/types/common.ts",
+      "src/types/devices-retrieve-response.ts",
+      "src/types/devices-twin-retrieve-response.ts",
+      "src/types/field-error.ts",
       "src/types/index.ts",
       "src/types/json-value.ts",
       "src/types/media-access.ts",
@@ -52,7 +56,17 @@
       "src/types/media-kind.ts",
       "src/types/media-resource.ts",
       "src/types/media-source.ts",
+      "src/types/page-info.ts",
+      "src/types/problem-detail.ts",
       "src/types/problem-details.ts",
+      "src/types/sdk-work-api-response.ts",
+      "src/types/sdk-work-command-data.ts",
+      "src/types/sdk-work-command-response.ts",
+      "src/types/sdk-work-list-response.ts",
+      "src/types/sdk-work-page-data.ts",
+      "src/types/sdk-work-platform-error-code.ts",
+      "src/types/sdk-work-resource-data.ts",
+      "src/types/sdk-work-resource-response.ts",
       "tsconfig.json"
     ],
     "deletedGeneratedFiles": [],

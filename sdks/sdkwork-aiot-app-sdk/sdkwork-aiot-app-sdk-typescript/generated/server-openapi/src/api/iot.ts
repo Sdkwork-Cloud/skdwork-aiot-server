@@ -1,46 +1,125 @@
 import { appApiPath } from './paths';
 import type { HttpClient } from '../http/client';
 
-import type { AiotCommandCreateRequest, AiotCommandResponse, AiotDeviceListResponse, AiotDeviceResponse, AiotEventListResponse, AiotTwinResponse } from '../types';
+import type { AiotCommandCreateRequest, AiotDevice, JsonValue, SdkWorkCommandData, SdkWorkPageData } from '../types';
 
 
-export class IotApi {
+export interface IotDevicesEventsListParams {
+  page?: number;
+  pageSize?: number;
+  cursor?: string;
+  sort?: string;
+  q?: string;
+}
+
+export class IotDevicesEventsApi {
   private client: HttpClient;
-  
-  constructor(client: HttpClient) { 
-    this.client = client; 
+
+  constructor(client: HttpClient) {
+    this.client = client;
   }
 
-/** List user-visible AIoT devices */
-  async devicesList(): Promise<AiotDeviceListResponse> {
-    return this.client.get<AiotDeviceListResponse>(appApiPath(`/iot/devices`));
+
+/** List device events */
+  async list(deviceId: string, params?: IotDevicesEventsListParams): Promise<SdkWorkPageData> {
+    const query = buildQueryString([
+      { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
+      { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
+      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
+      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
+      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
+    ]);
+    return this.client.get<SdkWorkPageData>(appendQueryString(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/events`), query));
+  }
+}
+
+export class IotDevicesTwinApi {
+  private client: HttpClient;
+
+  constructor(client: HttpClient) {
+    this.client = client;
   }
 
-/** Retrieve one AIoT device */
-  async devicesRetrieve(deviceId: string): Promise<AiotDeviceResponse> {
-    return this.client.get<AiotDeviceResponse>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`));
+
+/** Retrieve device twin */
+  async retrieve(deviceId: string): Promise<JsonValue> {
+    return this.client.get<JsonValue>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`));
   }
+}
+
+export interface IotDevicesCommandsCreateParams {
+  idempotencyKey?: string;
+}
+
+export class IotDevicesCommandsApi {
+  private client: HttpClient;
+
+  constructor(client: HttpClient) {
+    this.client = client;
+  }
+
 
 /** Create a device command */
-  async devicesCommandsCreate(deviceId: string, body: AiotCommandCreateRequest, idempotencyKey?: string): Promise<AiotCommandResponse> {
+  async create(deviceId: string, body: AiotCommandCreateRequest, params?: IotDevicesCommandsCreateParams): Promise<SdkWorkCommandData> {
     const requestHeaders = buildRequestHeaders(
       {
-        'Idempotency-Key': { value: idempotencyKey, style: 'simple', explode: false },
+        'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.post<AiotCommandResponse>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands`), body, undefined, requestHeaders, 'application/json');
+    return this.client.post<SdkWorkCommandData>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands`), body, undefined, requestHeaders, 'application/json');
+  }
+}
+
+export interface IotDevicesListParams {
+  page?: number;
+  pageSize?: number;
+  cursor?: string;
+  sort?: string;
+  q?: string;
+}
+
+export class IotDevicesApi {
+  private client: HttpClient;
+  public readonly commands: IotDevicesCommandsApi;
+  public readonly twin: IotDevicesTwinApi;
+  public readonly events: IotDevicesEventsApi;
+
+  constructor(client: HttpClient) {
+    this.client = client;
+    this.commands = new IotDevicesCommandsApi(client);
+    this.twin = new IotDevicesTwinApi(client);
+    this.events = new IotDevicesEventsApi(client);
   }
 
-/** Retrieve device twin */
-  async devicesTwinRetrieve(deviceId: string): Promise<AiotTwinResponse> {
-    return this.client.get<AiotTwinResponse>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`));
+
+/** List user-visible AIoT devices */
+  async list(params?: IotDevicesListParams): Promise<SdkWorkPageData> {
+    const query = buildQueryString([
+      { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
+      { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
+      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
+      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
+      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
+    ]);
+    return this.client.get<SdkWorkPageData>(appendQueryString(appApiPath(`/iot/devices`), query));
   }
 
-/** List device events */
-  async devicesEventsList(deviceId: string): Promise<AiotEventListResponse> {
-    return this.client.get<AiotEventListResponse>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/events`));
+/** Retrieve one AIoT device */
+  async retrieve(deviceId: string): Promise<AiotDevice> {
+    return this.client.get<AiotDevice>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`));
   }
+}
+
+export class IotApi {
+  private client: HttpClient;
+  public readonly devices: IotDevicesApi;
+
+  constructor(client: HttpClient) {
+    this.client = client;
+    this.devices = new IotDevicesApi(client);
+  }
+
 }
 
 export function createIotApi(client: HttpClient): IotApi {
@@ -126,7 +205,158 @@ function serializePathPrimitive(value: unknown): string {
   }
   return String(value);
 }
+interface QueryParameterSpec {
+  name: string;
+  value: unknown;
+  style: string;
+  explode: boolean;
+  allowReserved: boolean;
+  contentType?: string;
+}
 
+function buildQueryString(parameters: QueryParameterSpec[]): string {
+  const pairs: string[] = [];
+  for (const parameter of parameters) {
+    appendSerializedParameter(pairs, parameter);
+  }
+  return pairs.join('&');
+}
+
+function appendSerializedParameter(pairs: string[], parameter: QueryParameterSpec): void {
+  if (parameter.value === undefined || parameter.value === null) {
+    return;
+  }
+
+  if (parameter.contentType) {
+    pairs.push(`${encodeQueryComponent(parameter.name)}=${encodeQueryValue(JSON.stringify(parameter.value), parameter.allowReserved)}`);
+    return;
+  }
+
+  const style = parameter.style || 'form';
+  if (style === 'deepObject') {
+    appendDeepObjectParameter(pairs, parameter.name, parameter.value, parameter.allowReserved);
+    return;
+  }
+
+  if (Array.isArray(parameter.value)) {
+    appendArrayParameter(pairs, parameter.name, parameter.value, style, parameter.explode, parameter.allowReserved);
+    return;
+  }
+
+  if (typeof parameter.value === 'object') {
+    appendObjectParameter(pairs, parameter.name, parameter.value as Record<string, unknown>, style, parameter.explode, parameter.allowReserved);
+    return;
+  }
+
+  pairs.push(`${encodeQueryComponent(parameter.name)}=${encodeQueryValue(serializePrimitive(parameter.value), parameter.allowReserved)}`);
+}
+
+function appendArrayParameter(
+  pairs: string[],
+  name: string,
+  value: unknown[],
+  style: string,
+  explode: boolean,
+  allowReserved: boolean,
+): void {
+  const values = value
+    .filter((item) => item !== undefined && item !== null)
+    .map((item) => serializePrimitive(item));
+  if (values.length === 0) {
+    return;
+  }
+
+  if (style === 'form' && explode) {
+    for (const item of values) {
+      pairs.push(`${encodeQueryComponent(name)}=${encodeQueryValue(item, allowReserved)}`);
+    }
+    return;
+  }
+
+  pairs.push(`${encodeQueryComponent(name)}=${encodeQueryValue(values.join(','), allowReserved)}`);
+}
+
+function appendObjectParameter(
+  pairs: string[],
+  name: string,
+  value: Record<string, unknown>,
+  style: string,
+  explode: boolean,
+  allowReserved: boolean,
+): void {
+  const entries = Object.entries(value).filter(([, entryValue]) => entryValue !== undefined && entryValue !== null);
+  if (entries.length === 0) {
+    return;
+  }
+
+  if (style === 'form' && explode) {
+    for (const [key, entryValue] of entries) {
+      pairs.push(`${encodeQueryComponent(key)}=${encodeQueryValue(serializePrimitive(entryValue), allowReserved)}`);
+    }
+    return;
+  }
+
+  const serialized = entries.flatMap(([key, entryValue]) => [key, serializePrimitive(entryValue)]).join(',');
+  pairs.push(`${encodeQueryComponent(name)}=${encodeQueryValue(serialized, allowReserved)}`);
+}
+
+function appendDeepObjectParameter(
+  pairs: string[],
+  name: string,
+  value: unknown,
+  allowReserved: boolean,
+): void {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    pairs.push(`${encodeQueryComponent(name)}=${encodeQueryValue(serializePrimitive(value), allowReserved)}`);
+    return;
+  }
+
+  for (const [key, entryValue] of Object.entries(value as Record<string, unknown>)) {
+    if (entryValue === undefined || entryValue === null) {
+      continue;
+    }
+    pairs.push(`${encodeQueryComponent(`${name}[${key}]`)}=${encodeQueryValue(serializePrimitive(entryValue), allowReserved)}`);
+  }
+}
+
+function serializePrimitive(value: unknown): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+function encodeQueryComponent(value: string): string {
+  return encodeURIComponent(value);
+}
+
+function encodeQueryValue(value: string, allowReserved: boolean): string {
+  const encoded = encodeURIComponent(value);
+  if (!allowReserved) {
+    return encoded;
+  }
+  return encoded.replace(/%3A/gi, ':')
+    .replace(/%2F/gi, '/')
+    .replace(/%3F/gi, '?')
+    .replace(/%23/gi, '#')
+    .replace(/%5B/gi, '[')
+    .replace(/%5D/gi, ']')
+    .replace(/%40/gi, '@')
+    .replace(/%21/gi, '!')
+    .replace(/%24/gi, '$')
+    .replace(/%26/gi, '&')
+    .replace(/%27/gi, "'")
+    .replace(/%28/gi, '(')
+    .replace(/%29/gi, ')')
+    .replace(/%2A/gi, '*')
+    .replace(/%2B/gi, '+')
+    .replace(/%2C/gi, ',')
+    .replace(/%3B/gi, ';')
+    .replace(/%3D/gi, '=');
+}
 function buildRequestHeaders(
   headers: Record<string, HeaderParameterSpec | undefined>,
   cookies: Record<string, HeaderParameterSpec | undefined> = {},

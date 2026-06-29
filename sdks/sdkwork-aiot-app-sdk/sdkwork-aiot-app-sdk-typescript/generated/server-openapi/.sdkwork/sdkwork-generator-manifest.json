@@ -3,15 +3,16 @@
   "generator": "@sdkwork/sdk-generator",
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.3",
+    "version": "0.1.8",
     "language": "typescript",
     "sdkType": "app",
+    "protocol": "http",
     "packageName": "@sdkwork/aiot-app-sdk"
   },
   "generatedFiles": [
     {
       "path": "bin/publish-core.mjs",
-      "sha256": "6f2419187ee61e34210de8949ec968f5ab9d8bd0c0543e7caba6883198c36185"
+      "sha256": "98ad0918a78bfbe22bf8f12fec709b0bed545b9e01edd40f5e4abf31a23378a5"
     },
     {
       "path": "bin/publish.ps1",
@@ -31,7 +32,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "7ef84fe33ab3d7d880db6e7dd7e1b642fd2db70a8ec27b56ee50aecb1bb3e327"
+      "sha256": "c726ffd5bf23ecce3c557d6ca95841ae205d4599b22dcdfaa117546b4560b57b"
     },
     {
       "path": "LICENSE",
@@ -39,15 +40,15 @@
     },
     {
       "path": "package.json",
-      "sha256": "6c876bf353417605a81d50077dc10f414ea3298d7863d3f13b5c6e192f80e27e"
+      "sha256": "6d3bf19f418a8468102568193236ccf3c421486c4c3627efb2d181b29ab73686"
     },
     {
       "path": "README.md",
-      "sha256": "c5fbfea76468588d81b738394d050c311d97a9395a89fcdae8c2510f840165c9"
+      "sha256": "d3200cc347947ea6bfedee985c7cdac9a098ef30ae51b492bef7f7952ebd5e0c"
     },
     {
       "path": "sdkwork-sdk.json",
-      "sha256": "7729243bf780cc5ae9e1bfe89044e2a197c0a728e8479fabc1091fbe87b49162"
+      "sha256": "b73013918c928079cdf419ee1b4c94c76865e4ae9ff764317252ac5005e4e969"
     },
     {
       "path": "src/api/base.ts",
@@ -59,7 +60,7 @@
     },
     {
       "path": "src/api/iot.ts",
-      "sha256": "a9db5af60e418008609e16411ffa69c7a82b90e0511dd4c935b7927e3bdca80a"
+      "sha256": "a2b90b252cc2ee4e5a0f2042be3558e46d023338ba3dfd64b2d4e3202a42c561"
     },
     {
       "path": "src/api/paths.ts",
@@ -71,7 +72,7 @@
     },
     {
       "path": "src/http/client.ts",
-      "sha256": "7d38292ab109380b0f3221d613e78b30c36b6aacaf0240cc3ab2b5d322237361"
+      "sha256": "902ecbf9b15072c147ac9716f22209cd50b770e517b55d1ce1583671ab4d2c3e"
     },
     {
       "path": "src/http/index.ts",
@@ -83,7 +84,7 @@
     },
     {
       "path": "src/sdk.ts",
-      "sha256": "ca21aec1946d2409b724e211932c87fdb239d37784e111e69b2f905a0d1f3ece"
+      "sha256": "09052521f5a172072eeae93aa70ed05ae4d0a82849c5d773bbb555c6793dbe4b"
     },
     {
       "path": "src/types/aiot-command-create-request.ts",
@@ -103,7 +104,7 @@
     },
     {
       "path": "src/types/aiot-device-list-response.ts",
-      "sha256": "1e179a7ee7d39473446a344b239f5c648010e8e184116e2bdfdb2dedf7fe6108"
+      "sha256": "e54e70b5c369a861426616af292fe8fd87d40cbc6e9a1ef90d42563a9ad3e89d"
     },
     {
       "path": "src/types/aiot-device-response.ts",
@@ -115,7 +116,7 @@
     },
     {
       "path": "src/types/aiot-event-list-response.ts",
-      "sha256": "be690b14548980a78d66aad5fdfc34fa3fda01e44f96876a7b0c3fca0cd967fa"
+      "sha256": "55c0a9dae989e46b646dd06176ac87eb3ddf65dd54e3edfc14a79e44e962f949"
     },
     {
       "path": "src/types/aiot-event.ts",
@@ -127,11 +128,23 @@
     },
     {
       "path": "src/types/common.ts",
-      "sha256": "d3ea25470f6e6a5f5a191811449b1810f775b9524c73e5568b1080b497f17b6f"
+      "sha256": "d2506be8c4bdbe8e7059393467e6e71d75ef1d8c018dbf997bb0ab2a77b6c7b6"
+    },
+    {
+      "path": "src/types/devices-retrieve-response.ts",
+      "sha256": "5826ec247fc0221ecee9c8fa79bace9927705d0e9dd2dd6e877bc2995fe33731"
+    },
+    {
+      "path": "src/types/devices-twin-retrieve-response.ts",
+      "sha256": "7ecb0fc9eb0dbaf8d86fa49f09682a55c6f83efa85daf37a3343d8e308a94225"
+    },
+    {
+      "path": "src/types/field-error.ts",
+      "sha256": "df70e331e6bff0817bc35428286fa8de5d7274ab83a6c60d7184759bf680a088"
     },
     {
       "path": "src/types/index.ts",
-      "sha256": "aab80037906045826931cc01731a9facf3372ff733ad365f8c6efc5a7d115689"
+      "sha256": "459d0159f0aa3a5ef4cd33ad211260802533e4e018b70e5ec1b8b13bb437352d"
     },
     {
       "path": "src/types/json-value.ts",
@@ -162,8 +175,48 @@
       "sha256": "9025ada3e7433ebd287ecb3288116e1b082faad4105b48d5ee3fe9ac2f99bef6"
     },
     {
+      "path": "src/types/page-info.ts",
+      "sha256": "c54d9ee21792708a27a50566ae36fd95246641255cbde962fd9529fd7679af14"
+    },
+    {
+      "path": "src/types/problem-detail.ts",
+      "sha256": "deca621176487754cbfa2012aa3eab046131ced5829ddf7cff64de692f8bcb0e"
+    },
+    {
       "path": "src/types/problem-details.ts",
       "sha256": "35011cfb37591ce07732edbb8b489c38229e907eff8b802857d6c7ae3441f1d4"
+    },
+    {
+      "path": "src/types/sdk-work-api-response.ts",
+      "sha256": "79cef2c8e584ba8b8e96c6c77ccf6bda087b0c68cbed63cb97d5fb1ff3e47e1a"
+    },
+    {
+      "path": "src/types/sdk-work-command-data.ts",
+      "sha256": "a875c230e70650e636ac09c1af57ae8ea0f512a89dd21482bb9e6292bb6bad5a"
+    },
+    {
+      "path": "src/types/sdk-work-command-response.ts",
+      "sha256": "36f82aede9b7b352a9b57545705da4003816785c7913fb2436df633f5c2e8447"
+    },
+    {
+      "path": "src/types/sdk-work-list-response.ts",
+      "sha256": "eeb07e413d7e912345eda1cb1093e8e6abfe9b42d8350482f7b580138c7936c5"
+    },
+    {
+      "path": "src/types/sdk-work-page-data.ts",
+      "sha256": "b9f6e60cc3bc39eed4cdf6029a401cc88b6001e4f4c72703487f478001024743"
+    },
+    {
+      "path": "src/types/sdk-work-platform-error-code.ts",
+      "sha256": "f5e30be72be3d1aebd8200627bfac368f10cdd69d2271d24e6b4a2d7edf97fb7"
+    },
+    {
+      "path": "src/types/sdk-work-resource-data.ts",
+      "sha256": "f5a027b000a19c08d5b2560ae47fea43c83f4c5d7e85ad37faafe1e9177459cd"
+    },
+    {
+      "path": "src/types/sdk-work-resource-response.ts",
+      "sha256": "89c05f5549bef773335245f56f61ca1a6959978726799391d584a6bd25d12fdc"
     },
     {
       "path": "tsconfig.json",

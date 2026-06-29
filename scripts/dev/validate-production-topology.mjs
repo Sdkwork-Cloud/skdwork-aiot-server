@@ -41,8 +41,19 @@ function requireDeployInjectPlaceholder(fileName, values, key) {
   );
 }
 
+function resolveHosting(values) {
+  const deploymentProfile = values.get('SDKWORK_AIOT_DEPLOYMENT_PROFILE');
+  if (deploymentProfile === 'cloud') {
+    return 'cloud-hosted';
+  }
+  if (deploymentProfile === 'standalone') {
+    return 'self-hosted';
+  }
+  return values.get('SDKWORK_AIOT_HOSTING');
+}
+
 function validatePersistence(fileName, values) {
-  const hosting = values.get('SDKWORK_AIOT_HOSTING');
+  const hosting = resolveHosting(values);
   const devicePath = values.get('SDKWORK_AIOT_DEVICE_DB_PATH');
   const databaseUrl = values.get('SDKWORK_AIOT_DEVICE_DATABASE_URL');
   const databaseEngine = values.get('SDKWORK_AIOT_DEVICE_DATABASE_ENGINE');
@@ -126,6 +137,12 @@ function validateProductionProfile(fileName, values) {
     `${fileName} must not use the default dev internal token`,
   );
   validateIntelligenceWhenEnabled(fileName, values);
+
+  assert.equal(
+    values.get('SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT'),
+    '1',
+    `${fileName} must enable MCP deny-by-default in production`,
+  );
 }
 
 const productionProfiles = fs

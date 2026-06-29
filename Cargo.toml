@@ -57,7 +57,7 @@ sdkwork-routes-iot-app-api = { path = "crates/sdkwork-routes-iot-app-api" }
 sdkwork-routes-iot-backend-api = { path = "crates/sdkwork-routes-iot-backend-api" }
 sdkwork-aiot-architecture = { path = "crates/sdkwork-aiot-architecture" }
 sdkwork-aiot-intelligence-bridge = { path = "crates/sdkwork-aiot-intelligence-bridge" }
-clawrouter-open-sdk = { path = "../sdkwork-claw-router/sdks/clawrouter-open-sdk/clawrouter-open-sdk-rust/generated/server-openapi" }
+clawrouter-open-sdk = { path = "../sdkwork-clawrouter/sdks/clawrouter-open-sdk/clawrouter-open-sdk-rust/generated/server-openapi" }
 
 sdkwork-database-config = { path = "../sdkwork-database/crates/sdkwork-database-config" }
 sdkwork-database-lifecycle = { path = "../sdkwork-database/crates/sdkwork-database-lifecycle" }

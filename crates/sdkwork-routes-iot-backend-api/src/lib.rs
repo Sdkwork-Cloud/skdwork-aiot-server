@@ -26,10 +26,7 @@ impl DomainContextInjector for AiotBackendContextInjector {
     }
 }
 
-fn wrap_router_with_resolver(
-    resolver: IamWebRequestContextResolver,
-    router: Router,
-) -> Router {
+fn wrap_router_with_resolver(resolver: IamWebRequestContextResolver, router: Router) -> Router {
     let layer = build_web_framework_layer(
         resolver,
         HttpRouteManifest::new(IOT_BACKEND_HTTP_ROUTES),

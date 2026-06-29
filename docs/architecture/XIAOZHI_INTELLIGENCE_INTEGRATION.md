@@ -70,8 +70,7 @@ Claw Router must not emit or consume Opus for Xiaozhi; Opus is a device protocol
 
 - `tools/list` merges kernel session tool catalog with optional device-local registry entries.
 - `tools/call` executes via `POST /sessions/{kernelSessionId}/tools/{name}/execute`.
-- Policy hooks remain in gateway (`XiaozhiSimulatorMcpToolPolicy`); production deployments
-  should configure deny-by-default rules.
+- Policy hooks remain in gateway (`XiaozhiSimulatorMcpToolPolicy`). Production topology profiles set `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT=1`; kernel mode in production also enables deny-by-default automatically. Add explicit `allow|...` rules via `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_RULES` for permitted tools.
 
 ## Crate boundary
 

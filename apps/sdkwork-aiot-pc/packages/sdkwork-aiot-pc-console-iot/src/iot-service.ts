@@ -77,8 +77,10 @@ async function loadSdkNodes(options: CreateSdkworkIotServiceOptions): Promise<Sd
     return undefined;
   }
 
-  const response = await options.aiotClient.iot.devicesList();
-  return Array.isArray(response.data) ? response.data.map(mapAiotDeviceToNode) : [];
+  const page = await options.aiotClient.iot.devices.list();
+  return Array.isArray(page.items)
+    ? page.items.map((item) => mapAiotDeviceToNode(item as AiotDevice))
+    : [];
 }
 
 export function createSdkworkIotService(

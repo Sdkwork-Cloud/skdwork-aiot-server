@@ -33,7 +33,7 @@ This document tracks production readiness for the SDKWork AIoT server after the 
 | MQTT/UDP multi-session bridge | Done | Per-device session map in gateway; `/readyz` includes MQTT bridge probe when `SDKWORK_AIOT_GATEWAY_MQTT_BRIDGE_ENABLE=1` |
 | Route manifest + OpenAPI alignment | Done | `sdks/_route-manifests/*`, architecture tests |
 | Workspace verification | Done | `pnpm check`, `pnpm verify`, targeted `cargo test` crates |
-| Production topology guardrails | Done | `pnpm check:production-topology`, production env profiles |
+| Production topology guardrails | Done | `pnpm check:production-topology`, production env profiles (`cloud/standalone.split-services.production`) |
 | Postgres device persistence (cloud HA) | Done | `BlockingDevicePool` + dialect-aware device/credential/outbox/admin-entity repos; `SDKWORK_AIOT_DEVICE_DATABASE_*` in cloud production topology |
 
 ## Shared SQLite Without Persistent Path
@@ -77,8 +77,8 @@ $env:SDKWORK_AIOT_INTERNAL_TOKEN='<random-internal-token>'
 # Optional explicit dispatcher toggle (admin/app-api default off unless set to 1):
 # $env:SDKWORK_AIOT_OUTBOX_DISPATCHER_ENABLED='1'
 # $env:SDKWORK_AIOT_OUTBOX_LAG_READY_THRESHOLD='10000'
-# Optional legacy static token fallback when credential rows are not used:
-# $env:SDKWORK_AIOT_XIAOZHI_DEVICE_TOKEN='<legacy-device-token>'
+# Optional static device token fallback when credential rows are not used:
+# $env:SDKWORK_AIOT_XIAOZHI_DEVICE_TOKEN='<device-token>'
 $env:SDKWORK_AIOT_CORS_ALLOWED_ORIGINS='https://console.example.com'
 # Optional JSON trace lines on stderr for log collectors:
 # $env:SDKWORK_AIOT_STRUCTURED_TRACE='1'
@@ -98,4 +98,4 @@ Gateway device access in production:
 
 When `SDKWORK_AIOT_DEVICE_DB_PATH` is configured on gateway, admin-api, and app-api, credential verification uses the shared SQLite database. Admin-api also persists custom products and firmware artifacts/rollouts in the same database via migration `0002` (`iot_admin_entity`).
 
-For cloud-hosted Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `configs/topology/cloud.split-services.production.env`). Device, credential, outbox, and admin-entity repositories share one `BlockingDevicePool` opened from those env keys.
+For cloud Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `configs/topology/cloud.split-services.production.env`). Device, credential, outbox, and admin-entity repositories share one `BlockingDevicePool` opened from those env keys. Production MCP tool calls fail closed unless an explicit allow rule matches (`SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT=1`).

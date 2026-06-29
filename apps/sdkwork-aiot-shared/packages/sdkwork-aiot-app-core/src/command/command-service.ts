@@ -24,22 +24,21 @@ export interface AiotCommandService {
   speak(deviceId: string, text: string, sessionId?: string, lang?: string): Promise<AiotCommand>;
 }
 
-function mapCommandResponse(data: unknown): AiotCommand {
+function mapCommandAcceptance(
+  data: unknown,
+  input: ExecuteDeviceCommandInput,
+): AiotCommand {
   const record = readRecord(data);
+  const commandId = readString(record.resourceId, readString(record.commandId));
   return {
-    ackAt: readString(record.ackAt) || undefined,
-    capabilityName: readString(record.capabilityName),
-    commandId: readString(record.commandId),
-    commandName: readString(record.commandName),
-    createdAt: readString(record.createdAt),
-    deviceId: readString(record.deviceId),
-    requestPayload: record.requestPayload ?? {},
-    result: record.result as AiotCommand['result'],
-    resultAt: readString(record.resultAt) || undefined,
-    sessionId: readString(record.sessionId) || undefined,
+    capabilityName: input.capabilityName,
+    commandId,
+    commandName: input.commandName,
+    createdAt: nowIso(),
+    deviceId: input.deviceId,
+    requestPayload: input.payload ?? {},
+    sessionId: input.sessionId,
     status: readString(record.status, 'accepted'),
-    timeoutAt: readString(record.timeoutAt) || undefined,
-    traceId: readString(record.traceId) || undefined,
   };
 }
 
@@ -57,13 +56,13 @@ export function createAiotCommandService(
         ...(input.sessionId ? { sessionId: input.sessionId } : {}),
       };
 
-      const response = await aiotClient.iot.devicesCommandsCreate(
+      const acceptance = await aiotClient.iot.devices.commands.create(
         input.deviceId,
         body,
         input.idempotencyKey,
       );
 
-      return mapCommandResponse(response.data);
+      return mapCommandAcceptance(acceptance, input);
     },
 
     async speak(deviceId, text, sessionId, lang = 'zh-CN') {
@@ -88,8 +87,8 @@ export async function pollCommandResult(
   const maxAttempts = options.maxAttempts ?? 12;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const events = await aiotClient.iot.devicesEventsList(deviceId);
-    const items = Array.isArray(events.data) ? events.data : [];
+    const eventsPage = await aiotClient.iot.devices.events.list(deviceId);
+    const items = Array.isArray(eventsPage.items) ? eventsPage.items : [];
     const match = items.find((event) => {
       const payload = readRecord(event.payload);
       return readString(payload.commandId) === commandId;

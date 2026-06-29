@@ -1,4 +1,5 @@
 use sdkwork_aiot_transport::HttpRequest;
+use sdkwork_utils_rust::{PageInfo, PageMode};
 
 /// Standard list query parameters per `API_SPEC.md` section 16.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,21 +38,25 @@ impl PageQuery {
         let end = (start + self.page_size as usize).min(total);
         (start, end)
     }
-
-    pub fn page_info_json(self, total: usize) -> String {
-        let has_more = (self.page as usize).saturating_mul(self.page_size as usize) < total;
-        format!(
-            r#"{{"page":{},"pageSize":{},"total":{},"hasMore":{}}}"#,
-            self.page, self.page_size, total, has_more
-        )
-    }
 }
 
-pub fn paginated_collection_body(items_json: &str, page_query: PageQuery, total: usize) -> String {
-    format!(
-        r#"{{"code":"0","data":[{items_json}],"pageInfo":{}}}"#,
-        page_query.page_info_json(total)
-    )
+pub fn paginated_page_info(page_query: PageQuery, total: usize) -> PageInfo {
+    let has_more = (page_query.page as usize).saturating_mul(page_query.page_size as usize) < total;
+    let total_pages = if page_query.page_size == 0 {
+        0
+    } else {
+        total.div_ceil(page_query.page_size as usize) as i32
+    };
+
+    PageInfo {
+        mode: PageMode::Offset,
+        page: Some(page_query.page as i32),
+        page_size: Some(page_query.page_size as i32),
+        total_items: Some(total.to_string()),
+        total_pages: Some(total_pages),
+        next_cursor: None,
+        has_more: Some(has_more),
+    }
 }
 
 #[cfg(test)]
@@ -74,5 +79,20 @@ mod tests {
         };
         assert_eq!(query.slice_bounds(25), (10, 20));
         assert_eq!(query.slice_bounds(0), (0, 0));
+    }
+
+    #[test]
+    fn page_info_uses_offset_mode() {
+        let page_info = paginated_page_info(
+            PageQuery {
+                page: 1,
+                page_size: 20,
+            },
+            0,
+        );
+        assert_eq!(page_info.mode, PageMode::Offset);
+        assert_eq!(page_info.page, Some(1));
+        assert_eq!(page_info.page_size, Some(20));
+        assert_eq!(page_info.total_items.as_deref(), Some("0"));
     }
 }

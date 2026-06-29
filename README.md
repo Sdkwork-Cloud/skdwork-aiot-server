@@ -121,6 +121,9 @@ Simulator MCP tool catalog:
   overriding built-in simulator tools.
 - `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_RULES`: optional inline policy rules for MCP
   tool allow/deny decisions.
+- `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT`: when set to `1/true/yes/on`,
+  reject MCP tool calls that do not match an explicit allow rule (production
+  topology profiles enable this by default).
 - `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_LOG_ALLOW`: when set to `1/true/yes/on`,
   emit allow decision logs for all MCP calls. By default, allow logs are
   emitted only when a concrete policy rule matched; deny logs are always

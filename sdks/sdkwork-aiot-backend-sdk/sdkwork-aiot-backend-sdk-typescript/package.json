@@ -29,7 +29,7 @@
     "@sdkwork/sdk-common": "^1.0.2"
   },
   "scripts": {
-    "generate": "sdkgen generate -i ../../../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json -o generated/server-openapi -n sdkwork-aiot-backend-sdk -t backend -l typescript --package-name \"@sdkwork/aiot-backend-sdk\" --api-prefix \"/backend/v3/api\" --sdk-version 0.1.0",
+    "generate": "node ../../../tools/run-sdkgen.mjs generate -i ../../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json -o generated/server-openapi -n sdkwork-aiot-backend-sdk -t backend -l typescript --package-name \"@sdkwork/aiot-backend-sdk\" --api-prefix \"/backend/v3/api\" --sdk-version 0.1.0 --standard-profile sdkwork-v3",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

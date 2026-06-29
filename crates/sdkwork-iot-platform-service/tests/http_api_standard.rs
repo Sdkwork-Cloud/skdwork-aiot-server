@@ -57,8 +57,8 @@ fn admin_api_server_exposes_runtime_backed_protocol_catalog() {
     .expect("protocol adapter catalog");
 
     assert!(response.starts_with("HTTP/1.1 200"));
-    assert!(response.contains(r#""code":"0""#));
-    assert!(response.contains(r#""data":["#));
+    assert!(response.contains(r#""code":0"#));
+    assert!(response.contains(r#""data":{"items":["#));
     assert!(response.contains(r#""protocolId":"xiaozhi.websocket""#));
     assert!(response.contains(r#""pluginId":"xiaozhi""#));
     assert!(response.contains(r#""scope":"CompatibilityPlugin""#));
@@ -82,8 +82,8 @@ fn app_api_server_exposes_safe_device_collection_boundary() {
     .expect("device list");
 
     assert!(response.starts_with("HTTP/1.1 200"));
-    assert!(response.contains(r#""code":"0""#));
-    assert!(response.contains(r#""data":[]"#));
+    assert!(response.contains(r#""code":0"#));
+    assert!(response.contains(r#""data":{"items":[]"#));
 }
 
 #[test]
@@ -97,15 +97,15 @@ fn admin_api_server_exposes_runtime_capacity_policy_from_standard_bundle() {
     .expect("runtime capacity");
 
     assert!(response.starts_with("HTTP/1.1 200"));
-    assert!(response.contains(r#""code":"0""#));
+    assert!(response.contains(r#""code":0"#));
     assert!(response.contains(r#""nodeId":"local""#));
     assert!(response.contains(r#""maxConnectionsPerNode":"100000""#));
     assert!(response.contains(r#""maxSessionsPerTenant":"1000000""#));
     assert!(response.contains(r#""maxInflightPerDevice":64"#));
     assert!(response.contains(r#""sessionLeaseTtlSeconds":90"#));
-    assert!(response.contains(
-        r#""backpressure":{"warnLag":"100000","rejectLag":"500000","deadLetterLag":"1000000"}"#
-    ));
+    assert!(response.contains(r#""warnLag":"100000""#));
+    assert!(response.contains(r#""rejectLag":"500000""#));
+    assert!(response.contains(r#""deadLetterLag":"1000000""#));
     assert!(response.contains(r#""orderedDeviceCommands":true"#));
     assert!(response.contains(r#""idempotentIngest":true"#));
 }
@@ -186,7 +186,7 @@ fn protected_api_request_resolution_exposes_appbase_context_to_downstream_handle
 
     let response = handle_resolved_api_request(&admin, &resolved);
     assert_eq!(response.status, HttpStatus::Ok);
-    assert!(response.body.contains(r#""code":"0""#));
+    assert!(response.body.contains(r#""code":0"#));
 }
 
 #[test]
@@ -316,17 +316,14 @@ fn declared_backend_collection_routes_return_structured_catalog_payloads() {
             response.starts_with("HTTP/1.1 200"),
             "{path} should be mounted, got {response}"
         );
-        assert!(response.contains(r#""code":"0""#), "{path} missing code");
+        assert!(response.contains(r#""code":0"#), "{path} missing code");
         assert!(
             !response.contains("api.route.unsupported"),
             "{path} must not fall through to unsupported route"
         );
 
         let body = response_body_json(&response);
-        let data = body
-            .get("data")
-            .and_then(serde_json::Value::as_array)
-            .unwrap_or_else(|| panic!("{path} response data must be array: {body}"));
+        let data = list_data_items(&body);
         if path == "/backend/v3/api/iot/devices" {
             assert!(
                 data.is_empty(),
@@ -388,22 +385,14 @@ fn capability_model_retrieve_route_returns_standard_model_payload() {
     .expect("capability model retrieve");
     assert!(response.starts_with("HTTP/1.1 200"));
     let body = response_body_json(&response);
+    assert_success_envelope(&body);
     assert_eq!(
-        body.pointer("/code").and_then(serde_json::Value::as_str),
-        Some("0")
-    );
-    assert_eq!(
-        body.pointer("/data/capabilityModelId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_pointer(&body, "/capabilityModelId").and_then(serde_json::Value::as_str),
         Some("capmodel-xiaozhi-core")
     );
-    assert_eq!(
-        body.pointer("/data/version")
-            .and_then(serde_json::Value::as_str),
-        Some("1.0.0")
-    );
+    assert_eq!(resource_data_str(&body, "version"), Some("1.0.0"));
     assert!(
-        body.pointer("/data/capabilities")
+        resource_data_pointer(&body, "/capabilities")
             .and_then(serde_json::Value::as_array)
             .map(|items| !items.is_empty())
             .unwrap_or(false),
@@ -444,11 +433,8 @@ fn backend_device_sessions_and_capabilities_routes_are_device_scoped_and_typed()
     .expect("backend devices.sessions.list");
     assert!(sessions.starts_with("HTTP/1.1 200"));
     let sessions_json = response_body_json(&sessions);
-    let sessions_data = sessions_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("sessions data array");
-    assert_eq!(sessions_data.len(), 1);
+    let sessions_data = list_data_items(&sessions_json);
+    assert_eq!(sessions_data.len(), 1, "sessions data array");
     assert_eq!(
         sessions_data[0]
             .get("deviceId")
@@ -479,11 +465,8 @@ fn backend_device_sessions_and_capabilities_routes_are_device_scoped_and_typed()
     .expect("backend devices.capabilities.list");
     assert!(capabilities.starts_with("HTTP/1.1 200"));
     let capabilities_json = response_body_json(&capabilities);
-    let capabilities_data = capabilities_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("capabilities data array");
-    assert!(capabilities_data.len() >= 3);
+    let capabilities_data = list_data_items(&capabilities_json);
+    assert!(capabilities_data.len() >= 3, "capabilities data array");
     assert!(capabilities_data.iter().any(|item| {
         item.get("capabilityName")
             .and_then(serde_json::Value::as_str)
@@ -538,11 +521,8 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     .expect("list sessions before disconnect");
     assert!(sessions_before.starts_with("HTTP/1.1 200"));
     let sessions_before_json = response_body_json(&sessions_before);
-    let sessions_before_data = sessions_before_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("sessions before data array");
-    assert_eq!(sessions_before_data.len(), 1);
+    let sessions_before_data = list_data_items(&sessions_before_json);
+    assert_eq!(sessions_before_data.len(), 1, "sessions before data array");
     let session_id = sessions_before_data[0]
         .get("sessionId")
         .and_then(serde_json::Value::as_str)
@@ -577,11 +557,8 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     .expect("list sessions after disconnect");
     assert!(sessions_after.starts_with("HTTP/1.1 200"));
     assert_eq!(
-        response_body_json(&sessions_after)
-            .pointer("/data")
-            .and_then(serde_json::Value::as_array)
-            .map(Vec::len),
-        Some(0)
+        list_data_items(&response_body_json(&sessions_after)).len(),
+        0
     );
 
     let disconnect_again = handle_api_request_bytes(
@@ -613,9 +590,7 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     .expect("create command for cancel");
     assert!(create_command.starts_with("HTTP/1.1 202"));
     let create_command_json = response_body_json(&create_command);
-    let command_id = create_command_json
-        .pointer("/data/commandId")
-        .and_then(serde_json::Value::as_str)
+    let command_id = command_acceptance_resource_id(&create_command_json)
         .expect("command id")
         .to_string();
 
@@ -640,18 +615,12 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     .expect("cancel command");
     assert!(cancel.starts_with("HTTP/1.1 200"));
     let cancel_json = response_body_json(&cancel);
+    assert_command_acceptance(&cancel_json);
     assert_eq!(
-        cancel_json
-            .pointer("/data/commandId")
-            .and_then(serde_json::Value::as_str),
+        command_acceptance_resource_id(&cancel_json),
         Some(command_id.as_str())
     );
-    assert_eq!(
-        cancel_json
-            .pointer("/data/status")
-            .and_then(serde_json::Value::as_str),
-        Some("cancelled")
-    );
+    assert_eq!(command_acceptance_status(&cancel_json), Some("cancelled"));
 
     let list_after_cancel = handle_api_request_bytes(
         &admin,
@@ -660,10 +629,7 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     .expect("list commands after cancel");
     assert!(list_after_cancel.starts_with("HTTP/1.1 200"));
     let list_after_cancel_json = response_body_json(&list_after_cancel);
-    let list_after_cancel_data = list_after_cancel_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("list after cancel data");
+    let list_after_cancel_data = list_data_items(&list_after_cancel_json);
     let cancelled_command = list_after_cancel_data
         .iter()
         .find(|item| {
@@ -754,8 +720,9 @@ fn events_routes_return_typed_event_collections_with_media_resource_identity() {
     assert!(admin_response.contains(r#""eventType":"iot.device.media_frame.ingested""#));
     assert!(admin_response.contains(r#""eventVersion":"1""#));
     assert!(admin_response.contains(r#""payloadHash":"#));
-    assert!(admin_response
-        .contains(r#""media":{"id":"media-res-001","kind":"audio","source":"object_storage""#));
+    assert!(admin_response.contains(r#""id":"media-res-001""#));
+    assert!(admin_response.contains(r#""kind":"audio""#));
+    assert!(admin_response.contains(r#""source":"object_storage""#));
     assert!(admin_response.contains(r#""payload":{"codec":"opus","sampleRate":16000}"#));
     assert!(admin_response.contains(r#""deviceId":"device-777""#));
     assert!(admin_response.contains(r#""deviceId":"device-999""#));
@@ -789,16 +756,13 @@ fn command_routes_return_typed_command_payloads_with_media_resource_fields() {
     .expect("app devices.commands.create");
 
     assert!(create_response.starts_with("HTTP/1.1 202"));
-    assert!(create_response.contains(r#""commandId":"cmd-device-888-0001""#));
-    assert!(create_response.contains(r#""capabilityName":"player""#));
-    assert!(create_response.contains(r#""commandName":"speak""#));
-    assert!(create_response.contains(r#""requestPayload":{"lang":"zh-CN","text":"xiaozhi-ready"}"#));
-    assert!(create_response.contains(r#""requestMediaResourceId":"media-res-xyz""#));
-    assert!(create_response.contains(r#""requestObjectBlobId":"obj-blob-xyz""#));
-    assert!(create_response.contains(
-        r#""requestMedia":{"id":"media-res-xyz","kind":"audio","mimeType":"audio/wav","objectBlobId":"obj-blob-xyz","sizeBytes":"8192","source":"object_storage"}"#
-    ));
-    assert!(!create_response.contains(r#""requestAudioUrl":"#));
+    let create_json = response_body_json(&create_response);
+    assert_command_acceptance(&create_json);
+    assert_eq!(
+        command_acceptance_resource_id(&create_json),
+        Some("cmd-device-888-0001")
+    );
+    assert_eq!(command_acceptance_status(&create_json), Some("accepted"));
 
     let admin = standard_admin_api_server()
         .expect("admin api server")
@@ -812,6 +776,15 @@ fn command_routes_return_typed_command_payloads_with_media_resource_fields() {
     assert!(list_response.starts_with("HTTP/1.1 200"));
     assert!(list_response.contains(r#""deviceId":"device-888""#));
     assert!(list_response.contains(r#""commandId":"cmd-device-888-0001""#));
+    assert!(list_response.contains(r#""capabilityName":"player""#));
+    assert!(list_response.contains(r#""commandName":"speak""#));
+    assert!(list_response.contains(r#""requestPayload":{"lang":"zh-CN","text":"xiaozhi-ready"}"#));
+    assert!(list_response.contains(r#""requestMediaResourceId":"media-res-xyz""#));
+    assert!(list_response.contains(r#""requestObjectBlobId":"obj-blob-xyz""#));
+    assert!(list_response.contains(
+        r#""requestMedia":{"id":"media-res-xyz","kind":"audio","mimeType":"audio/wav","objectBlobId":"obj-blob-xyz","sizeBytes":"8192","source":"object_storage"}"#
+    ));
+    assert!(!list_response.contains(r#""requestAudioUrl":"#));
     assert!(list_response.contains(r#""status":"accepted""#));
     assert!(list_response.contains(r#""result":null"#));
 }
@@ -865,7 +838,12 @@ fn command_create_uses_idempotency_key_header_for_deduplication() {
     )
     .expect("first command create response");
     assert!(first.starts_with("HTTP/1.1 202"));
-    assert!(first.contains(r#""commandId":"cmd-device-889-0001""#));
+    let first_json = response_body_json(&first);
+    assert_command_acceptance(&first_json);
+    assert_eq!(
+        command_acceptance_resource_id(&first_json),
+        Some("cmd-device-889-0001")
+    );
 
     let second = handle_api_request_bytes(
         &app,
@@ -873,8 +851,16 @@ fn command_create_uses_idempotency_key_header_for_deduplication() {
     )
     .expect("second command create response");
     assert!(second.starts_with("HTTP/1.1 202"));
-    assert!(second.contains(r#""commandId":"cmd-device-889-0001""#));
-    assert!(!second.contains(r#""commandId":"cmd-device-889-0002""#));
+    let second_json = response_body_json(&second);
+    assert_command_acceptance(&second_json);
+    assert_eq!(
+        command_acceptance_resource_id(&second_json),
+        Some("cmd-device-889-0001")
+    );
+    assert_ne!(
+        command_acceptance_resource_id(&second_json),
+        Some("cmd-device-889-0002")
+    );
 }
 
 #[test]
@@ -891,17 +877,9 @@ fn command_create_idempotency_is_scoped_by_tenant_and_organization() {
     .expect("tenant=100001 org=0 command create");
     assert!(org_a.starts_with("HTTP/1.1 202"));
     let org_a_json = response_body_json(&org_a);
-    let org_a_command_id = org_a_json
-        .pointer("/data/commandId")
-        .and_then(serde_json::Value::as_str)
+    let org_a_command_id = command_acceptance_resource_id(&org_a_json)
         .expect("org A command id")
         .to_string();
-    assert_eq!(
-        org_a_json
-            .pointer("/data/commandName")
-            .and_then(serde_json::Value::as_str),
-        Some("speak-org-a")
-    );
 
     let org_b = handle_api_request_bytes(
         &app,
@@ -910,17 +888,9 @@ fn command_create_idempotency_is_scoped_by_tenant_and_organization() {
     .expect("tenant=100001 org=1 command create");
     assert!(org_b.starts_with("HTTP/1.1 202"));
     let org_b_json = response_body_json(&org_b);
-    let org_b_command_id = org_b_json
-        .pointer("/data/commandId")
-        .and_then(serde_json::Value::as_str)
+    let org_b_command_id = command_acceptance_resource_id(&org_b_json)
         .expect("org B command id")
         .to_string();
-    assert_eq!(
-        org_b_json
-            .pointer("/data/commandName")
-            .and_then(serde_json::Value::as_str),
-        Some("speak-org-b")
-    );
     assert_ne!(
         org_a_command_id, org_b_command_id,
         "idempotency must not deduplicate across organizations under same tenant"
@@ -992,19 +962,12 @@ fn admin_and_app_end_to_end_flow_matches_sdk_response_shapes() {
     .expect("backend devices.create e2e");
     assert!(create_device.starts_with("HTTP/1.1 201"));
     let create_device_json = response_body_json(&create_device);
-    assert_eq!(
-        create_device_json
-            .pointer("/code")
-            .and_then(serde_json::Value::as_str),
-        Some("0")
-    );
+    assert_success_envelope(&create_device_json);
     assert_json_string_at(&create_device_json, "/data/id");
     assert_json_string_at(&create_device_json, "/data/tenantId");
     assert_json_string_at(&create_device_json, "/data/organizationId");
     assert_eq!(
-        create_device_json
-            .pointer("/data/deviceId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&create_device_json, "deviceId"),
         Some("e2e-device-001")
     );
     assert_json_string_at(&create_device_json, "/data/displayName");
@@ -1018,16 +981,9 @@ fn admin_and_app_end_to_end_flow_matches_sdk_response_shapes() {
     .expect("app devices.retrieve e2e");
     assert!(app_retrieve.starts_with("HTTP/1.1 200"));
     let app_retrieve_json = response_body_json(&app_retrieve);
+    assert_success_envelope(&app_retrieve_json);
     assert_eq!(
-        app_retrieve_json
-            .pointer("/code")
-            .and_then(serde_json::Value::as_str),
-        Some("0")
-    );
-    assert_eq!(
-        app_retrieve_json
-            .pointer("/data/deviceId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&app_retrieve_json, "deviceId"),
         Some("e2e-device-001")
     );
 
@@ -1038,10 +994,7 @@ fn admin_and_app_end_to_end_flow_matches_sdk_response_shapes() {
     .expect("app devices.list e2e");
     assert!(app_list.starts_with("HTTP/1.1 200"));
     let app_list_json = response_body_json(&app_list);
-    let app_devices = app_list_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("app devices list data array");
+    let app_devices = list_data_items(&app_list_json);
     let app_e2e_device = app_devices
         .iter()
         .find(|device| {
@@ -1063,41 +1016,13 @@ fn admin_and_app_end_to_end_flow_matches_sdk_response_shapes() {
     .expect("app devices.commands.create e2e");
     assert!(app_command_create.starts_with("HTTP/1.1 202"));
     let app_command_create_json = response_body_json(&app_command_create);
+    assert_command_acceptance(&app_command_create_json);
     assert_eq!(
-        app_command_create_json
-            .pointer("/code")
-            .and_then(serde_json::Value::as_str),
-        Some("0")
+        command_acceptance_status(&app_command_create_json),
+        Some("accepted")
     );
-    assert_json_string_at(&app_command_create_json, "/data/commandId");
-    assert_eq!(
-        app_command_create_json
-            .pointer("/data/deviceId")
-            .and_then(serde_json::Value::as_str),
-        Some("e2e-device-001")
-    );
-    assert_eq!(
-        app_command_create_json
-            .pointer("/data/capabilityName")
-            .and_then(serde_json::Value::as_str),
-        Some("speaker")
-    );
-    assert_eq!(
-        app_command_create_json
-            .pointer("/data/commandName")
-            .and_then(serde_json::Value::as_str),
-        Some("play")
-    );
-    assert!(app_command_create_json
-        .pointer("/data/requestPayload")
-        .is_some());
-    assert_json_string_at(&app_command_create_json, "/data/status");
-    assert_json_string_at(&app_command_create_json, "/data/createdAt");
 
-    let command_id = app_command_create_json
-        .pointer("/data/commandId")
-        .and_then(serde_json::Value::as_str)
-        .expect("command id");
+    let command_id = command_acceptance_resource_id(&app_command_create_json).expect("command id");
 
     let admin_command_list = handle_api_request_bytes(
         &admin,
@@ -1106,10 +1031,7 @@ fn admin_and_app_end_to_end_flow_matches_sdk_response_shapes() {
     .expect("backend devices.commands.list e2e");
     assert!(admin_command_list.starts_with("HTTP/1.1 200"));
     let admin_command_list_json = response_body_json(&admin_command_list);
-    let admin_commands = admin_command_list_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("backend command list data array");
+    let admin_commands = list_data_items(&admin_command_list_json);
     let listed_command = admin_commands
         .iter()
         .find(|command| {
@@ -1176,10 +1098,7 @@ fn admin_and_app_end_to_end_flow_matches_sdk_response_shapes() {
     .expect("app devices.events.list e2e");
     assert!(app_events.starts_with("HTTP/1.1 200"));
     let app_events_json = response_body_json(&app_events);
-    let app_events_data = app_events_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("app event list data array");
+    let app_events_data = list_data_items(&app_events_json);
     let e2e_event = app_events_data
         .iter()
         .find(|event| {
@@ -1213,27 +1132,18 @@ fn admin_and_app_end_to_end_flow_matches_sdk_response_shapes() {
     .expect("app devices.twin.retrieve e2e");
     assert!(app_twin.starts_with("HTTP/1.1 200"));
     let app_twin_json = response_body_json(&app_twin);
+    assert_success_envelope(&app_twin_json);
     assert_eq!(
-        app_twin_json
-            .pointer("/code")
-            .and_then(serde_json::Value::as_str),
-        Some("0")
-    );
-    assert_eq!(
-        app_twin_json
-            .pointer("/data/deviceId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&app_twin_json, "deviceId"),
         Some("e2e-device-001")
     );
     assert_eq!(
-        app_twin_json
-            .pointer("/data/desired/volume")
+        resource_data_pointer(&app_twin_json, "/desired/volume")
             .and_then(serde_json::Value::as_i64),
         Some(85)
     );
     assert_eq!(
-        app_twin_json
-            .pointer("/data/reported/volume")
+        resource_data_pointer(&app_twin_json, "/reported/volume")
             .and_then(serde_json::Value::as_i64),
         Some(82)
     );
@@ -1417,21 +1327,15 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     assert!(app_retrieve_tenant_a.starts_with("HTTP/1.1 200"));
     let app_retrieve_tenant_a_json = response_body_json(&app_retrieve_tenant_a);
     assert_eq!(
-        app_retrieve_tenant_a_json
-            .pointer("/data/displayName")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&app_retrieve_tenant_a_json, "displayName"),
         Some("Scope Device A")
     );
     assert_eq!(
-        app_retrieve_tenant_a_json
-            .pointer("/data/tenantId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&app_retrieve_tenant_a_json, "tenantId"),
         Some("100001")
     );
     assert_eq!(
-        app_retrieve_tenant_a_json
-            .pointer("/data/organizationId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&app_retrieve_tenant_a_json, "organizationId"),
         Some("0")
     );
 
@@ -1443,21 +1347,15 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     assert!(app_retrieve_tenant_b.starts_with("HTTP/1.1 200"));
     let app_retrieve_tenant_b_json = response_body_json(&app_retrieve_tenant_b);
     assert_eq!(
-        app_retrieve_tenant_b_json
-            .pointer("/data/displayName")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&app_retrieve_tenant_b_json, "displayName"),
         Some("Scope Device B")
     );
     assert_eq!(
-        app_retrieve_tenant_b_json
-            .pointer("/data/tenantId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&app_retrieve_tenant_b_json, "tenantId"),
         Some("10002")
     );
     assert_eq!(
-        app_retrieve_tenant_b_json
-            .pointer("/data/organizationId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&app_retrieve_tenant_b_json, "organizationId"),
         Some("20002")
     );
 
@@ -1468,10 +1366,7 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     .expect("app list tenant A");
     assert!(app_list_tenant_a.starts_with("HTTP/1.1 200"));
     let app_list_tenant_a_json = response_body_json(&app_list_tenant_a);
-    let app_list_tenant_a_data = app_list_tenant_a_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("app list tenant A data");
+    let app_list_tenant_a_data = list_data_items(&app_list_tenant_a_json);
     assert_eq!(app_list_tenant_a_data.len(), 1);
     assert_eq!(
         app_list_tenant_a_data[0]
@@ -1487,10 +1382,7 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     .expect("app list tenant B");
     assert!(app_list_tenant_b.starts_with("HTTP/1.1 200"));
     let app_list_tenant_b_json = response_body_json(&app_list_tenant_b);
-    let app_list_tenant_b_data = app_list_tenant_b_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("app list tenant B data");
+    let app_list_tenant_b_data = list_data_items(&app_list_tenant_b_json);
     assert_eq!(app_list_tenant_b_data.len(), 1);
     assert_eq!(
         app_list_tenant_b_data[0]
@@ -1520,10 +1412,7 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     .expect("admin commands tenant A");
     assert!(admin_commands_tenant_a.starts_with("HTTP/1.1 200"));
     let admin_commands_tenant_a_json = response_body_json(&admin_commands_tenant_a);
-    let admin_commands_tenant_a_data = admin_commands_tenant_a_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("admin commands tenant A data");
+    let admin_commands_tenant_a_data = list_data_items(&admin_commands_tenant_a_json);
     assert_eq!(admin_commands_tenant_a_data.len(), 1);
     assert_eq!(
         admin_commands_tenant_a_data[0]
@@ -1539,10 +1428,7 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     .expect("admin commands tenant B");
     assert!(admin_commands_tenant_b.starts_with("HTTP/1.1 200"));
     let admin_commands_tenant_b_json = response_body_json(&admin_commands_tenant_b);
-    let admin_commands_tenant_b_data = admin_commands_tenant_b_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("admin commands tenant B data");
+    let admin_commands_tenant_b_data = list_data_items(&admin_commands_tenant_b_json);
     assert_eq!(admin_commands_tenant_b_data.len(), 1);
     assert_eq!(
         admin_commands_tenant_b_data[0]
@@ -1581,10 +1467,7 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     .expect("app events tenant A");
     assert!(app_events_tenant_a.starts_with("HTTP/1.1 200"));
     let app_events_tenant_a_json = response_body_json(&app_events_tenant_a);
-    let app_events_tenant_a_data = app_events_tenant_a_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("app events tenant A data");
+    let app_events_tenant_a_data = list_data_items(&app_events_tenant_a_json);
     assert_eq!(app_events_tenant_a_data.len(), 1);
     assert_eq!(
         app_events_tenant_a_data[0]
@@ -1600,10 +1483,7 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     .expect("app events tenant B");
     assert!(app_events_tenant_b.starts_with("HTTP/1.1 200"));
     let app_events_tenant_b_json = response_body_json(&app_events_tenant_b);
-    let app_events_tenant_b_data = app_events_tenant_b_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("app events tenant B data");
+    let app_events_tenant_b_data = list_data_items(&app_events_tenant_b_json);
     assert_eq!(app_events_tenant_b_data.len(), 1);
     assert_eq!(
         app_events_tenant_b_data[0]
@@ -1643,14 +1523,12 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     assert!(app_twin_tenant_a.starts_with("HTTP/1.1 200"));
     let app_twin_tenant_a_json = response_body_json(&app_twin_tenant_a);
     assert_eq!(
-        app_twin_tenant_a_json
-            .pointer("/data/desired/volume")
+        resource_data_pointer(&app_twin_tenant_a_json, "/desired/volume")
             .and_then(serde_json::Value::as_i64),
         Some(31)
     );
     assert_eq!(
-        app_twin_tenant_a_json
-            .pointer("/data/reported/volume")
+        resource_data_pointer(&app_twin_tenant_a_json, "/reported/volume")
             .and_then(serde_json::Value::as_i64),
         Some(30)
     );
@@ -1663,14 +1541,12 @@ fn app_and_admin_routes_isolate_state_between_tenants_and_organizations() {
     assert!(app_twin_tenant_b.starts_with("HTTP/1.1 200"));
     let app_twin_tenant_b_json = response_body_json(&app_twin_tenant_b);
     assert_eq!(
-        app_twin_tenant_b_json
-            .pointer("/data/desired/volume")
+        resource_data_pointer(&app_twin_tenant_b_json, "/desired/volume")
             .and_then(serde_json::Value::as_i64),
         Some(91)
     );
     assert_eq!(
-        app_twin_tenant_b_json
-            .pointer("/data/reported/volume")
+        resource_data_pointer(&app_twin_tenant_b_json, "/reported/volume")
             .and_then(serde_json::Value::as_i64),
         Some(90)
     );
@@ -1715,9 +1591,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     assert!(retrieve_org_a.starts_with("HTTP/1.1 200"));
     let retrieve_org_a_json = response_body_json(&retrieve_org_a);
     assert_eq!(
-        retrieve_org_a_json
-            .pointer("/data/displayName")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&retrieve_org_a_json, "displayName"),
         Some("CRUD Scope A Updated")
     );
 
@@ -1729,9 +1603,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     assert!(retrieve_org_b.starts_with("HTTP/1.1 200"));
     let retrieve_org_b_json = response_body_json(&retrieve_org_b);
     assert_eq!(
-        retrieve_org_b_json
-            .pointer("/data/displayName")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&retrieve_org_b_json, "displayName"),
         Some("CRUD Scope B")
     );
 
@@ -1750,10 +1622,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     .expect("list credentials org A");
     assert!(credential_list_org_a.starts_with("HTTP/1.1 200"));
     let credential_list_org_a_json = response_body_json(&credential_list_org_a);
-    let credential_list_org_a_data = credential_list_org_a_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("credential list org A data array");
+    let credential_list_org_a_data = list_data_items(&credential_list_org_a_json);
     assert_eq!(credential_list_org_a_data.len(), 1);
     let credential_id = credential_list_org_a_data[0]
         .get("credentialId")
@@ -1817,15 +1686,11 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     let credential_retrieve_after_delete_json =
         response_body_json(&credential_retrieve_after_delete);
     assert_eq!(
-        credential_retrieve_after_delete_json
-            .pointer("/data/credentialId")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&credential_retrieve_after_delete_json, "credentialId"),
         Some(credential_id.as_str())
     );
     assert_eq!(
-        credential_retrieve_after_delete_json
-            .pointer("/data/status")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&credential_retrieve_after_delete_json, "status"),
         Some("revoked")
     );
 
@@ -1836,10 +1701,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     .expect("list credentials after delete");
     assert!(credential_list_after_delete.starts_with("HTTP/1.1 200"));
     let credential_list_after_delete_json = response_body_json(&credential_list_after_delete);
-    let credential_list_after_delete_data = credential_list_after_delete_json
-        .pointer("/data")
-        .and_then(serde_json::Value::as_array)
-        .expect("credential list after delete data array");
+    let credential_list_after_delete_data = list_data_items(&credential_list_after_delete_json);
     assert_eq!(credential_list_after_delete_data.len(), 1);
     assert_eq!(
         credential_list_after_delete_data[0]
@@ -1897,9 +1759,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     assert!(retrieve_org_b_after_a_delete.starts_with("HTTP/1.1 200"));
     let retrieve_org_b_after_delete_json = response_body_json(&retrieve_org_b_after_a_delete);
     assert_eq!(
-        retrieve_org_b_after_delete_json
-            .pointer("/data/displayName")
-            .and_then(serde_json::Value::as_str),
+        resource_data_str(&retrieve_org_b_after_delete_json, "displayName"),
         Some("CRUD Scope B")
     );
 }
@@ -1936,14 +1796,12 @@ fn backend_device_twin_update_is_scoped_and_validated() {
     assert!(update_twin_org_a.starts_with("HTTP/1.1 200"));
     let update_twin_org_a_json = response_body_json(&update_twin_org_a);
     assert_eq!(
-        update_twin_org_a_json
-            .pointer("/data/desired/volume")
+        resource_data_pointer(&update_twin_org_a_json, "/desired/volume")
             .and_then(serde_json::Value::as_i64),
         Some(42)
     );
     assert_eq!(
-        update_twin_org_a_json
-            .pointer("/data/reported/ready")
+        resource_data_pointer(&update_twin_org_a_json, "/reported/ready")
             .and_then(serde_json::Value::as_bool),
         Some(true)
     );
@@ -1979,8 +1837,7 @@ fn backend_device_twin_update_is_scoped_and_validated() {
     .expect("retrieve twin org A");
     assert!(retrieve_twin_org_a.starts_with("HTTP/1.1 200"));
     assert_eq!(
-        response_body_json(&retrieve_twin_org_a)
-            .pointer("/data/desired/volume")
+        resource_data_pointer(&response_body_json(&retrieve_twin_org_a), "/desired/volume")
             .and_then(serde_json::Value::as_i64),
         Some(42)
     );
@@ -1992,8 +1849,7 @@ fn backend_device_twin_update_is_scoped_and_validated() {
     .expect("retrieve twin org B");
     assert!(retrieve_twin_org_b.starts_with("HTTP/1.1 200"));
     assert_eq!(
-        response_body_json(&retrieve_twin_org_b)
-            .pointer("/data/desired")
+        resource_data_pointer(&response_body_json(&retrieve_twin_org_b), "/desired")
             .and_then(serde_json::Value::as_object)
             .map(serde_json::Map::len),
         Some(0)
@@ -2514,18 +2370,15 @@ fn backend_firmware_artifact_create_response_uses_media_resource_shape() {
     assert!(response.contains(r#""mediaResourceId":"media-res-001""#));
     let body = response_body_json(&response);
     assert_eq!(
-        body.pointer("/data/resource/id")
-            .and_then(serde_json::Value::as_str),
+        resource_data_pointer(&body, "/resource/id").and_then(serde_json::Value::as_str),
         Some("media-res-001")
     );
     assert_eq!(
-        body.pointer("/data/resource/kind")
-            .and_then(serde_json::Value::as_str),
+        resource_data_pointer(&body, "/resource/kind").and_then(serde_json::Value::as_str),
         Some("document")
     );
     assert_eq!(
-        body.pointer("/data/resource/source")
-            .and_then(serde_json::Value::as_str),
+        resource_data_pointer(&body, "/resource/source").and_then(serde_json::Value::as_str),
         Some("object_storage")
     );
     assert!(!response.contains(r#""storageUri":"#));
@@ -3113,20 +2966,20 @@ fn app_typescript_sdk_problem_details_contract_aligns_with_openapi_schema() {
     assert!(required.contains("status"));
 
     let ts_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
-        "../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/generated/server-openapi/src/types/problem-details.ts",
+        "../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/generated/server-openapi/src/types/problem-detail.ts",
     );
-    let ts = std::fs::read_to_string(ts_path).expect("read app generated problem-details");
+    let ts = std::fs::read_to_string(ts_path).expect("read app generated problem-detail");
 
     assert!(
-        ts.contains("export interface ProblemDetails"),
-        "app generated TS SDK must export ProblemDetails interface"
+        ts.contains("export interface ProblemDetail"),
+        "app generated TS SDK must export ProblemDetail interface"
     );
     assert!(ts.contains("type: string;"));
     assert!(ts.contains("title: string;"));
     assert!(ts.contains("status: number;"));
     assert!(ts.contains("detail?: string;"));
-    assert!(ts.contains("traceId?: string;"));
-    assert!(ts.contains("code?: string;"));
+    assert!(ts.contains("traceId: string;"));
+    assert!(ts.contains("code: SdkWorkPlatformErrorCode;"));
 }
 
 #[test]
@@ -3143,20 +2996,20 @@ fn backend_typescript_sdk_problem_details_contract_aligns_with_openapi_schema() 
     assert!(required.contains("status"));
 
     let ts_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
-        "../../sdks/sdkwork-aiot-backend-sdk/sdkwork-aiot-backend-sdk-typescript/generated/server-openapi/src/types/problem-details.ts",
+        "../../sdks/sdkwork-aiot-backend-sdk/sdkwork-aiot-backend-sdk-typescript/generated/server-openapi/src/types/problem-detail.ts",
     );
-    let ts = std::fs::read_to_string(ts_path).expect("read backend generated problem-details");
+    let ts = std::fs::read_to_string(ts_path).expect("read backend generated problem-detail");
 
     assert!(
-        ts.contains("export interface ProblemDetails"),
-        "backend generated TS SDK must export ProblemDetails interface"
+        ts.contains("export interface ProblemDetail"),
+        "backend generated TS SDK must export ProblemDetail interface"
     );
     assert!(ts.contains("type: string;"));
     assert!(ts.contains("title: string;"));
     assert!(ts.contains("status: number;"));
     assert!(ts.contains("detail?: string;"));
-    assert!(ts.contains("traceId?: string;"));
-    assert!(ts.contains("code?: string;"));
+    assert!(ts.contains("traceId: string;"));
+    assert!(ts.contains("code: SdkWorkPlatformErrorCode;"));
 }
 
 #[test]
@@ -3185,34 +3038,26 @@ fn backend_typescript_sdk_exposes_firmware_crud_surface() {
     assert!(rollout_response.contains("export interface AiotFirmwareRolloutResponse"));
     assert!(artifact.contains("export interface AiotFirmwareArtifact"));
 
-    assert!(iot_api.contains("async firmwareArtifactsList("));
-    assert!(iot_api.contains("Promise<StandardCollectionResponse>"));
-    assert!(iot_api.contains("async firmwareArtifactsRetrieve(artifactId: string"));
+    assert!(iot_api.contains("class IotFirmwareArtifactsApi"));
+    assert!(iot_api.contains("Promise<SdkWorkPageData>"));
+    assert!(iot_api.contains("async retrieve(artifactId: string"));
     assert!(iot_api.contains("body?: AiotFirmwareArtifactUpdateRequest"));
-    assert!(iot_api.contains("async firmwareArtifactsDelete(artifactId: string"));
+    assert!(iot_api.contains("async delete(artifactId: string"));
 
-    assert!(iot_api.contains("async firmwareRolloutsList("));
-    assert!(iot_api.contains("async firmwareRolloutsCreate(body: AiotFirmwareRolloutCreateRequest"));
-    assert!(iot_api.contains("Promise<AiotFirmwareRolloutResponse>"));
-    assert!(iot_api.contains("async firmwareRolloutsRetrieve(rolloutId: string"));
+    assert!(iot_api.contains("class IotFirmwareRolloutsApi"));
+    assert!(iot_api.contains("async create(body: AiotFirmwareRolloutCreateRequest"));
+    assert!(iot_api.contains("async retrieve(rolloutId: string"));
     assert!(iot_api.contains("body?: AiotFirmwareRolloutUpdateRequest"));
-    assert!(iot_api.contains("async firmwareRolloutsDelete(rolloutId: string"));
 
-    assert!(iot_api.contains("async devicesSessionsList(deviceId: string"));
-    assert!(iot_api.contains("async devicesSessionsDisconnect(deviceId: string, sessionId: string"));
-    assert!(iot_api.contains("async devicesCapabilitiesList(deviceId: string"));
-    assert!(iot_api.contains("async devicesCommandsCancel(deviceId: string, commandId: string"));
-    assert!(iot_api.contains("Promise<StandardResourceResponse>"));
-    assert!(iot_api.contains("async devicesCredentialsList(deviceId: string"));
-    assert!(
-        iot_api.contains("async devicesCredentialsRetrieve(deviceId: string, credentialId: string")
-    );
-    assert!(
-        iot_api.contains("async devicesCredentialsDelete(deviceId: string, credentialId: string")
-    );
-    assert!(
-        iot_api.contains("async devicesTwinUpdate(deviceId: string, body: AiotTwinUpdateRequest")
-    );
+    assert!(iot_api.contains("class IotDevicesSessionsApi"));
+    assert!(iot_api.contains("async list(deviceId: string"));
+    assert!(iot_api.contains("async disconnect(deviceId: string, sessionId: string"));
+    assert!(iot_api.contains("class IotDevicesCapabilitiesApi"));
+    assert!(iot_api.contains("async cancel(deviceId: string, commandId: string"));
+    assert!(iot_api.contains("class IotDevicesCredentialsApi"));
+    assert!(iot_api.contains("async retrieve(deviceId: string, credentialId: string"));
+    assert!(iot_api.contains("class IotDevicesTwinApi"));
+    assert!(iot_api.contains("async update(deviceId: string, body: AiotTwinUpdateRequest"));
 }
 
 #[test]
@@ -3522,7 +3367,80 @@ fn response_body_json(response: &str) -> serde_json::Value {
     serde_json::from_str(body).expect("response body json")
 }
 
+fn assert_success_envelope(value: &serde_json::Value) {
+    let code = value.get("code").expect("success envelope code");
+    assert!(
+        code.as_i64() == Some(0) || code.as_str() == Some("0"),
+        "expected success code 0, got {code}"
+    );
+    assert!(
+        value
+            .get("traceId")
+            .and_then(serde_json::Value::as_str)
+            .is_some(),
+        "expected traceId in success envelope, got {value}"
+    );
+}
+
+fn list_data_items(value: &serde_json::Value) -> Vec<&serde_json::Value> {
+    value
+        .pointer("/data/items")
+        .and_then(serde_json::Value::as_array)
+        .or_else(|| value.pointer("/data").and_then(serde_json::Value::as_array))
+        .map(|items| items.iter().collect())
+        .unwrap_or_default()
+}
+
+fn resource_data_pointer<'a>(
+    value: &'a serde_json::Value,
+    suffix: &str,
+) -> Option<&'a serde_json::Value> {
+    let item_path = format!("/data/item{suffix}");
+    value
+        .pointer(&item_path)
+        .or_else(|| value.pointer(&format!("/data{suffix}")))
+}
+
+fn resource_data_str<'a>(value: &'a serde_json::Value, field: &str) -> Option<&'a str> {
+    resource_data_pointer(value, &format!("/{field}")).and_then(serde_json::Value::as_str)
+}
+
+fn command_acceptance_resource_id(value: &serde_json::Value) -> Option<&str> {
+    value
+        .pointer("/data/resourceId")
+        .and_then(serde_json::Value::as_str)
+        .or_else(|| resource_data_str(value, "commandId"))
+}
+
+fn command_acceptance_status(value: &serde_json::Value) -> Option<&str> {
+    value
+        .pointer("/data/status")
+        .and_then(serde_json::Value::as_str)
+        .or_else(|| resource_data_str(value, "status"))
+}
+
+fn assert_command_acceptance(value: &serde_json::Value) {
+    assert_success_envelope(value);
+    assert_eq!(
+        value
+            .pointer("/data/accepted")
+            .and_then(serde_json::Value::as_bool),
+        Some(true)
+    );
+    assert!(command_acceptance_resource_id(value).is_some());
+}
+
 fn assert_json_string_at(value: &serde_json::Value, pointer: &str) {
+    if pointer.starts_with("/data/") && !pointer.starts_with("/data/item/") {
+        let item_pointer = pointer.replacen("/data/", "/data/item/", 1);
+        if value
+            .pointer(&item_pointer)
+            .and_then(serde_json::Value::as_str)
+            .is_some()
+        {
+            return;
+        }
+    }
     assert!(
         value
             .pointer(pointer)

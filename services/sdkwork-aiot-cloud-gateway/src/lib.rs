@@ -105,6 +105,8 @@ const ENV_XIAOZHI_ACTIVATION_REGISTRY_REDIS_PREFIX: &str =
 const ENV_XIAOZHI_SIMULATOR_MCP_TOOLS_PATH: &str = "SDKWORK_AIOT_XIAOZHI_SIMULATOR_MCP_TOOLS_PATH";
 const ENV_XIAOZHI_MCP_POLICY_RULES: &str = "SDKWORK_AIOT_XIAOZHI_MCP_POLICY_RULES";
 const ENV_XIAOZHI_MCP_POLICY_LOG_ALLOW: &str = "SDKWORK_AIOT_XIAOZHI_MCP_POLICY_LOG_ALLOW";
+const ENV_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT: &str =
+    "SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT";
 const ENV_XIAOZHI_SERVER_TIMEZONE_OFFSET_MINUTES: &str =
     "SDKWORK_AIOT_XIAOZHI_SERVER_TIMEZONE_OFFSET_MINUTES";
 const ENV_DEVICE_DB_PATH: &str = "SDKWORK_AIOT_DEVICE_DB_PATH";
@@ -1030,6 +1032,7 @@ pub struct XiaozhiMcpPolicyStatsSnapshot {
 #[derive(Debug, Clone, Default)]
 pub struct RuleBasedXiaozhiSimulatorMcpToolPolicy {
     rules: Vec<McpPolicyRule>,
+    deny_by_default: bool,
     stats: Arc<RuleBasedMcpPolicyStats>,
 }
 
@@ -1038,6 +1041,16 @@ impl RuleBasedXiaozhiSimulatorMcpToolPolicy {
     fn from_rules(rules: Vec<McpPolicyRule>) -> Self {
         Self {
             rules,
+            deny_by_default: false,
+            stats: Arc::new(RuleBasedMcpPolicyStats::default()),
+        }
+    }
+
+    #[cfg(test)]
+    fn from_rules_with_deny_by_default(rules: Vec<McpPolicyRule>, deny_by_default: bool) -> Self {
+        Self {
+            rules,
+            deny_by_default,
             stats: Arc::new(RuleBasedMcpPolicyStats::default()),
         }
     }
@@ -1048,6 +1061,7 @@ impl RuleBasedXiaozhiSimulatorMcpToolPolicy {
             .unwrap_or_default();
         Self {
             rules,
+            deny_by_default: mcp_policy_deny_by_default_from_env(),
             stats: Arc::new(RuleBasedMcpPolicyStats::default()),
         }
     }
@@ -1068,6 +1082,13 @@ impl RuleBasedXiaozhiSimulatorMcpToolPolicy {
             });
 
         let Some((matched_rule_index, matched_rule)) = matched_rule else {
+            if self.deny_by_default {
+                self.stats.on_deny_by_rule();
+                return XiaozhiMcpPolicyEvaluation::deny(
+                    format!("Tool not allowed by policy: {}", tool.name),
+                    None,
+                );
+            }
             self.stats.on_allow_no_rule();
             return XiaozhiMcpPolicyEvaluation::allow(None);
         };
@@ -1394,16 +1415,18 @@ impl XiaozhiSessionOptions {
 fn device_credential_repository_from_env() -> Option<Arc<SqliteSqlxCredentialRepository>> {
     let path = env_string(ENV_DEVICE_DB_PATH)?;
     match sdkwork_aiot_storage_sqlx::open_aiot_device_database(Some(&path)) {
-        Ok(database) => match database.credential_repository() {
-            Ok(repository) => {
-                println!("sdkwork-aiot-cloud-gateway device_credential_repository=sqlite");
-                Some(Arc::new(repository))
+        Ok(database) => {
+            match database.credential_repository() {
+                Ok(repository) => {
+                    println!("sdkwork-aiot-cloud-gateway device_credential_repository=sqlite");
+                    Some(Arc::new(repository))
+                }
+                Err(error) => {
+                    eprintln!("sdkwork-aiot-cloud-gateway device_credential_repository_open_error={error}");
+                    None
+                }
             }
-            Err(error) => {
-                eprintln!("sdkwork-aiot-cloud-gateway device_credential_repository_open_error={error}");
-                None
-            }
-        },
+        }
         Err(error) => {
             eprintln!("sdkwork-aiot-cloud-gateway device_credential_repository_open_error={error}");
             None
@@ -4217,6 +4240,12 @@ fn env_bool(name: &str) -> bool {
     })
 }
 
+fn mcp_policy_deny_by_default_from_env() -> bool {
+    env_bool(ENV_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT)
+        || (std::env::var("SDKWORK_AIOT_ENVIRONMENT").as_deref() == Ok("production")
+            && is_kernel_mode())
+}
+
 fn is_local_host(host: &str) -> bool {
     let host = host
         .strip_prefix('[')
@@ -4980,6 +5009,24 @@ mod tests {
         assert_eq!(snapshot.deny_by_rule_matches, 1);
         assert_eq!(snapshot.allow_by_rule_matches, 1);
         assert_eq!(snapshot.allow_no_rule_matches, 1);
+    }
+
+    #[test]
+    fn rule_based_mcp_policy_deny_by_default_rejects_unmatched_tools() {
+        let policy = RuleBasedXiaozhiSimulatorMcpToolPolicy::from_rules_with_deny_by_default(
+            parse_mcp_policy_rules("allow|tool=self.reboot|transport=mqtt"),
+            true,
+        );
+        let tool = XiaozhiSimulatorMcpToolSpec::new(
+            "self.get_device_status",
+            "Status",
+            r#"{"type":"object","properties":{},"required":[]}"#,
+        );
+        let ctx = XiaozhiMcpInvocationContext::new("mqtt", "session-deny-default");
+        assert!(policy.allow(&ctx, &tool, Some("{}")).is_err());
+        let snapshot = policy.stats_snapshot();
+        assert_eq!(snapshot.deny_by_rule_matches, 1);
+        assert_eq!(snapshot.allow_no_rule_matches, 0);
     }
 
     #[test]

@@ -340,7 +340,11 @@ impl MqttBridgePublisher {
             .client = client;
     }
 
-    fn publish_reply(&self, reply: sdkwork_aiot_cloud_gateway::MqttSessionReply, stats: &BridgeStats) {
+    fn publish_reply(
+        &self,
+        reply: sdkwork_aiot_cloud_gateway::MqttSessionReply,
+        stats: &BridgeStats,
+    ) {
         let state = self.inner.lock().expect("mqtt bridge publisher lock");
         let Some(client) = state.client.as_ref() else {
             if !reply.outbound_json.is_empty() {
@@ -557,8 +561,9 @@ impl BridgeControlHandle {
             .get(&session_key)
             .map(|managed| managed.session.session_id.clone())
             .unwrap_or_else(|| session_key.clone());
-        let reply =
-            sdkwork_aiot_cloud_gateway::xiaozhi_mqtt_server_teardown_reply(&session_id_for_teardown);
+        let reply = sdkwork_aiot_cloud_gateway::xiaozhi_mqtt_server_teardown_reply(
+            &session_id_for_teardown,
+        );
         inner.mqtt_publisher.publish_reply(reply.clone(), stats);
         apply_bridge_session_state_locked(&mut guard, Some(session_key.as_str()), &reply, None);
         BridgeSessionDisconnectOutcome::Disconnected
@@ -789,7 +794,8 @@ fn run_mqtt_bridge_loop(
 
             if let Event::Incoming(Incoming::Publish(publish)) = event {
                 let inbound = String::from_utf8_lossy(&publish.payload).to_string();
-                let session_key = sdkwork_aiot_cloud_gateway::xiaozhi_mqtt_session_lookup_key(&inbound);
+                let session_key =
+                    sdkwork_aiot_cloud_gateway::xiaozhi_mqtt_session_lookup_key(&inbound);
                 let session_snapshot = {
                     let guard = session_state.lock().expect("mqtt session lock");
                     guard.snapshot_session(session_key.as_deref())
@@ -805,7 +811,10 @@ fn run_mqtt_bridge_loop(
                     Ok(response) => response,
                     Err(error) => {
                         stats.mqtt_session_errors.fetch_add(1, Ordering::Relaxed);
-                        eprintln!("sdkwork-aiot-cloud-gateway mqtt_session_error={}", error.code);
+                        eprintln!(
+                            "sdkwork-aiot-cloud-gateway mqtt_session_error={}",
+                            error.code
+                        );
                         continue;
                     }
                 };
@@ -926,7 +935,10 @@ fn run_udp_bridge_loop(
                         break;
                     }
                     Err(error) => {
-                        eprintln!("sdkwork-aiot-cloud-gateway udp_uplink_reply_error={}", error.code);
+                        eprintln!(
+                            "sdkwork-aiot-cloud-gateway udp_uplink_reply_error={}",
+                            error.code
+                        );
                     }
                 }
             }
@@ -951,7 +963,9 @@ fn run_udp_bridge_loop(
         }
 
         stats.udp_decode_failures.fetch_add(1, Ordering::Relaxed);
-        eprintln!("sdkwork-aiot-cloud-gateway udp_decode_error=transport.udp.decode_failed from={from}");
+        eprintln!(
+            "sdkwork-aiot-cloud-gateway udp_decode_error=transport.udp.decode_failed from={from}"
+        );
         stats.maybe_log_snapshot(config.stats_log_interval);
     }
     state.udp_socket_bound().store(false, Ordering::Relaxed);
@@ -1192,7 +1206,10 @@ fn process_xiaozhi_frame_buffer(
                 Ok(result) => result,
                 Err(error) if error.code == "transport.websocket.incomplete_frame" => return false,
                 Err(error) => {
-                    eprintln!("sdkwork-aiot-cloud-gateway websocket_decode_error={}", error.code);
+                    eprintln!(
+                        "sdkwork-aiot-cloud-gateway websocket_decode_error={}",
+                        error.code
+                    );
                     return true;
                 }
             };

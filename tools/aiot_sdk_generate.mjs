@@ -152,6 +152,15 @@ function validateFamily(family) {
 }
 
 function runGenerate(family) {
+  const materialize = spawnSync(
+    'node',
+    ['scripts/dev/sync-openapi-web-context.mjs'],
+    { cwd: workspaceRoot, stdio: 'inherit' },
+  );
+  if (materialize.status !== 0) {
+    throw new Error('sync-openapi-web-context materialization failed');
+  }
+
   if (family.stripOpenApi) {
     const strip = spawnSync(
       'node',

@@ -59,6 +59,8 @@ The AIoT server already aligns on API contracts, SDK workspaces, topology, secur
 | T | Docs standard CI + SBOM checksum parity | `check:docs-standard`, strict SBOM checksum gate, `release:publish` in CI smoke | Done |
 | U | Commercial readiness unified gate | `pnpm release:preflight`, `check:docs-index`, workflow validate expansion | Done |
 | V | Xiaozhi production intelligence | `sdkwork-aiot-intelligence-bridge`, Opus codec/uplink in adapter-xiaozhi, topology intelligence keys, uplink buffer + session media profile | Done |
+| W | Production topology + MCP deny-by-default | Complete `cloud/standalone.split-services.production` env profiles, deploy manifest profile IDs, Postgres cloud persistence keys, `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT` | Done |
+| X | API security + SDK generation parity | OpenAPI `AuthToken`/`AccessToken`, `sync-openapi-web-context.mjs`, workspace `tools/run-sdkgen.mjs`, sdkwork-v3 envelope unwrap in generated TypeScript SDKs, CORS allow-list cleanup | Done |
 
 ## Consequences
 

@@ -13,12 +13,6 @@ export class SdkworkAppClient {
     this.httpClient = createHttpClient(config);
     this.iot = createIotApi(this.httpClient);
   }
-
-  setApiKey(apiKey: string): this {
-    this.httpClient.setApiKey(apiKey);
-    return this;
-  }
-
   setAuthToken(token: string): this {
     this.httpClient.setAuthToken(token);
     return this;

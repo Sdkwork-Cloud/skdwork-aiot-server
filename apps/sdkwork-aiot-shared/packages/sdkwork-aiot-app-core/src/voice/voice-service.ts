@@ -82,8 +82,8 @@ export function createAiotVoiceService(
     },
 
     async listVoiceDevices() {
-      const response = await options.aiotClient.iot.devicesList();
-      const devices = Array.isArray(response.data) ? response.data : [];
+      const page = await options.aiotClient.iot.devices.list();
+      const devices = Array.isArray(page.items) ? page.items : [];
       return devices
         .map((device) => mapVoiceDevice(readRecord(device)))
         .filter((device) => device.deviceId.length > 0);

@@ -9,22 +9,19 @@ import {
 describe('aiot-app-core command service', () => {
   it('sends speak commands through sdkwork-aiot-app-sdk', async () => {
     const create = vi.fn().mockResolvedValue({
-      code: '202',
-      data: {
-        commandId: 'cmd-1',
-        deviceId: 'dev-1',
-        capabilityName: 'audio.playback',
-        commandName: 'speak',
-        requestPayload: { text: 'hello', lang: 'zh-CN' },
-        status: 'accepted',
-        createdAt: '2026-06-18T00:00:00.000Z',
-      },
+      accepted: true,
+      resourceId: 'cmd-1',
+      status: 'accepted',
     });
 
     const service = createAiotCommandService({
       aiotClient: {
         iot: {
-          devicesCommandsCreate: create,
+          devices: {
+            commands: {
+              create,
+            },
+          },
         },
       } as never,
     });
@@ -49,18 +46,18 @@ describe('aiot-app-core agent service', () => {
     const service = createAiotAgentService({
       aiotClient: {
         iot: {
-          devicesCommandsCreate: vi.fn().mockResolvedValue({
-            code: '202',
-            data: {
-              commandId: 'cmd-empty',
-              deviceId: 'dev-1',
-              capabilityName: 'assistant',
-              commandName: 'chat',
-              status: 'accepted',
-              createdAt: '2026-06-18T00:00:00.000Z',
+          devices: {
+            commands: {
+              create: vi.fn().mockResolvedValue({
+                accepted: true,
+                resourceId: 'cmd-empty',
+                status: 'accepted',
+              }),
             },
-          }),
-          devicesEventsList: vi.fn().mockResolvedValue({ data: [] }),
+            events: {
+              list: vi.fn().mockResolvedValue({ items: [], pageInfo: { page: 1, pageSize: 20, total: 0, hasMore: false } }),
+            },
+          },
         },
       } as never,
     });
@@ -82,7 +79,11 @@ describe('aiot-app-core agent service', () => {
     const service = createAiotAgentService({
       aiotClient: {
         iot: {
-          devicesCommandsCreate: vi.fn().mockRejectedValue(new Error('offline')),
+          devices: {
+            commands: {
+              create: vi.fn().mockRejectedValue(new Error('offline')),
+            },
+          },
         },
       } as never,
     });
@@ -104,8 +105,8 @@ describe('aiot-app-core agent service', () => {
   });
 });
 
-describe('createLocalAssistantReply', () => {
+describe('aiot-app-core local assistant reply', () => {
   it('returns a helpful default for empty input', () => {
-    expect(createLocalAssistantReply('')).toContain('帮助');
+    expect(createLocalAssistantReply('   ')).toContain('请告诉我');
   });
 });

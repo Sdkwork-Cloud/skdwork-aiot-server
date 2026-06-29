@@ -1154,10 +1154,8 @@ fn xiaozhi_websocket_session_mcp_initialize_returns_protocol_metadata() {
     assert!(text
         .iter()
         .any(|value| value.contains(r#""protocolVersion":"2024-11-05""#)));
-    assert!(text
-        .iter()
-        .any(|value| value
-            .contains(r#""serverInfo":{"name":"sdkwork-aiot-cloud-gateway","version":"0.1.0"}"#)));
+    assert!(text.iter().any(|value| value
+        .contains(r#""serverInfo":{"name":"sdkwork-aiot-cloud-gateway","version":"0.1.0"}"#)));
 }
 
 #[test]

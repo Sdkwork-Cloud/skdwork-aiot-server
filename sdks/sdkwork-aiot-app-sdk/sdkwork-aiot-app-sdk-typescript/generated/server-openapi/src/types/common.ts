@@ -1,5 +1,5 @@
 export interface BasePlusVO {
-  id?: string | number;
+  id?: string;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;
@@ -11,7 +11,7 @@ export interface BasePlusEntity extends BasePlusVO {
 }
 
 export interface QueryListForm {
-  keyword?: string;
+  q?: string;
   status?: string | number;
   startTime?: string;
   endTime?: string;
@@ -26,7 +26,6 @@ export type { AuthTokenManager, AuthMode, AuthTokens };
 
 export interface SdkworkAppConfig {
   baseUrl: string;
-  apiKey?: string;
   authToken?: string;
   accessToken?: string;
   tenantId?: string;

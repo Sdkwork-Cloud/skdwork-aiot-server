@@ -46,8 +46,7 @@ async fn main() {
             .with_firmware_repository(admin_stores.firmware_repository),
     );
 
-    let app_router =
-        sdkwork_routes_iot_app_api::build_wrapped_app_api_router(app_server).await;
+    let app_router = sdkwork_routes_iot_app_api::build_wrapped_app_api_router(app_server).await;
     let admin_router =
         sdkwork_routes_iot_backend_api::build_wrapped_backend_api_router(admin_server).await;
     let router = Router::new().merge(app_router).merge(admin_router);

@@ -2155,6 +2155,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdkwork-database-id"
+version = "0.1.0"
+dependencies = [
+ "sdkwork-database-config",
+ "sdkwork-database-sqlx",
+ "sdkwork-id-core",
+ "sqlx",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "sdkwork-database-lifecycle"
 version = "0.1.0"
 dependencies = [
@@ -2204,6 +2216,7 @@ dependencies = [
  "base64",
  "chrono",
  "rand_core 0.6.4",
+ "sdkwork-database-id",
  "sdkwork-iam-context-service",
  "sdkwork-iam-module-registry",
  "sha2",
@@ -2257,6 +2270,13 @@ dependencies = [
  "sha2",
  "sqlx",
  "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "sdkwork-id-core"
+version = "0.1.0"
+dependencies = [
  "uuid",
 ]
 
@@ -2328,11 +2348,14 @@ dependencies = [
 name = "sdkwork-utils-rust"
 version = "0.10.0"
 dependencies = [
+ "aes-gcm",
  "base64",
  "chrono",
+ "hkdf",
  "hmac",
  "rand 0.8.6",
  "regex",
+ "serde",
  "serde_json",
  "sha2",
  "urlencoding",
@@ -2371,7 +2394,9 @@ dependencies = [
  "getrandom 0.2.17",
  "hmac",
  "http",
+ "percent-encoding",
  "rsa",
+ "sdkwork-utils-rust",
  "sdkwork-web-contract",
  "serde",
  "serde_json",
@@ -3341,6 +3366,7 @@ checksum = "144d6b123cef80b301b8f72a9e2ca4370ddec21950d0a103dd22c437006d2db7"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
+ "sha1_smol",
  "wasm-bindgen",
 ]
 

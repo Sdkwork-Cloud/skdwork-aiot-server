@@ -27,8 +27,8 @@
         "summary": "List AIoT products",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -37,7 +37,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProductListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -107,8 +107,8 @@
         "summary": "Create AIoT product",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "requestBody": {
@@ -127,7 +127,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProductResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotProductResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -152,8 +175,8 @@
         "summary": "Retrieve AIoT product",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -167,7 +190,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProductResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotProductResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -190,8 +236,8 @@
         "summary": "Update AIoT product",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -215,7 +261,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProductResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotProductResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -238,8 +307,8 @@
         "summary": "Delete AIoT product",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -271,8 +340,8 @@
         "summary": "List hardware profiles",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -281,7 +350,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotHardwareProfileListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -351,8 +420,8 @@
         "summary": "Create hardware profile",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "requestBody": {
@@ -371,7 +440,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotHardwareProfileResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotHardwareProfileResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -396,8 +488,8 @@
         "summary": "Retrieve hardware profile",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -411,7 +503,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotHardwareProfileResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotHardwareProfileResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -434,8 +549,8 @@
         "summary": "Update hardware profile",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -459,7 +574,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotHardwareProfileResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotHardwareProfileResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -482,8 +620,8 @@
         "summary": "Delete hardware profile",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -515,8 +653,8 @@
         "summary": "List protocol profiles",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -525,7 +663,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProtocolProfileListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -595,8 +733,8 @@
         "summary": "Create protocol profile",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "requestBody": {
@@ -615,7 +753,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProtocolProfileResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotProtocolProfileResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -640,8 +801,8 @@
         "summary": "Retrieve protocol profile",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -655,7 +816,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProtocolProfileResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotProtocolProfileResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -678,8 +862,8 @@
         "summary": "Update protocol profile",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -703,7 +887,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProtocolProfileResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotProtocolProfileResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -726,8 +933,8 @@
         "summary": "Delete protocol profile",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -759,8 +966,8 @@
         "summary": "List capability models",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -769,7 +976,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotCapabilityModelListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -839,8 +1046,8 @@
         "summary": "Create capability model",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "requestBody": {
@@ -859,7 +1066,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotCapabilityModelResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotCapabilityModelResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -884,8 +1114,8 @@
         "summary": "Retrieve capability model",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -899,13 +1129,43 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotCapabilityModelResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotCapabilityModelResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
           },
           "404": {
-            "$ref": "#/components/responses/Problem"
+            "description": "Capability model not found.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/Problem"
@@ -925,8 +1185,8 @@
         "summary": "Update capability model",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -950,7 +1210,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotCapabilityModelResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotCapabilityModelResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -973,8 +1256,8 @@
         "summary": "Delete capability model",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1006,8 +1289,8 @@
         "summary": "List AIoT devices",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -1016,7 +1299,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotDeviceListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -1086,8 +1369,8 @@
         "summary": "Create AIoT device",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1111,7 +1394,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardResourceResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/StandardResourceResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1136,8 +1442,8 @@
         "summary": "Retrieve AIoT device",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1151,7 +1457,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardResourceResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/StandardResourceResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1174,8 +1503,8 @@
         "summary": "Update AIoT device",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1202,7 +1531,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardResourceResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/StandardResourceResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1225,8 +1577,8 @@
         "summary": "Delete AIoT device",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1258,8 +1610,8 @@
         "summary": "List device credentials",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1318,7 +1670,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardCollectionResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -1341,8 +1693,8 @@
         "summary": "Create device credential",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1369,7 +1721,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotCredentialResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotCredentialResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1394,8 +1769,8 @@
         "summary": "Retrieve device credential",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1412,7 +1787,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardResourceResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/StandardResourceResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1435,8 +1833,8 @@
         "summary": "Revoke device credential",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1471,8 +1869,8 @@
         "summary": "List device sessions",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1531,7 +1929,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardCollectionResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -1556,8 +1954,8 @@
         "summary": "Disconnect device session",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1592,8 +1990,8 @@
         "summary": "List device capabilities",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1652,7 +2050,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardCollectionResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -1677,8 +2075,8 @@
         "summary": "List device commands",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1737,7 +2135,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotCommandListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -1762,8 +2160,8 @@
         "summary": "Cancel device command",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1780,7 +2178,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardResourceResponse"
+                  "$ref": "#/components/schemas/SdkWorkCommandResponse"
                 }
               }
             }
@@ -1805,8 +2203,8 @@
         "summary": "Update backend device twin",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1830,7 +2228,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardResourceResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/StandardResourceResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1853,8 +2274,8 @@
         "summary": "Retrieve backend device twin",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1868,7 +2289,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardResourceResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/StandardResourceResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -1893,8 +2337,8 @@
         "summary": "List firmware artifacts",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -1903,7 +2347,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardCollectionResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -1973,8 +2417,8 @@
         "summary": "Create firmware artifact metadata",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -1998,7 +2442,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotFirmwareArtifactResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotFirmwareArtifactResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -2023,8 +2490,8 @@
         "summary": "Retrieve firmware artifact",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -2038,7 +2505,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotFirmwareArtifactResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotFirmwareArtifactResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -2061,8 +2551,8 @@
         "summary": "Update firmware artifact metadata",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -2086,7 +2576,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotFirmwareArtifactResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotFirmwareArtifactResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -2109,8 +2622,8 @@
         "summary": "Delete firmware artifact metadata",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -2142,8 +2655,8 @@
         "summary": "List firmware rollouts",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -2152,7 +2665,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StandardCollectionResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -2222,8 +2735,8 @@
         "summary": "Create firmware rollout",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -2247,7 +2760,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotFirmwareRolloutResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotFirmwareRolloutResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -2272,8 +2808,8 @@
         "summary": "Retrieve firmware rollout",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -2287,7 +2823,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotFirmwareRolloutResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotFirmwareRolloutResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -2310,8 +2869,8 @@
         "summary": "Update firmware rollout",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -2335,7 +2894,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotFirmwareRolloutResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotFirmwareRolloutResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -2358,8 +2940,8 @@
         "summary": "Delete firmware rollout",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -2391,8 +2973,8 @@
         "summary": "List platform IoT events",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -2401,7 +2983,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotEventListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -2473,8 +3055,8 @@
         "summary": "List protocol adapters",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -2483,7 +3065,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotProtocolAdapterListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -2555,8 +3137,8 @@
         "summary": "Retrieve AIoT runtime capacity and backpressure policy",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -2565,7 +3147,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotRuntimeCapacityPolicyResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotRuntimeCapacityPolicyResponse"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -2583,17 +3188,17 @@
   },
   "components": {
     "securitySchemes": {
-      "Authorization": {
+      "AuthToken": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "Authorization: Bearer <auth_token>"
       },
-      "Access-Token": {
+      "AccessToken": {
         "type": "apiKey",
         "in": "header",
         "name": "Access-Token",
-        "description": "SDKWork canonical access token header."
+        "description": "Signed JWT access_token compact serialization (header.payload.signature)."
       }
     },
     "parameters": {
@@ -2714,7 +3319,7 @@
         "content": {
           "application/problem+json": {
             "schema": {
-              "$ref": "#/components/schemas/ProblemDetails"
+              "$ref": "#/components/schemas/ProblemDetail"
             }
           }
         }
@@ -4208,6 +4813,216 @@
             "type": "string"
           }
         }
+      },
+      "SdkWorkApiResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "traceId"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0
+            ],
+            "default": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "data": {
+            "description": "Operation-specific payload typed per response schema."
+          },
+          "traceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Server-owned request correlation id."
+          }
+        }
+      },
+      "SdkWorkResourceData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Typed domain resource for the operation."
+          }
+        }
+      },
+      "SdkWorkPageData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "pageInfo"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
+      "SdkWorkCommandData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "accepted"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "const": true
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "SdkWorkPlatformErrorCode": {
+        "type": "integer",
+        "format": "int32",
+        "minimum": 40001,
+        "maximum": 79999,
+        "description": "Platform or domain error code per API_SPEC.md §15.3."
+      },
+      "ProblemDetail": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "traceId"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "code": {
+            "$ref": "#/components/schemas/SdkWorkPlatformErrorCode"
+          },
+          "traceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Server-owned request correlation id."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            }
+          }
+        }
+      },
+      "FieldError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "message"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 40011,
+            "maximum": 40099
+          }
+        }
+      },
+      "SdkWorkResourceResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SdkWorkResourceData"
+              }
+            }
+          }
+        ]
+      },
+      "SdkWorkListResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SdkWorkPageData"
+              }
+            }
+          }
+        ]
+      },
+      "SdkWorkCommandResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SdkWorkCommandData"
+              }
+            }
+          }
+        ]
       }
     }
   }

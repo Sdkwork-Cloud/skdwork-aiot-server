@@ -25,8 +25,7 @@ describe("sdkwork-aiot-pc-console-iot service", () => {
   it("loads catalog devices through sdkwork-aiot-app-sdk when an AIoT client is provided", async () => {
     const createSdkworkIotService = (iotModule as Record<string, any>).createSdkworkIotService;
     const list = vi.fn().mockResolvedValue({
-      code: "2000",
-      data: [
+      items: [
         {
           id: "42",
           tenantId: "100001",
@@ -46,12 +45,15 @@ describe("sdkwork-aiot-pc-console-iot service", () => {
           lastSeenAt: "2026-06-06T08:30:00.000Z",
         },
       ],
+      pageInfo: { page: 1, pageSize: 20, total: 1, hasMore: false },
     });
 
     const service = createSdkworkIotService({
       aiotClient: {
         iot: {
-          devicesList: list,
+          devices: {
+            list,
+          },
         },
       },
       getSessionTokens: () => ({

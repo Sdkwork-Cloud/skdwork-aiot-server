@@ -42,8 +42,9 @@ Normative constraints:
 - Backend API prefix: `/backend/v3/api`
 - Xiaozhi device compatibility prefix: `/iot/xiaozhi/`
 - OpenAPI is the source of truth for HTTP APIs.
-- SDKs must be generated from OpenAPI. No handwritten raw HTTP fallback.
-- Protected app/backend APIs require `Authorization` and `Access-Token`.
+- SDKs must be generated from OpenAPI through workspace `@sdkwork/sdk-generator` (`tools/run-sdkgen.mjs`). No handwritten raw HTTP fallback.
+- Protected app/backend APIs require OpenAPI `AuthToken` + `AccessToken` (wire: `Authorization: Bearer <auth_token>` and `Access-Token: <access_token>`).
+- HTTP 2xx success bodies use `SdkWorkApiResponse` (`code: 0`, `data`, `traceId`); errors use `application/problem+json` with numeric `code` and `traceId`.
 - Device protocol authentication maps into a `DevicePrincipal`, not directly into app/backend user auth.
 - IAM, tenant, organization, user, role, permission, policy, app context, and sharding context are provided by `sdkwork-appbase`.
 - AIoT must not create a parallel IAM system, IAM crate, or IAM API module. AIoT stores only IAM association fields and receives already-resolved IAM context from the host/appbase integration layer.

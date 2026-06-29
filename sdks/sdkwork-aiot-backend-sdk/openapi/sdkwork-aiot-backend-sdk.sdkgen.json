@@ -7,7 +7,7 @@
   "generationInputSpec": "../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json",
   "outputPackage": "sdkwork-aiot-backend-sdk-typescript",
   "packageName": "@sdkwork/aiot-backend-sdk",
-  "apiPrefix": "/backend/v3/api/iot",
+  "apiPrefix": "/backend/v3/api",
   "generatedProtocols": ["http"],
   "resourceStyleOperationIds": true,
   "authHeaders": ["Authorization", "Access-Token"],

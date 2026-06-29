@@ -6,7 +6,7 @@ license.workspace = true
 description = "Production Xiaozhi intelligence bridge via sdkwork-kernel and sdkwork-claw-router"
 
 [dependencies]
-clawrouter-open-sdk = { path = "../../../sdkwork-claw-router/sdks/clawrouter-open-sdk/clawrouter-open-sdk-rust/generated/server-openapi" }
+clawrouter-open-sdk = { path = "../../../sdkwork-clawrouter/sdks/clawrouter-open-sdk/clawrouter-open-sdk-rust/generated/server-openapi" }
 sdkwork-aiot-adapter-xiaozhi = { path = "../sdkwork-aiot-adapter-xiaozhi" }
 sdkwork-utils-rust.workspace = true
 serde = { workspace = true }

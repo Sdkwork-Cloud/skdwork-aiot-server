@@ -29,8 +29,8 @@
         "summary": "List user-visible AIoT devices",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "responses": {
@@ -39,7 +39,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotDeviceListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -111,8 +111,8 @@
         "summary": "Retrieve one AIoT device",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -126,7 +126,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotDeviceResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/AiotDevice"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -151,8 +174,8 @@
         "summary": "Create a device command",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -179,7 +202,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotCommandResponse"
+                  "$ref": "#/components/schemas/SdkWorkCommandResponse"
                 }
               }
             }
@@ -204,8 +227,8 @@
         "summary": "Retrieve device twin",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -219,7 +242,30 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotTwinResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SdkWorkApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "data"
+                      ],
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "item"
+                          ],
+                          "properties": {
+                            "item": {
+                              "$ref": "#/components/schemas/JsonValue"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -244,8 +290,8 @@
         "summary": "List device events",
         "security": [
           {
-            "Authorization": [],
-            "Access-Token": []
+            "AuthToken": [],
+            "AccessToken": []
           }
         ],
         "parameters": [
@@ -304,7 +350,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiotEventListResponse"
+                  "$ref": "#/components/schemas/SdkWorkListResponse"
                 }
               }
             }
@@ -320,17 +366,17 @@
   },
   "components": {
     "securitySchemes": {
-      "Authorization": {
+      "AuthToken": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "Authorization: Bearer <auth_token>"
       },
-      "Access-Token": {
+      "AccessToken": {
         "type": "apiKey",
         "in": "header",
         "name": "Access-Token",
-        "description": "SDKWork canonical access token header."
+        "description": "Signed JWT access_token compact serialization (header.payload.signature)."
       }
     },
     "parameters": {
@@ -361,7 +407,7 @@
         "content": {
           "application/problem+json": {
             "schema": {
-              "$ref": "#/components/schemas/ProblemDetails"
+              "$ref": "#/components/schemas/ProblemDetail"
             }
           }
         }
@@ -1051,6 +1097,216 @@
             "type": "string"
           }
         }
+      },
+      "SdkWorkApiResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "data",
+          "traceId"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+              0
+            ],
+            "default": 0,
+            "minimum": 0,
+            "maximum": 0
+          },
+          "data": {
+            "description": "Operation-specific payload typed per response schema."
+          },
+          "traceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Server-owned request correlation id."
+          }
+        }
+      },
+      "SdkWorkResourceData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item"
+        ],
+        "properties": {
+          "item": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Typed domain resource for the operation."
+          }
+        }
+      },
+      "SdkWorkPageData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "pageInfo"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "pageInfo": {
+            "$ref": "#/components/schemas/PageInfo"
+          }
+        }
+      },
+      "SdkWorkCommandData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "accepted"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "const": true
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "SdkWorkPlatformErrorCode": {
+        "type": "integer",
+        "format": "int32",
+        "minimum": 40001,
+        "maximum": 79999,
+        "description": "Platform or domain error code per API_SPEC.md §15.3."
+      },
+      "ProblemDetail": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code",
+          "traceId"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          },
+          "detail": {
+            "type": "string"
+          },
+          "instance": {
+            "type": "string"
+          },
+          "code": {
+            "$ref": "#/components/schemas/SdkWorkPlatformErrorCode"
+          },
+          "traceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Server-owned request correlation id."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            }
+          }
+        }
+      },
+      "FieldError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "message"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 40011,
+            "maximum": 40099
+          }
+        }
+      },
+      "SdkWorkResourceResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SdkWorkResourceData"
+              }
+            }
+          }
+        ]
+      },
+      "SdkWorkListResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SdkWorkPageData"
+              }
+            }
+          }
+        ]
+      },
+      "SdkWorkCommandResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SdkWorkApiResponse"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SdkWorkCommandData"
+              }
+            }
+          }
+        ]
       }
     }
   }

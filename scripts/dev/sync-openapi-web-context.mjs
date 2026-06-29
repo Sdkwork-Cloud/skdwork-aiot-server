@@ -101,29 +101,44 @@ function ensurePageInfoOnListSchemas(openapi) {
   }
 }
 
-function normalizeAppSecuritySchemes(openapi) {
-  if (!openapi.components?.securitySchemes) {
-    return;
-  }
-  const schemes = openapi.components.securitySchemes;
-  if (schemes.AccessToken && !schemes['Access-Token']) {
-    schemes['Access-Token'] = {
-      ...schemes.AccessToken,
+function normalizeSdkworkV3SecuritySchemes(openapi) {
+  openapi.components ??= {};
+  openapi.components.securitySchemes = {
+    AuthToken: {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      description: 'Authorization: Bearer <auth_token>',
+    },
+    AccessToken: {
+      type: 'apiKey',
+      in: 'header',
       name: 'Access-Token',
-    };
-    delete schemes.AccessToken;
-  }
+      description: 'Signed JWT access_token compact serialization (header.payload.signature).',
+    },
+  };
+
   for (const pathItem of Object.values(openapi.paths ?? {})) {
     for (const operation of Object.values(pathItem ?? {})) {
-      if (!operation?.security) {
+      if (!Array.isArray(operation?.security)) {
         continue;
       }
-      for (const requirement of operation.security) {
-        if (Object.prototype.hasOwnProperty.call(requirement, 'AccessToken')) {
-          requirement['Access-Token'] = requirement.AccessToken;
-          delete requirement.AccessToken;
+      operation.security = operation.security.map((requirement) => {
+        const next = { ...requirement };
+        if (Object.prototype.hasOwnProperty.call(next, 'Authorization')) {
+          next.AuthToken = next.Authorization;
+          delete next.Authorization;
         }
-      }
+        if (Object.prototype.hasOwnProperty.call(next, 'Access-Token')) {
+          next.AccessToken = next['Access-Token'];
+          delete next['Access-Token'];
+        }
+        if (Object.prototype.hasOwnProperty.call(next, 'SdkworkAccessToken')) {
+          next.AccessToken = next.SdkworkAccessToken;
+          delete next.SdkworkAccessToken;
+        }
+        return next;
+      });
     }
   }
 }
@@ -170,9 +185,7 @@ for (const authority of authorities) {
   }
 
   ensurePageInfoOnListSchemas(openapi);
-  if (authority.apiSurface === 'app-api') {
-    normalizeAppSecuritySchemes(openapi);
-  }
+  normalizeSdkworkV3SecuritySchemes(openapi);
 
   const next = `${JSON.stringify(openapi, null, 2)}\n`;
   if (checkOnly) {

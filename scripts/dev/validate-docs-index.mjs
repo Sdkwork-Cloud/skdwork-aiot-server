@@ -24,10 +24,10 @@ function validateDocsIndex() {
   assert.ok(fs.existsSync(indexPath), 'docs/INDEX.yaml must exist');
   const indexContent = fs.readFileSync(indexPath, 'utf8');
   assert.match(indexContent, /kind:\s*sdkwork\.docs\.index/u);
-  assert.match(indexContent, /canon:\s*\n\s+prd:\s*docs\/product\/PRD\.md/u);
+  assert.match(indexContent, /canon:\s*\n\s+prd:\s*docs\/product\/prd\/PRD\.md/u);
   assert.match(
     indexContent,
-    /techArchitecture:\s*docs\/architecture\/TECH_ARCHITECTURE\.md/u,
+    /techArchitecture:\s*docs\/architecture\/tech\/TECH_ARCHITECTURE\.md/u,
   );
 
   for (const relativePath of readIndexPaths(indexContent)) {

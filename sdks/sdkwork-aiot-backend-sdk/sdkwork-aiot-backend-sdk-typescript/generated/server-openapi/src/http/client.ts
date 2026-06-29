@@ -11,9 +11,8 @@ type HttpRequestOptions = RequestOptions & {
 };
 
 export class HttpClient extends BaseHttpClient {
-  private static readonly API_KEY_HEADER: string = 'Access-Token';
   private static readonly ACCESS_TOKEN_HEADER: string = 'Access-Token';
-  private static readonly API_KEY_USE_BEARER = false;
+  private static readonly SDKWORK_V3_UNWRAP = true;
 
   constructor(config: SdkworkBackendConfig) {
     super(config as any);
@@ -47,6 +46,31 @@ export class HttpClient extends BaseHttpClient {
     return Object.keys(mergedHeaders).length > 0 ? mergedHeaders : undefined;
   }
 
+  protected buildHeaders(config: any, skipAuth = false): Record<string, string> {
+    const headers = super.buildHeaders(config, skipAuth);
+    if (!skipAuth && !config?.skipAuth) {
+      return headers;
+    }
+
+    [
+      HttpClient.ACCESS_TOKEN_HEADER,
+      'Authorization',
+      'Access-Token',
+      ['X', 'API', 'Key'].join('-'),
+      'X-Tenant-Id',
+      'X-Organization-Id',
+      'X-Platform',
+      'X-User-Id',
+      'X-Sdkwork-Tenant-Id',
+      'X-Sdkwork-Organization-Id',
+      'X-Sdkwork-User-Id',
+    ].forEach((key) => {
+      delete headers[key];
+    });
+    this.applyCredentialEntryBootstrapAccessToken(headers);
+    return headers;
+  }
+
   private buildRequestBody(body: unknown, contentType?: string): unknown {
     if (body == null) {
       return body;
@@ -56,8 +80,81 @@ export class HttpClient extends BaseHttpClient {
     if (normalizedContentType === 'application/x-www-form-urlencoded') {
       return this.encodeFormBody(body);
     }
+    if (normalizedContentType === 'multipart/form-data') {
+      return this.encodeMultipartBody(body);
+    }
 
     return body;
+  }
+
+  private encodeMultipartBody(body: unknown): FormData {
+    if (body instanceof FormData) {
+      return body;
+    }
+
+    const formData = new FormData();
+    if (body instanceof Map) {
+      for (const [key, value] of body.entries()) {
+        this.appendMultipartValue(formData, String(key), value);
+      }
+      return formData;
+    }
+    if (typeof body === 'object') {
+      const record = body as Record<string, unknown>;
+      for (const [key, value] of Object.entries(record)) {
+        if (this.isMultipartMetadataField(key)) {
+          continue;
+        }
+        this.appendMultipartValue(formData, key, value, this.resolveMultipartFileName(record, key));
+      }
+      return formData;
+    }
+
+    this.appendMultipartValue(formData, 'value', body);
+    return formData;
+  }
+
+  private appendMultipartValue(formData: FormData, key: string, value: unknown, fileName?: string): void {
+    if (value == null) {
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => this.appendMultipartValue(formData, key, item, fileName));
+      return;
+    }
+    if (value instanceof Blob) {
+      if (fileName) {
+        formData.append(key, value, fileName);
+        return;
+      }
+      formData.append(key, value);
+      return;
+    }
+    if (value instanceof Date) {
+      formData.append(key, value.toISOString());
+      return;
+    }
+    if (typeof value === 'object') {
+      formData.append(key, JSON.stringify(value));
+      return;
+    }
+    formData.append(key, String(value));
+  }
+
+  private resolveMultipartFileName(record: Record<string, unknown>, key: string): string | undefined {
+    const fieldSpecificName = record[`${key}FileName`];
+    if (typeof fieldSpecificName === 'string' && fieldSpecificName.trim()) {
+      return fieldSpecificName.trim();
+    }
+    const genericName = record.fileName;
+    if (key === 'file' && typeof genericName === 'string' && genericName.trim()) {
+      return genericName.trim();
+    }
+    return undefined;
+  }
+
+  private isMultipartMetadataField(key: string): boolean {
+    return key === 'fileName' || key.endsWith('FileName');
   }
 
   private encodeFormBody(body: unknown): string {
@@ -104,49 +201,12 @@ export class HttpClient extends BaseHttpClient {
     }
     params.append(key, String(value));
   }
-
-  setApiKey(apiKey: string): void {
-    const authConfig = this.getInternalAuthConfig();
-    const headers = this.getInternalHeaders();
-    authConfig.apiKey = apiKey;
-    authConfig.tokenManager?.clearTokens?.();
-
-    if (HttpClient.API_KEY_HEADER === 'Authorization' && HttpClient.API_KEY_USE_BEARER) {
-      authConfig.authMode = 'apikey';
-      delete headers[HttpClient.ACCESS_TOKEN_HEADER];
-      delete headers['Access-Token'];
-      return;
-    }
-
-    authConfig.authMode = 'dual-token';
-    headers[HttpClient.API_KEY_HEADER] = HttpClient.API_KEY_USE_BEARER
-      ? `Bearer ${apiKey}`
-      : apiKey;
-
-    if (HttpClient.API_KEY_HEADER.toLowerCase() !== 'authorization') {
-      delete headers['Authorization'];
-    }
-    if (HttpClient.API_KEY_HEADER.toLowerCase() !== HttpClient.ACCESS_TOKEN_HEADER.toLowerCase()) {
-      delete headers[HttpClient.ACCESS_TOKEN_HEADER];
-    }
-    delete headers['Access-Token'];
-  }
-
   setAuthToken(token: string): void {
-    const headers = this.getInternalHeaders();
-    if (HttpClient.API_KEY_HEADER.toLowerCase() !== 'authorization') {
-      delete headers[HttpClient.API_KEY_HEADER];
-    }
     super.setAuthToken(token);
   }
-
   setAccessToken(token: string): void {
     const headers = this.getInternalHeaders();
-    if (HttpClient.API_KEY_HEADER.toLowerCase() !== HttpClient.ACCESS_TOKEN_HEADER.toLowerCase()) {
-      delete headers[HttpClient.API_KEY_HEADER];
-    }
     headers[HttpClient.ACCESS_TOKEN_HEADER] = token;
-    delete headers['Access-Token'];
     super.setAccessToken(token);
   }
 
@@ -159,20 +219,56 @@ export class HttpClient extends BaseHttpClient {
     this.getInternalAuthConfig().tokenManager = manager;
   }
 
+  private applyCredentialEntryBootstrapAccessToken(headers: Record<string, string>): void {
+    const authConfig = this.getInternalAuthConfig();
+    const tokenManager = authConfig.tokenManager;
+    const accessToken = tokenManager?.getAccessToken?.();
+    if (typeof accessToken === 'string' && accessToken.length > 0) {
+      headers[HttpClient.ACCESS_TOKEN_HEADER] = accessToken;
+    }
+  }
+
   private applySdkworkAuthHeaders(headers?: Record<string, string>): Record<string, string> | undefined {
     const authConfig = this.getInternalAuthConfig();
     const tokenManager = authConfig.tokenManager;
     const accessToken = tokenManager?.getAccessToken?.();
-    if (!accessToken || HttpClient.ACCESS_TOKEN_HEADER === 'Access-Token') {
+    if (!accessToken) {
       return headers;
     }
 
-    const nextHeaders = {
+    return {
       ...(headers ?? {}),
       [HttpClient.ACCESS_TOKEN_HEADER]: accessToken,
     };
-    delete nextHeaders['Access-Token'];
-    return nextHeaders;
+  }
+
+  private unwrapSdkworkV3Payload<T>(payload: unknown): T {
+    if (!HttpClient.SDKWORK_V3_UNWRAP || payload == null || typeof payload !== 'object') {
+      return payload as T;
+    }
+
+    const record = payload as Record<string, unknown>;
+    if (record.code !== 0 || !('data' in record)) {
+      return payload as T;
+    }
+
+    const data = record.data;
+    if (!data || typeof data !== 'object') {
+      return data as T;
+    }
+
+    const envelopeData = data as Record<string, unknown>;
+    if ('items' in envelopeData && 'pageInfo' in envelopeData) {
+      return data as T;
+    }
+    if ('accepted' in envelopeData) {
+      return data as T;
+    }
+    if ('item' in envelopeData) {
+      return envelopeData.item as T;
+    }
+
+    return data as T;
   }
 
   async request<T>(path: string, options: HttpRequestOptions = {}): Promise<T> {
@@ -180,18 +276,20 @@ export class HttpClient extends BaseHttpClient {
     if (typeof execute !== 'function') {
       throw new Error('BaseHttpClient execute method is not available');
     }
-    const { body, headers, contentType, method = 'GET', ...rest } = options;
-    const requestHeaders = this.applySdkworkAuthHeaders(headers);
-    return withRetry(
-      () => execute.call(this, { 
-        url: path, 
+    const { body, headers, contentType, method = 'GET', skipAuth, ...rest } = options;
+    const requestHeaders = skipAuth ? headers : this.applySdkworkAuthHeaders(headers);
+    const payload = await withRetry(
+      () => execute.call(this, {
+        url: path,
         method,
         ...rest,
+        skipAuth,
         body: this.buildRequestBody(body, contentType),
         headers: this.buildRequestHeaders(requestHeaders, body == null ? undefined : contentType),
       }),
       { maxRetries: 3 }
     );
+    return this.unwrapSdkworkV3Payload<T>(payload);
   }
 
   async *streamJson<T>(path: string, options: HttpRequestOptions = {}): AsyncIterable<T> {
@@ -199,8 +297,8 @@ export class HttpClient extends BaseHttpClient {
     if (typeof stream !== 'function') {
       throw new Error('BaseHttpClient stream method is not available');
     }
-    const { body, headers, contentType, method = 'GET', ...rest } = options;
-    const authHeaders = this.applySdkworkAuthHeaders(headers);
+    const { body, headers, contentType, method = 'GET', skipAuth, ...rest } = options;
+    const authHeaders = skipAuth ? headers : this.applySdkworkAuthHeaders(headers);
     const requestHeaders = this.buildRequestHeaders(
       { Accept: 'text/event-stream', ...(authHeaders ?? {}) },
       body == null ? undefined : contentType,
@@ -209,6 +307,7 @@ export class HttpClient extends BaseHttpClient {
     for await (const data of stream.call(this, path, {
       method,
       ...rest,
+      skipAuth,
       body: this.buildRequestBody(body, contentType),
       headers: requestHeaders,
     })) {

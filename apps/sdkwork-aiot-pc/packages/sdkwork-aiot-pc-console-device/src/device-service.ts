@@ -129,8 +129,10 @@ async function loadSdkDevices(options: CreateSdkworkDeviceServiceOptions): Promi
     return undefined;
   }
 
-  const response = await options.aiotClient.iot.devicesList();
-  return Array.isArray(response.data) ? response.data.map(mapAiotDeviceToManagedDevice) : [];
+  const page = await options.aiotClient.iot.devices.list();
+  return Array.isArray(page.items)
+    ? page.items.map((item) => mapAiotDeviceToManagedDevice(item as AiotDevice))
+    : [];
 }
 
 export function createSdkworkDeviceService(

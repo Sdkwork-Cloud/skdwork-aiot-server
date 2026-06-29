@@ -204,8 +204,8 @@ test('sdkwork-aiot firmware rollout OTA alignment artifacts are present', () => 
   assert.match(releaseScript, /resolveReleaseBinaryPath/u);
 
   const deployManifest = read('deployments/deploy.yaml');
-  assert.match(deployManifest, /self-hosted\.split-services\.production/u);
-  assert.match(deployManifest, /cloud-hosted\.split-services\.production/u);
+  assert.match(deployManifest, /standalone\.split-services\.production/u);
+  assert.match(deployManifest, /cloud\.split-services\.production/u);
 
   const releasePublish = read('scripts/release-publish.mjs');
   assert.match(releasePublish, /release:publish/u);
