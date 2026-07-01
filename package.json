@@ -5,7 +5,7 @@
   "type": "module",
   "description": "SDKWork AIoT server workspace with topology v2 dev orchestration.",
   "dependencies": {
-    "@sdkwork/app-topology": "file:../sdkwork-app-topology"
+    "@sdkwork/app-topology": "workspace:*"
   },
   "scripts": {
     "dev": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
@@ -16,10 +16,10 @@
     "test": "node --test tests/aiot-workspace-standard.test.mjs && node --test scripts/dev/*.test.mjs && cargo test -p sdkwork-aiot-architecture && cargo test -p sdkwork-iot-platform-service",
     "test:rust": "cargo test --workspace",
     "test:workspace-standard": "node --test tests/aiot-workspace-standard.test.mjs",
-    "check": "pnpm test:workspace-standard && pnpm test:device-database && pnpm test:postgres-migration-parity && pnpm test:production-topology && pnpm test:deploy-manifest && pnpm test:release-preflight && pnpm check:pnpm-script-standard && pnpm check:agent-workflow-standard && pnpm check:docs-standard && pnpm check:docs-index && pnpm check:iam-module-manifest && pnpm check:app-manifest && pnpm check:production-topology && pnpm check:deploy-manifest && pnpm db:validate && pnpm api:check && pnpm sdk:check && pnpm test:topology-validate && pnpm test:topology-baggage && cargo fmt -- --check && cargo clippy --workspace --tests -- -D warnings",
+    "check": "pnpm run check:app-composition && pnpm test:workspace-standard && pnpm test:device-database && pnpm test:postgres-migration-parity && pnpm test:production-topology && pnpm test:deploy-manifest && pnpm test:release-preflight && pnpm check:pnpm-script-standard && pnpm check:agent-workflow-standard && pnpm check:docs-standard && pnpm check:docs-index && pnpm check:iam-module-manifest && pnpm check:app-manifest && pnpm check:production-topology && pnpm check:deploy-manifest && pnpm check:drive-standard && pnpm db:validate && pnpm api:check && pnpm sdk:check && pnpm test:topology-validate && pnpm test:topology-baggage && cargo fmt -- --check && cargo clippy --workspace --tests -- -D warnings",
     "check:pnpm-script-standard": "node ../sdkwork-specs/tools/check-pnpm-script-standard.mjs --root . --application-code-prefix aiot",
     "check:agent-workflow-standard": "node ../sdkwork-specs/tools/check-agent-workflow-standard.mjs --root .",
-    "verify": "pnpm check && cargo test --workspace",
+    "verify": "pnpm check && cargo test --workspace && pnpm run check:app-composition",
     "clean": "cargo clean",
     "topology:validate": "pnpm test:topology-validate",
     "topology:plan": "node ../sdkwork-app-topology/scripts/sdkwork-topology.mjs plan --root . --spec specs/topology.spec.json",
@@ -58,7 +58,7 @@
     "test:app-openapi-context": "node --test scripts/dev/sdkwork-aiot-app-openapi-context.test.mjs",
     "test:openapi-web-context": "node --test scripts/dev/sdkwork-aiot-openapi-web-context.test.mjs",
     "test:topology-validate": "node ../sdkwork-app-topology/scripts/sdkwork-topology.mjs validate --root .",
-    "db:materialize:contract": "node ../sdkwork-specs/tools/materialize-database-contract-from-baseline.mjs --root . --baseline database/ddl/baseline/postgres/0001_aiot_legacy_baseline.sql --module-id aiot --owner aiot-platform --prefixes aiot_ --engines postgres",
+    "db:materialize:contract": "node ../sdkwork-specs/tools/materialize-database-contract-from-baseline.mjs --root . --baseline database/ddl/baseline/postgres/0001_aiot_baseline.sql --module-id aiot --owner aiot-platform --prefixes iot_ --engines postgres,sqlite",
     "db:validate": "node ../sdkwork-specs/tools/check-database-framework-standard.mjs --root .",
     "db:plan": "cargo run --manifest-path ../sdkwork-database/Cargo.toml -p sdkwork-database-cli -- --app-root . plan",
     "db:init": "cargo run --manifest-path ../sdkwork-database/Cargo.toml -p sdkwork-database-cli -- --app-root . init",
@@ -75,9 +75,11 @@
     "check:deploy-manifest": "node scripts/dev/validate-deploy-manifest.mjs",
     "check:docs-index": "node scripts/dev/validate-docs-index.mjs",
     "check:docs-standard": "node ../sdkwork-specs/tools/check-repository-docs-standard.mjs --root . --profile application",
+    "check:drive-standard": "node --test scripts/dev/drive-standard-contract.test.mjs",
     "release:package": "node scripts/release-package.mjs",
     "gateway:package:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs bundle --root .",
     "gateway:validate:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs validate --root .",
-    "test:contract:database": "node ../sdkwork-specs/tools/check-database-framework-standard.mjs --root ."
+    "test:contract:database": "node ../sdkwork-specs/tools/check-database-framework-standard.mjs --root .",
+    "check:app-composition": "node ../sdkwork-specs/tools/verify-repo.mjs --root ."
   }
 }

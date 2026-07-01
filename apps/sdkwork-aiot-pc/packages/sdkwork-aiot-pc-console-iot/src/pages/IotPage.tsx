@@ -15,6 +15,7 @@ import type { SdkworkIotService } from "../iot-service";
 import { SdkworkIotAlertTimeline } from "../components/IotAlertTimeline";
 import { SdkworkIotFleetGrid } from "../components/IotFleetGrid";
 import { SdkworkIotPostureOverview } from "../components/IotPostureOverview";
+import { SdkworkFirmwareArtifactUploadPanel } from "../components/FirmwareArtifactUploadPanel";
 
 export interface SdkworkIotPageProps {
   controller?: SdkworkIotController;
@@ -198,6 +199,8 @@ export function SdkworkIotPage({
             />
           </div>
         </section>
+
+        <SdkworkFirmwareArtifactUploadPanel />
 
         <section className="rounded-[1.65rem] border border-[var(--sdk-color-border-default)] bg-[var(--sdk-color-surface-panel)] p-5 shadow-[var(--sdk-shadow-sm)]">
           <div className="flex flex-wrap gap-2">

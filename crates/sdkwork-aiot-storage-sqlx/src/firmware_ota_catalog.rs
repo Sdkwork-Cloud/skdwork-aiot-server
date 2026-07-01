@@ -300,19 +300,31 @@ pub fn resolve_firmware_download_url(
     resource_json: &str,
 ) -> Option<(String, String, u32)> {
     if let Ok(value) = serde_json::from_str::<Value>(resource_json) {
-        if let Some(url) = value
-            .get("downloadUrl")
-            .or_else(|| value.get("url"))
-            .and_then(Value::as_str)
-            .map(str::trim)
-            .filter(|url| !url.is_empty())
-        {
-            let force = value
-                .get("force")
-                .and_then(Value::as_u64)
-                .map(|value| value as u32)
-                .unwrap_or(0);
-            return Some((version.to_string(), url.to_string(), force));
+        let force = value
+            .get("force")
+            .and_then(Value::as_u64)
+            .map(|value| value as u32)
+            .unwrap_or(0);
+
+        for key in ["downloadUrl", "url", "publicUrl"] {
+            if let Some(url) = value
+                .get(key)
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|url| !url.is_empty())
+            {
+                return Some((version.to_string(), url.to_string(), force));
+            }
+        }
+
+        if let Some(node_id) = drive_node_id_from_media_resource(&value) {
+            if let Some(base) = firmware_download_base_url() {
+                return Some((
+                    version.to_string(),
+                    format!("{base}/drive/nodes/{node_id}"),
+                    force,
+                ));
+            }
         }
 
         if let Some(blob_id) = value
@@ -322,7 +334,11 @@ pub fn resolve_firmware_download_url(
             .filter(|value| !value.is_empty())
         {
             if let Some(base) = firmware_download_base_url() {
-                return Some((version.to_string(), format!("{base}/blobs/{blob_id}"), 0));
+                return Some((
+                    version.to_string(),
+                    format!("{base}/blobs/{blob_id}"),
+                    force,
+                ));
             }
         }
     }
@@ -334,6 +350,35 @@ pub fn resolve_firmware_download_url(
             0,
         )
     })
+}
+
+fn drive_node_id_from_media_resource(value: &Value) -> Option<String> {
+    let source = value.get("source").and_then(Value::as_str);
+    if source == Some("drive") {
+        if let Some(id) = value
+            .get("id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|id| !id.is_empty())
+        {
+            return Some(id.to_string());
+        }
+    }
+
+    let uri = value
+        .get("uri")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|uri| !uri.is_empty())?;
+    let prefix = "drive://nodes/";
+    if !uri.starts_with(prefix) {
+        return None;
+    }
+    let node_id = uri[prefix.len()..].trim_matches('/');
+    if node_id.is_empty() {
+        return None;
+    }
+    Some(node_id.to_string())
 }
 
 fn firmware_download_base_url() -> Option<String> {
@@ -359,6 +404,27 @@ mod tests {
         assert_eq!(version, "2.0.0");
         assert_eq!(url, "https://cdn.example.com/fw.bin");
         assert_eq!(force, 1);
+    }
+
+    #[test]
+    fn resolve_firmware_download_url_maps_drive_media_resource_to_gateway_path() {
+        std::env::set_var(
+            "SDKWORK_AIOT_FIRMWARE_DOWNLOAD_BASE_URL",
+            "https://edge.aiot.example.com/iot/firmware",
+        );
+        let (version, url, force) = resolve_firmware_download_url(
+            "artifact-drive",
+            "3.0.0",
+            r#"{"id":"drive-node-001","kind":"archive","source":"drive","uri":"drive://nodes/drive-node-001"}"#,
+        )
+        .expect("drive url");
+        std::env::remove_var("SDKWORK_AIOT_FIRMWARE_DOWNLOAD_BASE_URL");
+        assert_eq!(version, "3.0.0");
+        assert_eq!(
+            url,
+            "https://edge.aiot.example.com/iot/firmware/drive/nodes/drive-node-001"
+        );
+        assert_eq!(force, 0);
     }
 
     #[test]

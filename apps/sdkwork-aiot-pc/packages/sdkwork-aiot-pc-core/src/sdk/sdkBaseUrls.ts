@@ -14,6 +14,7 @@ import {
   VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_HTTP_URL,
   VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_WEBSOCKET_URL,
   VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL,
+  VITE_SDKWORK_DRIVE_APP_API_BASE_URL,
 } from './topologyEnvKeys';
 
 const SDKWORK_APP_API_PREFIX = '/app/v3/api';
@@ -153,6 +154,17 @@ export function resolveAiotAdminApiBaseUrl(): string {
 
 export function resolveAiotPlatformApiGatewayBaseUrl(): string {
   const value = readFirstNonBlank([
+    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL),
+    resolveLocalDevPlatformApiGatewayBaseUrl(),
+    resolveSameOriginHttpBaseUrl(),
+    DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL,
+  ]) ?? DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL;
+  return normalizeHttpSdkBaseUrl(value);
+}
+
+export function resolveDriveAppApiBaseUrl(): string {
+  const value = readFirstNonBlank([
+    readSdkBaseUrlEnvValue(VITE_SDKWORK_DRIVE_APP_API_BASE_URL),
     readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL),
     resolveLocalDevPlatformApiGatewayBaseUrl(),
     resolveSameOriginHttpBaseUrl(),

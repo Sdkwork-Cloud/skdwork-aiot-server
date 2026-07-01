@@ -210,6 +210,56 @@ fn service_shells_bootstrap_shared_device_database() {
 }
 
 #[test]
+fn github_packaging_workflow_declares_sdkwork_drive() {
+    let workflow_text =
+        fs::read_to_string(workspace_root().join("sdkwork.workflow.json")).expect("workflow");
+    assert!(workflow_text.contains("sdkwork-drive"));
+}
+
+#[test]
+fn pc_core_integrates_drive_uploader_for_firmware_uploads() {
+    let root = workspace_root();
+    let firmware_upload = fs::read_to_string(
+        root.join("apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core/src/services/firmwareUploadService.ts"),
+    )
+    .expect("firmware upload service");
+    let drive_client = fs::read_to_string(
+        root.join("apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core/src/sdk/driveAppSdkClient.ts"),
+    )
+    .expect("drive app sdk client");
+
+    assert!(drive_client.contains("createDriveAppClient"));
+    assert!(firmware_upload.contains("uploadArchive"));
+    assert!(firmware_upload.contains("source: 'drive'"));
+    assert!(firmware_upload.contains("uploadAiotFirmwareArtifactToDrive"));
+}
+
+#[test]
+fn firmware_ota_catalog_resolves_drive_backed_media_resources() {
+    let root = workspace_root();
+    let catalog_source =
+        fs::read_to_string(root.join("crates/sdkwork-aiot-storage-sqlx/src/firmware_ota_catalog.rs"))
+            .expect("firmware ota catalog");
+    assert!(catalog_source.contains("drive_node_id_from_media_resource"));
+    assert!(catalog_source.contains("/drive/nodes/"));
+}
+
+#[test]
+fn openapi_media_source_includes_drive() {
+    let root = workspace_root();
+    for relative_path in [
+        "apis/app-api/iot/sdkwork-aiot-app-api.openapi.json",
+        "apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json",
+    ] {
+        let openapi = fs::read_to_string(root.join(relative_path)).expect(relative_path);
+        assert!(
+            openapi.contains(r#""drive""#),
+            "{relative_path} MediaSource must include drive"
+        );
+    }
+}
+
+#[test]
 fn github_packaging_workflow_declares_sdkwork_utils() {
     let workflow_text =
         fs::read_to_string(workspace_root().join("sdkwork.workflow.json")).expect("workflow");
@@ -257,12 +307,15 @@ fn root_package_json_exposes_standard_pnpm_scripts() {
 #[test]
 fn shared_app_core_declares_sdkwork_utils_typescript() {
     let root = workspace_root();
-    let shared_workspace =
-        fs::read_to_string(root.join("apps/sdkwork-aiot-shared/pnpm-workspace.yaml"))
-            .expect("shared pnpm workspace");
+    let workspace_manifest =
+        fs::read_to_string(root.join("pnpm-workspace.yaml")).expect("root pnpm workspace");
     assert!(
-        shared_workspace.contains("sdkwork-utils-typescript"),
-        "shared pnpm workspace must include sdkwork-utils-typescript"
+        workspace_manifest.contains("sdkwork-utils-typescript"),
+        "root pnpm workspace must include sdkwork-utils-typescript"
+    );
+    assert!(
+        workspace_manifest.contains("sdkwork-drive-app-sdk"),
+        "root pnpm workspace must include sdkwork-drive-app-sdk"
     );
 
     let app_core_package = fs::read_to_string(
@@ -309,6 +362,7 @@ fn standards_alignment_roadmap_is_documented() {
     assert!(adr_text.contains("sdkwork-database"));
     assert!(adr_text.contains("sdkwork-utils"));
     assert!(adr_text.contains("sdkwork-discovery"));
+    assert!(adr_text.contains("sdkwork-drive"));
 }
 
 #[test]

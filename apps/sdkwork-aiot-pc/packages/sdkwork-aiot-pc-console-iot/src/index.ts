@@ -1,3 +1,5 @@
+export * from "./components/FirmwareArtifactUploadPanel";
+export * from "./firmware-service";
 export * from "./iot";
 export * from "./iot-controller";
 export * from "./iot-service";

@@ -36,6 +36,7 @@ This document tracks production readiness for the SDKWork AIoT server after the 
 | Workspace verification | Done | `pnpm check`, `pnpm verify`, targeted `cargo test` crates |
 | Production topology guardrails | Done | `pnpm check:production-topology`, production env profiles (`cloud/standalone.split-services.production`) |
 | Postgres device persistence (cloud HA) | Done | `BlockingDevicePool` + dialect-aware device/credential/outbox/admin-entity repos; `SDKWORK_AIOT_DEVICE_DATABASE_*` in cloud production topology |
+| Drive Uploader (PC firmware upload) | Done | `@sdkwork/drive-app-sdk` + `check:drive-standard`; OTA resolves `drive://nodes/{id}` to edge download URLs |
 
 ## Shared SQLite Without Persistent Path
 

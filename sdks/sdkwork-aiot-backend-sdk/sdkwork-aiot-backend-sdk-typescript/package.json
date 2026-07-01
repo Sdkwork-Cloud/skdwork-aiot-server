@@ -35,5 +35,9 @@
   "devDependencies": {
     "@sdkwork/sdk-generator": "^1.0.9",
     "typescript": "^5.8.2"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

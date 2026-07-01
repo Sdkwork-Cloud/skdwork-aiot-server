@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "pnpm@10.33.0",
   "description": "SDKWork AIoT H5 mobile application - devices, IoT fleet, voice dialogue, and agent integration.",
   "scripts": {
     "dev": "vite",
@@ -20,14 +20,14 @@
     "@sdkwork/aiot-h5-core": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.0"
+    "react-router-dom": "^7.13.0",
+    "tailwindcss": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.2"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
     "vite": "^8.0.3",
     "vitest": "^4.1.2"

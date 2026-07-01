@@ -4215,6 +4215,7 @@
       "MediaSource": {
         "type": "string",
         "enum": [
+          "drive",
           "object_storage",
           "external_url",
           "data_url",

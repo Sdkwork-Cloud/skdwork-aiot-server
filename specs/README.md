@@ -61,9 +61,14 @@ This component narrows the root SDKWork standards:
 - `WEB_BACKEND_SPEC.md`
 - `DEPLOYMENT_SPEC.md`
 - `GITHUB_WORKFLOW_SPEC.md`
+- `DRIVE_SPEC.md`
 - `APP_RUNTIME_TOPOLOGY_SPEC.md`
 
 Standards alignment phases: `../docs/adr/004-standards-alignment-roadmap.md`
+
+## Drive Integration
+
+Client firmware and media uploads use `@sdkwork/drive-app-sdk` (`client.uploader.*`) from `@sdkwork/aiot-pc-core`. AIoT backend APIs accept Drive-backed `MediaResource` references (`source: drive`) and never expose duplicate upload endpoints. Verify with `pnpm check:drive-standard`.
 
 ## Project Structure
 

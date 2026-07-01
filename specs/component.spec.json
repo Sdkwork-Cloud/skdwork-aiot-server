@@ -117,6 +117,16 @@
       "file": "APP_RUNTIME_TOPOLOGY_SPEC.md",
       "path": "../sdkwork-specs/APP_RUNTIME_TOPOLOGY_SPEC.md",
       "purpose": "Application runtime connectivity topology and dev orchestration profiles."
+    },
+    {
+      "file": "DRIVE_SPEC.md",
+      "path": "../sdkwork-specs/DRIVE_SPEC.md",
+      "purpose": "Drive Uploader, client upload SDK, and Drive-backed MediaResource ownership."
+    },
+    {
+      "file": "MEDIA_RESOURCE_SPEC.md",
+      "path": "../sdkwork-specs/MEDIA_RESOURCE_SPEC.md",
+      "purpose": "Cross-domain MediaResource representation and Drive source mapping."
     }
   ],
   "contracts": {
@@ -144,7 +154,8 @@
     ],
     "sdkClients": [
       "@sdkwork/aiot-app-sdk",
-      "@sdkwork/aiot-backend-sdk"
+      "@sdkwork/aiot-backend-sdk",
+      "@sdkwork/drive-app-sdk"
     ],
     "events": [
       "iot.device.registered",

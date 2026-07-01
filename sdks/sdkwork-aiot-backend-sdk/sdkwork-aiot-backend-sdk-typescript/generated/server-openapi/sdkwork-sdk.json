@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "sdkwork-aiot-backend-sdk",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "language": "typescript",
   "sdkType": "backend",
   "packageName": "@sdkwork/aiot-backend-sdk",

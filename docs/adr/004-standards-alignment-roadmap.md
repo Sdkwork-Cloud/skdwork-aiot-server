@@ -13,7 +13,7 @@ Accepted — supersedes the HTTP-stack deferral scope in ADR 002 for app/backend
 - `GITHUB_WORKFLOW_SPEC.md` for packaging and release workflows
 - Route manifest and OpenAPI metadata for `WebRequestContext` and `apiSurface`
 
-The AIoT server already aligns on API contracts, SDK workspaces, topology, security posture, and architecture tests. Remaining intentional exceptions:
+The AIoT server aligns on API contracts, SDK workspaces, topology, security posture, Drive Uploader client integration, and architecture tests. Remaining intentional exceptions:
 
 - a custom minimal HTTP stack in `sdkwork-aiot-transport` for gateway/device ingress (ADR 002)
 
@@ -28,10 +28,11 @@ The AIoT server already aligns on API contracts, SDK workspaces, topology, secur
 4. Migrate persistence from direct `rusqlite` to `sdkwork-database-sqlx` pools and migration helpers while preserving the existing `iot_` table contract.
 5. Integrate `sdkwork-utils` for cross-language value parsing, string normalization, identifiers, and datetime helpers; consolidate duplicated client-side readers in `@sdkwork/aiot-app-core`.
 6. Do not integrate `sdkwork-discovery` until the repository exposes RPC/gRPC services.
-7. Keep `sdkwork-aiot-cloud-gateway` device ingress on the minimal transport stack documented in ADR 002; it is not an HTTP `*-api` surface and therefore does not require `sdkwork-web-framework` integration.
-8. Add GitHub packaging through `sdkwork.workflow.json` and `.github/workflows/package.yml` immediately.
-9. Require route manifests and OpenAPI authorities to declare `WebRequestContext` and `apiSurface` metadata immediately.
-10. Expose repository-root scripts through the standard `dev`, `api`, `sdk`, `gateway`, `release`, `deploy`, `topology`, and `sbom` command families without application-code prefixes.
+7. Integrate `sdkwork-drive` for all client-side file uploads through `@sdkwork/drive-app-sdk client.uploader.*`; business APIs accept Drive-backed `MediaResource` references only.
+8. Keep `sdkwork-aiot-cloud-gateway` device ingress on the minimal transport stack documented in ADR 002; it is not an HTTP `*-api` surface and therefore does not require `sdkwork-web-framework` integration.
+9. Add GitHub packaging through `sdkwork.workflow.json` and `.github/workflows/package.yml` immediately.
+10. Require route manifests and OpenAPI authorities to declare `WebRequestContext` and `apiSurface` metadata immediately.
+11. Expose repository-root scripts through the standard `dev`, `api`, `sdk`, `gateway`, `release`, `deploy`, `topology`, and `sbom` command families without application-code prefixes.
 
 ## Phases
 
@@ -61,15 +62,17 @@ The AIoT server already aligns on API contracts, SDK workspaces, topology, secur
 | V | Xiaozhi production intelligence | `sdkwork-aiot-intelligence-bridge`, Opus codec/uplink in adapter-xiaozhi, topology intelligence keys, uplink buffer + session media profile | Done |
 | W | Production topology + MCP deny-by-default | Complete `cloud/standalone.split-services.production` env profiles, deploy manifest profile IDs, Postgres cloud persistence keys, `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT` | Done |
 | X | API security + SDK generation parity | OpenAPI `AuthToken`/`AccessToken`, `sync-openapi-web-context.mjs`, workspace `tools/run-sdkgen.mjs`, sdkwork-v3 envelope unwrap in generated TypeScript SDKs, CORS allow-list cleanup | Done |
+| Y | Drive Uploader integration | `sdkwork-drive` workflow dependency, `@sdkwork/drive-app-sdk` PC firmware upload via `client.uploader.uploadArchive`, backend artifact registration with Drive-backed `MediaResource` (`source: drive`), `check:drive-standard` contract gate | Done |
 
 ## Consequences
 
 - ADR 002 remains authoritative for gateway/device transport only.
-- Architecture tests will gain additional guardrails as phases B–E land.
-- Full alignment requires multiple PRs; Phase A is intentionally shippable without behavior changes.
+- Architecture tests enforce Drive-backed client uploads and Drive `MediaResource` OTA URL resolution.
+- Server-side Rust byte import uses `sdkwork-drive-uploader-service` when that ingestion path is introduced.
 
 ## Verification
 
+- `pnpm check:drive-standard`
 - `pnpm check`
 - `pnpm verify`
 - `pnpm check:agent-workflow-standard`

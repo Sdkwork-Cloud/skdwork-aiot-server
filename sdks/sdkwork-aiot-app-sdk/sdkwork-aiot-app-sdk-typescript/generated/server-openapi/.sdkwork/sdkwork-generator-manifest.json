@@ -3,7 +3,7 @@
   "generator": "@sdkwork/sdk-generator",
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "language": "typescript",
     "sdkType": "app",
     "protocol": "http",
@@ -32,7 +32,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "c726ffd5bf23ecce3c557d6ca95841ae205d4599b22dcdfaa117546b4560b57b"
+      "sha256": "b6921810bcb8ca2afbe4f67caa6b374e533bf18f0d8b1ddf023f47168c3f3c20"
     },
     {
       "path": "LICENSE",
@@ -40,7 +40,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "6d3bf19f418a8468102568193236ccf3c421486c4c3627efb2d181b29ab73686"
+      "sha256": "644be35b4a543dfdcb095995bfbf0379ce256d019f8d981d0dfbbbac6b384cf9"
     },
     {
       "path": "README.md",
@@ -48,7 +48,7 @@
     },
     {
       "path": "sdkwork-sdk.json",
-      "sha256": "b73013918c928079cdf419ee1b4c94c76865e4ae9ff764317252ac5005e4e969"
+      "sha256": "f2940804c1a1931d3babc8f9ecc8b3751bb46b71d6d8438567d4fc31661f9686"
     },
     {
       "path": "src/api/base.ts",
@@ -172,7 +172,7 @@
     },
     {
       "path": "src/types/media-source.ts",
-      "sha256": "9025ada3e7433ebd287ecb3288116e1b082faad4105b48d5ee3fe9ac2f99bef6"
+      "sha256": "7cc005001f3faf1169520a2a8761d5dde692bc65af4de33b85136b732da246a0"
     },
     {
       "path": "src/types/page-info.ts",

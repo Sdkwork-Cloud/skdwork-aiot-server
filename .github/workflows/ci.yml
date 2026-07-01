@@ -71,6 +71,7 @@ jobs:
           checkout_dep sdkwork-appbase
           checkout_dep sdkwork-web-framework
           checkout_dep sdkwork-utils
+          checkout_dep sdkwork-drive
           checkout_dep sdkwork-specs
 
       - name: Install workspace dependencies

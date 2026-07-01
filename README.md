@@ -1,4 +1,5 @@
 # sdkwork-aiot-server
+repository-kind: application
 
 ## SDKWork Standards Alignment
 

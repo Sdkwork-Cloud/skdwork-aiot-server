@@ -87,9 +87,18 @@ test('sdkwork-aiot declares sdkwork framework dependencies in workflow manifest'
     'sdkwork-utils',
     'sdkwork-sdk-generator',
     'sdkwork-app-topology',
+    'sdkwork-drive',
   ]) {
     assert.match(workflow, new RegExp(`"id": "${dependency}"`, 'u'), `${dependency} dependency required`);
   }
+});
+
+test('sdkwork-aiot pnpm workspace federates drive and topology siblings', () => {
+  const workspace = read('pnpm-workspace.yaml');
+  assert.match(workspace, /sdkwork-app-topology/u, 'pnpm workspace must include sdkwork-app-topology');
+  assert.match(workspace, /sdkwork-drive-app-sdk/u, 'pnpm workspace must include drive app sdk');
+  assert.match(workspace, /sdkwork-iam-app-sdk/u, 'pnpm workspace must include iam app sdk for drive peer');
+  assert.match(workspace, /sdkwork-sdk-common-typescript/u, 'pnpm workspace must include sdk-common');
 });
 
 test('sdkwork-aiot uses responsibility-specific Rust crate names', () => {
@@ -146,8 +155,8 @@ test('sdkwork-aiot h5 core must not read live tokens from VITE env', () => {
 
 test('sdkwork-aiot firmware rollout OTA alignment artifacts are present', () => {
   for (const relativePath of [
-    'database/migrations/sqlite/0002_aiot_admin_entity_schema.up.sql',
-    'database/migrations/postgres/0002_aiot_admin_entity_schema.up.sql',
+    'database/ddl/baseline/sqlite/0001_aiot_baseline.sql',
+    'database/ddl/baseline/postgres/0001_aiot_baseline.sql',
     'database/seeds/common/001_bootstrap.sql',
     'crates/sdkwork-aiot-storage-sqlx/src/firmware_ota_catalog.rs',
     'services/sdkwork-aiot-cloud-gateway/tests/gateway_standard.rs',
