@@ -25,7 +25,7 @@ import {
 export interface GetSdkworkDeviceCatalogInput {
   deviceId?: string | null;
   page?: number;
-  page_size?: number;
+  pageSize?: number;
 }
 
 export interface CreateSdkworkDeviceServiceOptions {
@@ -147,7 +147,7 @@ async function loadSdkDevices(
 
   const page = await listDevicePage(options.aiotClient, {
     page: input.page ?? 1,
-    page_size: input.page_size ?? DEFAULT_DEVICE_LIST_PAGE_SIZE,
+    pageSize: input.pageSize ?? DEFAULT_DEVICE_LIST_PAGE_SIZE,
   });
 
   return {

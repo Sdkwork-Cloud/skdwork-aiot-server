@@ -17,7 +17,8 @@ async fn main() {
             .with_device_repository(stores.device_repository.clone())
             .with_command_repository(stores.device_repository.clone())
             .with_event_repository(stores.device_repository.clone())
-            .with_twin_repository(stores.device_repository)
+            .with_twin_repository(stores.device_repository.clone())
+            .with_device_session_repository(stores.device_repository)
             .with_credential_repository(stores.credential_repository)
             .with_catalog_repository(stores.catalog_repository),
     );

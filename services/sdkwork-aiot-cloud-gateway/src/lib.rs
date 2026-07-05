@@ -18,7 +18,7 @@ use std::fs::{self, OpenOptions};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use sdkwork_aiot_adapter_xiaozhi::{
@@ -40,10 +40,10 @@ use sdkwork_aiot_storage::{
     AiotProtocolIngestUnitOfWork, AiotStorageWriteKind, InMemoryProtocolIngestUnitOfWork,
 };
 use sdkwork_aiot_storage_sqlx::{
-    outbox_readiness_probe,
-    start_outbox_dispatcher_worker as start_storage_outbox_dispatcher_worker, BlockingSqlitePool,
-    FirmwareOtaCatalog, SqlitePersistedEntityError, SqliteSqlxCredentialRepository,
-    SqlxPoolSqlStatementExecutor, StorageSqliteError,
+    open_aiot_device_database_from_env, outbox_readiness_probe,
+    start_outbox_dispatcher_worker as start_storage_outbox_dispatcher_worker, AiotDeviceDatabase,
+    BlockingSqlitePool, FirmwareOtaCatalog, SqlitePersistedEntityError,
+    SqliteSqlxCredentialRepository, SqlxPoolSqlStatementExecutor, StorageSqliteError,
 };
 use sdkwork_aiot_transport::{
     websocket_frame_to_inbound_frame, HttpRequest, HttpResponse, HttpStatus, TransportError,
@@ -1441,17 +1441,23 @@ fn device_credential_repository_from_env() -> Option<Arc<SqliteSqlxCredentialRep
 }
 
 fn protocol_ingest_from_env() -> Arc<dyn AiotProtocolIngestUnitOfWork> {
-    let Some(path) = env_string(ENV_DEVICE_DB_PATH) else {
-        return Arc::new(InMemoryProtocolIngestUnitOfWork::new());
-    };
+    static PROTOCOL_INGEST: OnceLock<Arc<dyn AiotProtocolIngestUnitOfWork>> = OnceLock::new();
+    PROTOCOL_INGEST
+        .get_or_init(|| {
+            let database = open_protocol_ingest_database().unwrap_or_else(|error| {
+                eprintln!(
+                    "FATAL: sdkwork-aiot-cloud-gateway protocol_ingest_database_open_error={error}"
+                );
+                std::process::exit(1);
+            });
+            let executor = SqlxPoolSqlStatementExecutor::new(database.blocking_pool());
+            Arc::new(executor.protocol_ingest_unit_of_work())
+        })
+        .clone()
+}
 
-    match SqlxPoolSqlStatementExecutor::open(path) {
-        Ok(executor) => Arc::new(executor.protocol_ingest_unit_of_work()),
-        Err(error) => {
-            eprintln!("sdkwork-aiot-cloud-gateway protocol_ingest_sqlite_open_error={error}");
-            Arc::new(InMemoryProtocolIngestUnitOfWork::new())
-        }
-    }
+fn open_protocol_ingest_database() -> Result<AiotDeviceDatabase, String> {
+    open_aiot_device_database_from_env().map_err(|error| error.to_string())
 }
 
 fn log_protocol_ingest_receipt(receipt: &sdkwork_aiot_storage::AiotStorageWriteReceipt) {

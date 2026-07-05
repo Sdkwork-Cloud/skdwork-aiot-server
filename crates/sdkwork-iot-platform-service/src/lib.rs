@@ -1410,6 +1410,90 @@ impl AiotApiServer {
             && sdkwork_aiot_storage_sqlx::outbox_ready_from_env()
     }
 
+    fn ensure_standard_catalog_seeded(&self, association: &AiotStorageAssociation) {
+        for record in standard_capability_model_records() {
+            if self
+                .catalog_repository
+                .get_capability_model(association, &record.capability_model_id)
+                .is_some()
+            {
+                continue;
+            }
+            let _ = self.catalog_repository.create_capability_model(
+                association.clone(),
+                AiotCapabilityModelCreatePayload {
+                    capability_model_id: record.capability_model_id,
+                    display_name: record.display_name,
+                    version: record.version,
+                    capabilities: record.capabilities,
+                },
+            );
+        }
+
+        for record in standard_hardware_profile_records() {
+            if self
+                .catalog_repository
+                .get_hardware_profile(association, &record.hardware_profile_id)
+                .is_some()
+            {
+                continue;
+            }
+            let _ = self.catalog_repository.create_hardware_profile(
+                association.clone(),
+                AiotHardwareProfileCreatePayload {
+                    hardware_profile_id: record.hardware_profile_id,
+                    chip_family: record.chip_family,
+                    hardware_classes: record.hardware_classes,
+                    runtime_profiles: record.runtime_profiles,
+                    connectivity_profiles: record.connectivity_profiles,
+                    security_profiles: record.security_profiles,
+                    ota_profiles: record.ota_profiles,
+                },
+            );
+        }
+
+        for record in standard_protocol_profile_records() {
+            if self
+                .catalog_repository
+                .get_protocol_profile(association, &record.protocol_profile_id)
+                .is_some()
+            {
+                continue;
+            }
+            let _ = self.catalog_repository.create_protocol_profile(
+                association.clone(),
+                AiotProtocolProfileCreatePayload {
+                    protocol_profile_id: record.protocol_profile_id,
+                    default_protocol_id: record.default_protocol_id,
+                    scope: record.scope,
+                    allowed_transports: record.allowed_transports,
+                    allowed_message_classes: record.allowed_message_classes,
+                    capability_bridges: record.capability_bridges,
+                },
+            );
+        }
+
+        for record in standard_product_records() {
+            if self
+                .catalog_repository
+                .get_product(association, &record.product_id)
+                .is_some()
+            {
+                continue;
+            }
+            let _ = self.catalog_repository.create_product(
+                association.clone(),
+                AiotProductCreatePayload {
+                    product_id: record.product_id,
+                    display_name: record.display_name,
+                    default_hardware_profile_id: record.default_hardware_profile_id,
+                    default_protocol_profile_id: record.default_protocol_profile_id,
+                    default_capability_model_id: record.default_capability_model_id,
+                },
+            );
+        }
+    }
+
     fn create_product(
         &self,
         context: &AiotRequestContext,
@@ -1427,16 +1511,10 @@ impl AiotApiServer {
         params: OffsetListPageParams,
     ) -> Result<AiotOffsetListResult<AiotProductRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        let mut records = standard_product_records();
-        for record in self.catalog_repository.list_products(&association) {
-            if !records
-                .iter()
-                .any(|existing| existing.product_id == record.product_id)
-            {
-                records.push(record);
-            }
-        }
-        Ok(paginate_vec(records, params))
+        self.ensure_standard_catalog_seeded(&association);
+        self.catalog_repository
+            .list_products_page(&association, params)
+            .map_err(catalog_repository_error_to_response)
     }
 
     fn get_product(
@@ -1445,15 +1523,9 @@ impl AiotApiServer {
         product_id: &str,
     ) -> Result<AiotProductRecord, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        if let Some(record) = self
-            .catalog_repository
+        self.ensure_standard_catalog_seeded(&association);
+        self.catalog_repository
             .get_product(&association, product_id)
-        {
-            return Ok(record);
-        }
-        standard_product_records()
-            .into_iter()
-            .find(|record| record.product_id == product_id)
             .ok_or_else(|| product_not_found_response(product_id))
     }
 
@@ -1497,16 +1569,10 @@ impl AiotApiServer {
         params: OffsetListPageParams,
     ) -> Result<AiotOffsetListResult<AiotHardwareProfileRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        let mut records = standard_hardware_profile_records();
-        for record in self.catalog_repository.list_hardware_profiles(&association) {
-            if !records
-                .iter()
-                .any(|existing| existing.hardware_profile_id == record.hardware_profile_id)
-            {
-                records.push(record);
-            }
-        }
-        Ok(paginate_vec(records, params))
+        self.ensure_standard_catalog_seeded(&association);
+        self.catalog_repository
+            .list_hardware_profiles_page(&association, params)
+            .map_err(catalog_repository_error_to_response)
     }
 
     fn get_hardware_profile(
@@ -1515,15 +1581,9 @@ impl AiotApiServer {
         hardware_profile_id: &str,
     ) -> Result<AiotHardwareProfileRecord, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        if let Some(record) = self
-            .catalog_repository
+        self.ensure_standard_catalog_seeded(&association);
+        self.catalog_repository
             .get_hardware_profile(&association, hardware_profile_id)
-        {
-            return Ok(record);
-        }
-        standard_hardware_profile_records()
-            .into_iter()
-            .find(|record| record.hardware_profile_id == hardware_profile_id)
             .ok_or_else(|| hardware_profile_not_found_response(hardware_profile_id))
     }
 
@@ -1567,16 +1627,10 @@ impl AiotApiServer {
         params: OffsetListPageParams,
     ) -> Result<AiotOffsetListResult<AiotProtocolProfileRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        let mut records = standard_protocol_profile_records();
-        for record in self.catalog_repository.list_protocol_profiles(&association) {
-            if !records
-                .iter()
-                .any(|existing| existing.protocol_profile_id == record.protocol_profile_id)
-            {
-                records.push(record);
-            }
-        }
-        Ok(paginate_vec(records, params))
+        self.ensure_standard_catalog_seeded(&association);
+        self.catalog_repository
+            .list_protocol_profiles_page(&association, params)
+            .map_err(catalog_repository_error_to_response)
     }
 
     fn get_protocol_profile(
@@ -1585,15 +1639,9 @@ impl AiotApiServer {
         protocol_profile_id: &str,
     ) -> Result<AiotProtocolProfileRecord, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        if let Some(record) = self
-            .catalog_repository
+        self.ensure_standard_catalog_seeded(&association);
+        self.catalog_repository
             .get_protocol_profile(&association, protocol_profile_id)
-        {
-            return Ok(record);
-        }
-        standard_protocol_profile_records()
-            .into_iter()
-            .find(|record| record.protocol_profile_id == protocol_profile_id)
             .ok_or_else(|| protocol_profile_not_found_response(protocol_profile_id))
     }
 
@@ -1637,12 +1685,9 @@ impl AiotApiServer {
         capability_model_id: &str,
     ) -> Result<AiotCapabilityModelRecord, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
+        self.ensure_standard_catalog_seeded(&association);
         self.catalog_repository
             .get_capability_model(&association, capability_model_id)
-            .or_else(|| {
-                self.catalog_repository
-                    .get_seed_capability_model(capability_model_id)
-            })
             .ok_or_else(|| capability_model_not_found_response(capability_model_id))
     }
 
@@ -1652,16 +1697,10 @@ impl AiotApiServer {
         params: OffsetListPageParams,
     ) -> Result<AiotOffsetListResult<AiotCapabilityModelRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        let mut records = standard_capability_model_records();
-        for record in self.catalog_repository.list_capability_models(&association) {
-            if !records
-                .iter()
-                .any(|existing| existing.capability_model_id == record.capability_model_id)
-            {
-                records.push(record);
-            }
-        }
-        Ok(paginate_vec(records, params))
+        self.ensure_standard_catalog_seeded(&association);
+        self.catalog_repository
+            .list_capability_models_page(&association, params)
+            .map_err(catalog_repository_error_to_response)
     }
 
     fn update_capability_model(
@@ -2075,9 +2114,9 @@ impl AiotApiServer {
         params: OffsetListPageParams,
     ) -> Result<AiotOffsetListResult<AiotFirmwareArtifactRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        Ok(self
-            .firmware_repository
-            .list_artifacts_page(&association, params))
+        self.firmware_repository
+            .list_artifacts_page(&association, params)
+            .map_err(firmware_repository_error_to_response)
     }
 
     fn get_firmware_artifact(
@@ -2143,9 +2182,9 @@ impl AiotApiServer {
         params: OffsetListPageParams,
     ) -> Result<AiotOffsetListResult<AiotFirmwareRolloutRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        Ok(self
-            .firmware_repository
-            .list_rollouts_page(&association, params))
+        self.firmware_repository
+            .list_rollouts_page(&association, params)
+            .map_err(firmware_repository_error_to_response)
     }
 
     fn get_firmware_rollout(
@@ -3570,6 +3609,11 @@ fn firmware_repository_error_to_response(error: AiotFirmwareRepositoryError) -> 
             "api.firmware.artifact.invalid_reference",
             "Firmware artifact reference is invalid",
         ),
+        AiotFirmwareRepositoryError::StorageFailure => problem_response(
+            HttpStatus::InternalServerError,
+            "api.storage.read_write_failed",
+            "Storage read/write failed",
+        ),
     }
 }
 
@@ -3614,6 +3658,11 @@ fn catalog_repository_error_to_response(error: AiotCatalogRepositoryError) -> Ht
             HttpStatus::NotFound,
             "api.capability_model.not_found",
             "Capability model not found",
+        ),
+        AiotCatalogRepositoryError::StorageFailure => problem_response(
+            HttpStatus::InternalServerError,
+            "api.storage.read_write_failed",
+            "Storage read/write failed",
         ),
     }
 }
@@ -4137,6 +4186,7 @@ enum AiotCatalogRepositoryError {
     HardwareProfileNotFound,
     ProtocolProfileNotFound,
     CapabilityModelNotFound,
+    StorageFailure,
 }
 
 #[derive(Debug, Clone)]
@@ -4261,6 +4311,7 @@ enum AiotFirmwareRepositoryError {
     ArtifactNotFound,
     RolloutNotFound,
     InvalidReference,
+    StorageFailure,
 }
 
 #[derive(Debug, Default)]

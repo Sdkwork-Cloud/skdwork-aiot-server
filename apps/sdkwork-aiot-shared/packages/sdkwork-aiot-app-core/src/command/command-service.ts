@@ -92,7 +92,7 @@ export async function pollCommandResult(
     while (true) {
       const eventsPage = await aiotClient.iot.devices.events.list(deviceId, {
         page,
-        page_size: DEFAULT_DEVICE_LIST_PAGE_SIZE,
+        pageSize: DEFAULT_DEVICE_LIST_PAGE_SIZE,
         q: commandId,
       });
       const items = Array.isArray(eventsPage.items) ? eventsPage.items : [];

@@ -505,22 +505,22 @@ function resolveSelectedNodeId(
 function createRemoteControlIntents(basePath: string): SdkworkIotRemoteControlIntent[] {
   return [
     {
-      description: "Synchronize gateway policy and sensor thresholds across all online sites.",
+      description: "Open the fleet view to review configuration targets before issuing device commands.",
       id: "sync-configuration",
-      label: "Sync configuration",
-      routeIntent: createIotRouteIntent({ basePath, section: "remote-control" }),
+      label: "Review fleet configuration",
+      routeIntent: createIotRouteIntent({ basePath, section: "fleet" }),
     },
     {
-      description: "Start diagnostics bundle collection for unstable gateways and linked sensors.",
+      description: "Open the fleet view to inspect device health signals and recent events.",
       id: "run-diagnostics",
-      label: "Run diagnostics",
-      routeIntent: createIotRouteIntent({ basePath, section: "remote-control" }),
+      label: "Inspect fleet health",
+      routeIntent: createIotRouteIntent({ basePath, section: "fleet" }),
     },
     {
-      description: "Isolate affected edge segment and block northbound telemetry from risky nodes.",
+      description: "Open the fleet view to isolate offline or critical nodes for follow-up.",
       id: "isolate-segment",
-      label: "Isolate segment",
-      routeIntent: createIotRouteIntent({ basePath, section: "remote-control" }),
+      label: "Review critical nodes",
+      routeIntent: createIotRouteIntent({ basePath, section: "alerts" }),
     },
   ];
 }

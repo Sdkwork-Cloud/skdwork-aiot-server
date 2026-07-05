@@ -63,7 +63,7 @@ describe("sdkwork-aiot-pc-console-iot service", () => {
 
     const catalog = await service.getCatalog({ nodeId: "gateway-42" });
 
-    expect(list).toHaveBeenCalledWith();
+    expect(list).toHaveBeenCalledWith({ page: 1, pageSize: 20 });
     expect(catalog).toMatchObject({
       isAuthenticated: true,
       selectedNodeId: "gateway-42",

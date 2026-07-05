@@ -482,7 +482,9 @@ fn migration_catalog_is_versioned_and_ordered() {
     assert_eq!(catalog.len(), 2);
     assert_eq!(catalog[1].version, "0002");
     assert_eq!(catalog[1].name, "aiot_admin_entity_schema");
-    assert!(catalog[1].sql.contains("CREATE TABLE iot_admin_entity"));
+    assert!(catalog[1]
+        .sql
+        .contains("CREATE TABLE IF NOT EXISTS iot_admin_entity"));
 }
 
 #[test]

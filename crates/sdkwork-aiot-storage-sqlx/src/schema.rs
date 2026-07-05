@@ -1,13 +1,19 @@
 //! Device schema bootstrap through engine-aware blocking pools.
 
 use std::collections::BTreeSet;
+use std::sync::Mutex;
 
 use sqlx::Row;
 
 use crate::blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine};
 use crate::{migration_catalog, SqlMigration};
 
+static DEVICE_SCHEMA_INIT: Mutex<()> = Mutex::new(());
+
 pub(crate) fn ensure_device_schema(pool: &BlockingDevicePool) -> Result<(), sqlx::Error> {
+    let _init_guard = DEVICE_SCHEMA_INIT
+        .lock()
+        .expect("device schema init mutex poisoned");
     pool.execute_batch_sql(
         "CREATE TABLE IF NOT EXISTS iot_schema_version (
             version TEXT NOT NULL PRIMARY KEY,

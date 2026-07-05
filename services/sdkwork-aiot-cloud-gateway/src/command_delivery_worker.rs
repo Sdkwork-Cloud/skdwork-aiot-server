@@ -2,8 +2,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use sdkwork_aiot_storage::{AiotCommandDeliveryRepository, AiotStorageAssociation};
-use sdkwork_aiot_storage_sqlx::{configured_device_db_path_from_env, open_aiot_device_database};
+use sdkwork_aiot_storage::AiotCommandDeliveryRepository;
+use sdkwork_aiot_storage_sqlx::open_aiot_device_database_from_env;
 use sdkwork_aiot_transport::HttpRequest;
 
 use crate::active_ws_sessions::{
@@ -17,10 +17,6 @@ const ENV_COMMAND_DELIVERY_INTERVAL_MS: &str = "SDKWORK_AIOT_COMMAND_DELIVERY_IN
 const ENV_WS_MEDIA_SESSION_TTL_SECONDS: &str = "SDKWORK_AIOT_WS_MEDIA_SESSION_TTL_SECONDS";
 
 pub fn start_command_delivery_worker(running: Arc<AtomicBool>) {
-    if configured_device_db_path_from_env().is_none() {
-        return;
-    }
-
     let interval_ms = std::env::var(ENV_COMMAND_DELIVERY_INTERVAL_MS)
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
@@ -45,11 +41,10 @@ pub fn start_command_delivery_worker(running: Arc<AtomicBool>) {
 }
 
 fn run_command_delivery_once(session_ttl: Duration) -> Result<(), String> {
-    let database = open_aiot_device_database(None).map_err(|error| error.to_string())?;
+    let database = open_aiot_device_database_from_env().map_err(|error| format!("{error:?}"))?;
     let repository = database
         .device_repository()
         .map_err(|error| error.to_string())?;
-    let association = AiotStorageAssociation::default();
     let online_devices = active_ws_device_ids();
     if online_devices.is_empty() {
         let _ = evict_stale_active_ws_sessions(session_ttl);
@@ -58,6 +53,9 @@ fn run_command_delivery_once(session_ttl: Duration) -> Result<(), String> {
     }
 
     for device_id in online_devices {
+        let association = repository
+            .resolve_storage_association_for_device(&device_id)
+            .unwrap_or_default();
         let pending = repository
             .list_pending_for_device(&association, &device_id, 16)
             .map_err(|error| format!("{error:?}"))?;

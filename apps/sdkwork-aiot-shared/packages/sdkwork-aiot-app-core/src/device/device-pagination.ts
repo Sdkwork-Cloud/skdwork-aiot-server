@@ -6,7 +6,7 @@ export const DEFAULT_DEVICE_LIST_PAGE_SIZE = 20;
 
 export interface ListDevicePageParams {
   page?: number;
-  page_size?: number;
+  pageSize?: number;
 }
 
 export interface ListDevicePageResult {
@@ -22,8 +22,8 @@ export async function listDevicePage(
   params: ListDevicePageParams = {},
 ): Promise<ListDevicePageResult> {
   const page = params.page ?? 1;
-  const pageSize = params.page_size ?? DEFAULT_DEVICE_LIST_PAGE_SIZE;
-  const response = await aiotClient.iot.devices.list({ page, page_size: pageSize });
+  const pageSize = params.pageSize ?? DEFAULT_DEVICE_LIST_PAGE_SIZE;
+  const response = await aiotClient.iot.devices.list({ page, pageSize });
   const items = Array.isArray(response.items) ? response.items : [];
   const pageInfo = readRecord(response.pageInfo);
 
@@ -45,7 +45,7 @@ export async function loadAllDevicePages(
   let page = 1;
 
   while (true) {
-    const result = await listDevicePage(aiotClient, { page, page_size: pageSize });
+    const result = await listDevicePage(aiotClient, { page, pageSize });
     devices.push(...result.items);
     if (!result.hasMore || result.items.length === 0) {
       break;

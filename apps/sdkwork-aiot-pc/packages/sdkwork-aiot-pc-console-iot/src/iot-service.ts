@@ -23,12 +23,11 @@ import {
 export interface GetSdkworkIotCatalogInput {
   nodeId?: string | null;
   page?: number;
-  page_size?: number;
+  pageSize?: number;
 }
 
 export interface CreateSdkworkIotServiceOptions {
   aiotClient?: SdkworkAiotAppClient;
-  alerts?: readonly SdkworkIotAlert[];
   getSessionTokens?: () => {
     authToken?: string;
   };
@@ -85,6 +84,45 @@ function mapAiotDeviceToNode(device: AiotDevice): SdkworkIotNode {
   };
 }
 
+function deriveFleetAlertsFromNodes(nodes: readonly SdkworkIotNode[]): SdkworkIotAlert[] {
+  return nodes.flatMap((node) => {
+    if (!node.online) {
+      return [{
+        acknowledged: false,
+        createdAt: node.lastSeenAt || new Date().toISOString(),
+        id: `alert-offline-${node.id}`,
+        nodeId: node.id,
+        route: `/iot/alerts/alert-offline-${node.id}`,
+        severity: "critical" as const,
+        title: `${node.name} is offline`,
+      }];
+    }
+    if (node.healthLevel === "warning") {
+      return [{
+        acknowledged: false,
+        createdAt: node.lastSeenAt || new Date().toISOString(),
+        id: `alert-warning-${node.id}`,
+        nodeId: node.id,
+        route: `/iot/alerts/alert-warning-${node.id}`,
+        severity: "warning" as const,
+        title: `${node.name} reported degraded health`,
+      }];
+    }
+    if (node.healthLevel === "critical") {
+      return [{
+        acknowledged: false,
+        createdAt: node.lastSeenAt || new Date().toISOString(),
+        id: `alert-critical-${node.id}`,
+        nodeId: node.id,
+        route: `/iot/alerts/alert-critical-${node.id}`,
+        severity: "critical" as const,
+        title: `${node.name} requires immediate attention`,
+      }];
+    }
+    return [];
+  });
+}
+
 async function loadSdkNodes(
   options: CreateSdkworkIotServiceOptions,
   input: GetSdkworkIotCatalogInput = {},
@@ -95,7 +133,7 @@ async function loadSdkNodes(
 
   const page = await listDevicePage(options.aiotClient, {
     page: input.page ?? 1,
-    page_size: input.page_size ?? DEFAULT_DEVICE_LIST_PAGE_SIZE,
+    pageSize: input.pageSize ?? DEFAULT_DEVICE_LIST_PAGE_SIZE,
   });
 
   return {
@@ -117,20 +155,22 @@ export function createSdkworkIotService(
   return {
     async getCatalog(input = {}) {
       const sdkPage = await loadSdkNodes(options, input);
+      const nodes = sdkPage?.nodes ?? options.nodes ?? [];
       return createEmptySdkworkIotCatalog({
-        alerts: options.alerts,
+        alerts: deriveFleetAlertsFromNodes(nodes),
         isAuthenticated: Boolean(normalizeText(getSessionTokens().authToken)),
-        nodes: sdkPage?.nodes ?? options.nodes,
+        nodes,
         pageInfo: sdkPage?.pageInfo,
         selectedNodeId: input.nodeId ?? null,
       });
     },
 
     getEmptyCatalog(input = {}) {
+      const nodes = options.nodes ?? [];
       return createEmptySdkworkIotCatalog({
-        alerts: options.alerts,
+        alerts: deriveFleetAlertsFromNodes(nodes),
         isAuthenticated: Boolean(normalizeText(getSessionTokens().authToken)),
-        nodes: options.nodes,
+        nodes,
         selectedNodeId: input.nodeId ?? null,
       });
     },

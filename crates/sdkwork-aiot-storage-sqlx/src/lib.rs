@@ -121,7 +121,7 @@ pub fn migration_catalog() -> Vec<SqlMigration> {
 
 pub fn admin_entity_migration_sql() -> &'static str {
     r#"
-CREATE TABLE iot_admin_entity (
+CREATE TABLE IF NOT EXISTS iot_admin_entity (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -141,7 +141,7 @@ CREATE TABLE iot_admin_entity (
     CONSTRAINT uk_iot_admin_entity_scope_key UNIQUE (tenant_id, organization_id, entity_kind, entity_key)
 );
 
-CREATE INDEX idx_iot_admin_entity_tenant_kind
+CREATE INDEX IF NOT EXISTS idx_iot_admin_entity_tenant_kind
     ON iot_admin_entity (tenant_id, entity_kind, status);
 "#
 }
@@ -1325,7 +1325,7 @@ impl SqlxPoolSqlStatementExecutor {
     pub fn protocol_ingest_unit_of_work(&self) -> SqlxProtocolIngestUnitOfWork<Self> {
         SqlxProtocolIngestUnitOfWork::with_planner(
             self.clone(),
-            SqlProtocolIngestPlanner::for_dialect(SqlDialect::Sqlite),
+            SqlProtocolIngestPlanner::for_dialect(self.db.engine().dialect()),
         )
     }
 }
@@ -1704,11 +1704,9 @@ fn parse_device_product_id(value: &str) -> Result<i64, SqlPlanError> {
     })
 }
 
-fn table_row_id_expr(dialect: SqlDialect, table: &str, postgres_sequence: &str) -> String {
-    match dialect {
-        SqlDialect::Sqlite => format!("(SELECT COALESCE(MAX(id), 0) + 1 FROM {table})"),
-        SqlDialect::Postgres => format!("nextval('{postgres_sequence}')"),
-    }
+fn table_row_id_expr(dialect: SqlDialect, table: &str, _postgres_sequence: &str) -> String {
+    let _ = dialect;
+    format!("(SELECT COALESCE(MAX(id), 0) + 1 FROM {table})")
 }
 
 fn idempotency_guard_statement(

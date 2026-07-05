@@ -23,4 +23,7 @@ module.exports = {
       ...(sessionId ? { sessionId } : {}),
     });
   },
+  pollCommandResult(deviceId, commandId) {
+    return getClient().iot.pollCommandResult(deviceId, commandId);
+  },
 };

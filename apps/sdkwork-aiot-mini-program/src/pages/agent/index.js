@@ -11,10 +11,10 @@ Page({
   },
   onShow() {
     api.listDevices().then((response) => {
-      const devices = Array.isArray(response.data) ? response.data : [];
+      const devices = response.data?.items ?? [];
       const selectedDeviceId = devices[0] ? (devices[0].deviceId || devices[0].id) : '';
       this.setData({
-        devices,
+        devices: Array.isArray(devices) ? devices : [],
         selectedDeviceId,
         sessionId: selectedDeviceId ? `agent-${selectedDeviceId}` : '',
       });
@@ -52,11 +52,19 @@ Page({
     this.setData({ messages: nextMessages, draft: '', isSending: true });
 
     api.sendAgentChat(this.data.selectedDeviceId, text, this.data.sessionId)
-      .then((response) => {
-        const result = response.data?.resultPayload || response.data;
+      .then(async (response) => {
+        const commandId = response.data?.commandId;
+        if (!commandId) {
+          throw new Error('命令未接受');
+        }
+        const completed = await api.pollCommandResult(this.data.selectedDeviceId, commandId);
+        if (!completed) {
+          throw new Error('智能体响应超时');
+        }
+        const result = completed.resultPayload;
         const assistantText = typeof result === 'object' && result
-          ? (result.text || result.reply || result.message || '智能体已响应')
-          : '智能体已响应';
+          ? (result.text || result.reply || result.message || JSON.stringify(result))
+          : String(result ?? '智能体已完成处理');
         this.setData({
           messages: [
             ...nextMessages,

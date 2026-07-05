@@ -4,7 +4,8 @@ Page({
   data: { nodes: [] },
   onShow() {
     api.listDevices().then((response) => {
-      this.setData({ nodes: Array.isArray(response.data) ? response.data : [] });
+      const items = response.data?.items ?? [];
+      this.setData({ nodes: Array.isArray(items) ? items : [] });
     }).catch(() => this.setData({ nodes: [] }));
   },
 });

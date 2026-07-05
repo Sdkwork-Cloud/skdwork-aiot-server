@@ -143,6 +143,48 @@ impl SqliteSqlxDeviceRepository {
         Self::from_blocking_pool(BlockingDevicePool::Sqlite(db))
     }
 
+    /// Resolves tenant scope for gateway workers that only know the device id.
+    pub fn resolve_storage_association_for_device(
+        &self,
+        device_id: &str,
+    ) -> Option<AiotStorageAssociation> {
+        let device_id = device_id.to_string();
+        self.db
+            .run_owned(|pool| async move {
+                let sql = pool.adapt_sql(
+                    "SELECT tenant_id, organization_id FROM iot_device WHERE device_id = ?1 LIMIT 1",
+                );
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let row = sqlx::query(&sql)
+                            .bind(&device_id)
+                            .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        Ok::<Option<AiotStorageAssociation>, sqlx::Error>(row.map(|row| {
+                            AiotStorageAssociation::tenant_org(
+                                row.get("tenant_id"),
+                                row.get("organization_id"),
+                            )
+                        }))
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let row = sqlx::query(&sql)
+                            .bind(&device_id)
+                            .fetch_optional(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        Ok::<Option<AiotStorageAssociation>, sqlx::Error>(row.map(|row| {
+                            AiotStorageAssociation::tenant_org(
+                                row.get("tenant_id"),
+                                row.get("organization_id"),
+                            )
+                        }))
+                    }
+                }
+            })
+            .ok()
+            .flatten()
+    }
+
     fn execute_batch(&self, batch: SqlStatementBatch) -> Result<(), sqlx::Error> {
         self.db.execute_statement_batch(batch)
     }

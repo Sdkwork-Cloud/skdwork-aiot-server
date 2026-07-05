@@ -6,7 +6,8 @@ Page({
   },
   onShow() {
     api.listDevices().then((response) => {
-      this.setData({ devices: Array.isArray(response.data) ? response.data : [] });
+      const items = response.data?.items ?? [];
+      this.setData({ devices: Array.isArray(items) ? items : [] });
     }).catch((error) => {
       wx.showToast({
         title: error instanceof Error ? error.message : '设备列表加载失败',
