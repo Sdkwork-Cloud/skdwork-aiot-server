@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bot, MessageSquarePlus, Send } from 'lucide-react';
-import { listDevicePage, readDeviceId } from '@sdkwork/aiot-app-core';
+import { loadAllDevicePages, readDeviceId } from '@sdkwork/aiot-app-core';
 import { getAiotAppSdkClient } from '@sdkwork/aiot-pc-core';
 import { Button, LoadingBlock, StatusNotice } from '@sdkwork/ui-pc-react';
 
@@ -29,10 +29,10 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
   }, [service]);
 
   useEffect(() => {
-    void listDevicePage(getAiotAppSdkClient(), { page: 1, page_size: 200 })
-      .then((page) => {
+    void loadAllDevicePages(getAiotAppSdkClient())
+      .then((items) => {
         setDevices(
-          page.items.map((device) => ({
+          items.map((device) => ({
             deviceId: readDeviceId(device),
             displayName: String(device.displayName ?? readDeviceId(device)),
           })),

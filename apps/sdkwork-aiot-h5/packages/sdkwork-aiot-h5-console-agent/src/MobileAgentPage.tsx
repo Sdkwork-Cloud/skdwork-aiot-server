@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   createAiotAgentService,
   getAiotH5AppSdkClient,
-  listDevicePage,
+  loadAllDevicePages,
   readDeviceId,
 } from '@sdkwork/aiot-h5-core';
 import type { AiotAgentService } from '@sdkwork/aiot-app-core';
@@ -18,10 +18,10 @@ export function MobileAgentPage() {
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
-    void listDevicePage(getAiotH5AppSdkClient(), { page: 1, page_size: 200 })
-      .then((page) => {
+    void loadAllDevicePages(getAiotH5AppSdkClient())
+      .then((items) => {
         setDevices(
-          page.items.map((device) => ({
+          items.map((device) => ({
             deviceId: readDeviceId(device),
             displayName: String(device.displayName ?? readDeviceId(device)),
           })),

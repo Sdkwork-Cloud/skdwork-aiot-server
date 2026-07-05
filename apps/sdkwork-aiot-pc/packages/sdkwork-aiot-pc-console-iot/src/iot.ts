@@ -93,6 +93,13 @@ export interface SdkworkIotRemoteControlIntent {
   routeIntent: SdkworkIotRouteIntent;
 }
 
+export interface SdkworkListPageInfo {
+  hasMore: boolean;
+  page: number;
+  pageSize: number;
+  total?: number;
+}
+
 export interface SdkworkIotFleetSummary {
   acknowledgedAlerts: number;
   criticalNodes: number;
@@ -112,6 +119,7 @@ export interface SdkworkIotCatalogData {
   alerts: SdkworkIotAlert[];
   isAuthenticated: boolean;
   nodes: SdkworkIotNode[];
+  pageInfo?: SdkworkListPageInfo;
   remoteControlIntents: SdkworkIotRemoteControlIntent[];
   routeIntents: {
     alerts: SdkworkIotRouteIntent;
@@ -130,6 +138,7 @@ export interface CreateEmptySdkworkIotCatalogOptions {
   basePath?: string;
   isAuthenticated?: boolean;
   nodes?: readonly SdkworkIotNode[];
+  pageInfo?: SdkworkListPageInfo;
   selectedNodeId?: string | null;
 }
 
@@ -522,11 +531,14 @@ export function createEmptySdkworkIotCatalog(
   const nodes = sortSdkworkIotNodes(options.nodes ?? []);
   const alerts = sortSdkworkIotAlerts(options.alerts ?? []);
   const basePath = options.basePath ?? "/iot";
+  const summary = summarizeSdkworkIotFleet(nodes, alerts);
+  const pageTotal = options.pageInfo?.total;
 
   return {
     alerts,
     isAuthenticated: Boolean(options.isAuthenticated),
     nodes,
+    ...(options.pageInfo ? { pageInfo: options.pageInfo } : {}),
     remoteControlIntents: createRemoteControlIntents(basePath),
     routeIntents: {
       alerts: createIotRouteIntent({ basePath, section: "alerts" }),
@@ -537,6 +549,8 @@ export function createEmptySdkworkIotCatalog(
     },
     selectedNodeId: resolveSelectedNodeId(nodes, options.selectedNodeId),
     sitePosture: createSdkworkIotSitePosture(nodes),
-    summary: summarizeSdkworkIotFleet(nodes, alerts),
+    summary: typeof pageTotal === "number"
+      ? { ...summary, totalNodes: pageTotal }
+      : summary,
   };
 }

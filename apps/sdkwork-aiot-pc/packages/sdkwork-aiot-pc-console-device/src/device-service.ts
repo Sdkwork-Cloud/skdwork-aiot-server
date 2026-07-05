@@ -10,6 +10,7 @@ import {
   readNumber,
   readRecord,
   readString,
+  DEFAULT_DEVICE_LIST_PAGE_SIZE,
   listDevicePage,
 } from "@sdkwork/aiot-app-core";
 import {
@@ -17,11 +18,14 @@ import {
   type SdkworkDeviceCatalogData,
   type SdkworkDeviceCapability,
   type SdkworkDevicePeripheral,
+  type SdkworkListPageInfo,
   type SdkworkManagedDevice,
 } from "./device";
 
 export interface GetSdkworkDeviceCatalogInput {
   deviceId?: string | null;
+  page?: number;
+  page_size?: number;
 }
 
 export interface CreateSdkworkDeviceServiceOptions {
@@ -133,13 +137,28 @@ function mapAiotDeviceToManagedDevice(device: AiotDevice): SdkworkManagedDevice 
   };
 }
 
-async function loadSdkDevices(options: CreateSdkworkDeviceServiceOptions): Promise<SdkworkManagedDevice[] | undefined> {
+async function loadSdkDevices(
+  options: CreateSdkworkDeviceServiceOptions,
+  input: GetSdkworkDeviceCatalogInput = {},
+): Promise<{ devices: SdkworkManagedDevice[]; pageInfo: SdkworkListPageInfo } | undefined> {
   if (!options.aiotClient) {
     return undefined;
   }
 
-  const page = await listDevicePage(options.aiotClient, { page: 1, page_size: 200 });
-  return page.items.map((item) => mapAiotDeviceToManagedDevice(item as AiotDevice));
+  const page = await listDevicePage(options.aiotClient, {
+    page: input.page ?? 1,
+    page_size: input.page_size ?? DEFAULT_DEVICE_LIST_PAGE_SIZE,
+  });
+
+  return {
+    devices: page.items.map((item) => mapAiotDeviceToManagedDevice(item as AiotDevice)),
+    pageInfo: {
+      hasMore: page.hasMore,
+      page: page.page,
+      pageSize: page.pageSize,
+      total: page.total,
+    },
+  };
 }
 
 export function createSdkworkDeviceService(
@@ -149,10 +168,11 @@ export function createSdkworkDeviceService(
 
   return {
     async getCatalog(input = {}) {
-      const sdkDevices = await loadSdkDevices(options);
+      const sdkPage = await loadSdkDevices(options, input);
       return createEmptySdkworkDeviceCatalog({
-        devices: sdkDevices ?? options.devices,
+        devices: sdkPage?.devices ?? options.devices,
         isAuthenticated: Boolean(normalizeText(getSessionTokens().authToken)),
+        pageInfo: sdkPage?.pageInfo,
         selectedDeviceId: input.deviceId ?? null,
       });
     },

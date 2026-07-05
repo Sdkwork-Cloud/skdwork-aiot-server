@@ -14,7 +14,7 @@
     ],
     "generated": false,
     "manifests": [
-      ".sdkwork-assembly.json",
+      "sdk-manifest.json",
       "openapi/sdkwork-aiot-app-sdk.sdkgen.json",
       "../../apis/app-api/iot/sdkwork-aiot-app-api.openapi.json"
     ]

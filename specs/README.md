@@ -82,7 +82,7 @@ Client firmware and media uploads use `@sdkwork/drive-app-sdk` (`client.uploader
 
 - `pnpm dev`: topology-aware dev entry for the default split-services profile with `--deployment-profile standalone`.
 - `pnpm dev:server:sqlite:split-services:cloud`: cloud deployment profile dev workflow.
-- `pnpm check`: workspace standard, database, API, SDK, topology, Rust fmt, and clippy gates.
+- `pnpm check`: workspace standard, database, API, SDK, topology, drive, api-envelope, pagination, app-sdk-consumer-imports, Rust fmt, and clippy gates.
 - `pnpm verify`: `pnpm check` plus `cargo test --workspace`.
 - `pnpm release:build` / `pnpm release:package` / `pnpm release:validate` / `pnpm release:publish` / `pnpm release:preflight`: server release binaries, CDN-aligned archives, SBOM evidence, and unified preflight gate.
 - `pnpm test:topology-validate`: validate `specs/topology.spec.json`.

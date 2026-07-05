@@ -9,6 +9,7 @@ import {
   readNumber,
   readRecord,
   readString,
+  DEFAULT_DEVICE_LIST_PAGE_SIZE,
   listDevicePage,
 } from "@sdkwork/aiot-app-core";
 import {
@@ -16,10 +17,13 @@ import {
   type SdkworkIotAlert,
   type SdkworkIotCatalogData,
   type SdkworkIotNode,
+  type SdkworkListPageInfo,
 } from "./iot";
 
 export interface GetSdkworkIotCatalogInput {
   nodeId?: string | null;
+  page?: number;
+  page_size?: number;
 }
 
 export interface CreateSdkworkIotServiceOptions {
@@ -81,13 +85,28 @@ function mapAiotDeviceToNode(device: AiotDevice): SdkworkIotNode {
   };
 }
 
-async function loadSdkNodes(options: CreateSdkworkIotServiceOptions): Promise<SdkworkIotNode[] | undefined> {
+async function loadSdkNodes(
+  options: CreateSdkworkIotServiceOptions,
+  input: GetSdkworkIotCatalogInput = {},
+): Promise<{ nodes: SdkworkIotNode[]; pageInfo: SdkworkListPageInfo } | undefined> {
   if (!options.aiotClient) {
     return undefined;
   }
 
-  const page = await listDevicePage(options.aiotClient, { page: 1, page_size: 200 });
-  return page.items.map((item) => mapAiotDeviceToNode(item as AiotDevice));
+  const page = await listDevicePage(options.aiotClient, {
+    page: input.page ?? 1,
+    page_size: input.page_size ?? DEFAULT_DEVICE_LIST_PAGE_SIZE,
+  });
+
+  return {
+    nodes: page.items.map((item) => mapAiotDeviceToNode(item as AiotDevice)),
+    pageInfo: {
+      hasMore: page.hasMore,
+      page: page.page,
+      pageSize: page.pageSize,
+      total: page.total,
+    },
+  };
 }
 
 export function createSdkworkIotService(
@@ -97,11 +116,12 @@ export function createSdkworkIotService(
 
   return {
     async getCatalog(input = {}) {
-      const sdkNodes = await loadSdkNodes(options);
+      const sdkPage = await loadSdkNodes(options, input);
       return createEmptySdkworkIotCatalog({
         alerts: options.alerts,
         isAuthenticated: Boolean(normalizeText(getSessionTokens().authToken)),
-        nodes: sdkNodes ?? options.nodes,
+        nodes: sdkPage?.nodes ?? options.nodes,
+        pageInfo: sdkPage?.pageInfo,
         selectedNodeId: input.nodeId ?? null,
       });
     },

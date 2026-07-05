@@ -25,6 +25,7 @@ export interface SdkworkIotControllerState {
   isBootstrapped: boolean;
   isLoading: boolean;
   lastError?: string;
+  listPage: number;
   selectedNode: SdkworkIotNode | null;
   selectedNodeId: string | null;
   visibleAlerts: SdkworkIotAlert[];
@@ -34,6 +35,7 @@ export interface SdkworkIotControllerState {
 export interface SdkworkIotController {
   bootstrap(input?: GetSdkworkIotCatalogInput): Promise<SdkworkIotControllerState>;
   getState(): SdkworkIotControllerState;
+  goToListPage(page: number): Promise<SdkworkIotControllerState>;
   refresh(input?: GetSdkworkIotCatalogInput): Promise<SdkworkIotControllerState>;
   selectNode(nodeId: string | null): void;
   service: SdkworkIotService;
@@ -143,6 +145,7 @@ export function createSdkworkIotController(
     catalog: fallbackCatalog,
     isBootstrapped: false,
     isLoading: false,
+    listPage: 1,
     selectedNode: null,
     selectedNodeId: fallbackCatalog.selectedNodeId,
     visibleAlerts: fallbackCatalog.alerts,
@@ -175,11 +178,15 @@ export function createSdkworkIotController(
       });
 
       try {
-        const catalog = await service.getCatalog(input);
+        const catalog = await service.getCatalog({
+          ...input,
+          page: input?.page ?? state.listPage,
+        });
         setState({
           catalog,
           isBootstrapped: true,
           isLoading: false,
+          listPage: catalog.pageInfo?.page ?? state.listPage,
           selectedNodeId: catalog.selectedNodeId,
         });
         return state;
@@ -187,6 +194,36 @@ export function createSdkworkIotController(
         setState({
           isLoading: false,
           lastError: error instanceof Error ? error.message : "Failed to load IoT operations center.",
+        });
+        throw error;
+      }
+    },
+
+    async goToListPage(page) {
+      const nextPage = Math.max(1, page);
+      setState({
+        isLoading: true,
+        lastError: undefined,
+        listPage: nextPage,
+      });
+
+      try {
+        const catalog = await service.getCatalog({
+          nodeId: state.selectedNodeId,
+          page: nextPage,
+        });
+        setState({
+          catalog,
+          isBootstrapped: true,
+          isLoading: false,
+          listPage: catalog.pageInfo?.page ?? nextPage,
+          selectedNodeId: catalog.selectedNodeId,
+        });
+        return state;
+      } catch (error) {
+        setState({
+          isLoading: false,
+          lastError: error instanceof Error ? error.message : "Failed to load fleet page.",
         });
         throw error;
       }
@@ -200,11 +237,13 @@ export function createSdkworkIotController(
       const catalog = await service.getCatalog({
         ...input,
         nodeId: state.selectedNodeId,
+        page: input?.page ?? state.listPage,
       });
       setState({
         catalog,
         isBootstrapped: true,
         isLoading: false,
+        listPage: catalog.pageInfo?.page ?? state.listPage,
       });
       return state;
     },

@@ -14,10 +14,10 @@ This TECH shard tracks the same phased alignment program as ADR 004. Read the AD
 | `sdkwork-web-framework` (app/backend `*-api`) | Done |
 | `sdkwork-database` | Done |
 | `sdkwork-utils` | Done |
-| `sdkwork-drive` (PC firmware upload via Drive Uploader) | Done (Phase Y) |
-| OTA Drive `MediaResource` URL resolution | Done (Phase Y+) |
+| `sdkwork-drive` (PC firmware upload + OTA `MediaResource`) | Done |
+| Store pagination + governance CI gates | Done |
+| Gateway WS command delivery (`audio.playback/speak`) | Done |
 | `sdkwork-discovery` | Deferred until RPC services exist |
-| Pagination store alignment + CI governance (Phase Z) | Done |
 
 ## Intentional transport exception
 

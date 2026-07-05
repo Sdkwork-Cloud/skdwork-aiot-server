@@ -803,7 +803,7 @@ pub struct SdkFamilyContract {
     pub api_prefix: &'static str,
     pub openapi_path: &'static str,
     pub sdkgen_path: &'static str,
-    pub assembly_path: &'static str,
+    pub sdk_manifest_path: &'static str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1247,7 +1247,7 @@ pub fn standard_sdk_families() -> Vec<SdkFamilyContract> {
             api_prefix: IOT_APP_API_PREFIX,
             openapi_path: "apis/app-api/iot/sdkwork-aiot-app-api.openapi.json",
             sdkgen_path: "sdks/sdkwork-aiot-app-sdk/openapi/sdkwork-aiot-app-sdk.sdkgen.json",
-            assembly_path: "sdks/sdkwork-aiot-app-sdk/.sdkwork-assembly.json",
+            sdk_manifest_path: "sdks/sdkwork-aiot-app-sdk/sdk-manifest.json",
         },
         SdkFamilyContract {
             name: "backend",
@@ -1256,7 +1256,7 @@ pub fn standard_sdk_families() -> Vec<SdkFamilyContract> {
             openapi_path: "apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json",
             sdkgen_path:
                 "sdks/sdkwork-aiot-backend-sdk/openapi/sdkwork-aiot-backend-sdk.sdkgen.json",
-            assembly_path: "sdks/sdkwork-aiot-backend-sdk/.sdkwork-assembly.json",
+            sdk_manifest_path: "sdks/sdkwork-aiot-backend-sdk/sdk-manifest.json",
         },
     ]
 }

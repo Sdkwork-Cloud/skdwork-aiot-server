@@ -12,6 +12,7 @@ export {
   type ExecuteDeviceCommandInput,
 } from './command/command-service';
 export {
+  DEFAULT_DEVICE_LIST_PAGE_SIZE,
   listDevicePage,
   loadAllDevicePages,
   readDeviceId,

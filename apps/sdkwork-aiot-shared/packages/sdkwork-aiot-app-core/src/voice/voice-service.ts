@@ -4,7 +4,7 @@ import {
   createAiotCommandService,
   type AiotCommandService,
 } from '../command/command-service';
-import { listDevicePage } from '../device/device-pagination';
+import { loadAllDevicePages } from '../device/device-pagination';
 import type { AiotVoiceDevice } from '../types/conversation';
 import { readRecord, readString } from '../utils/session';
 
@@ -83,8 +83,8 @@ export function createAiotVoiceService(
     },
 
     async listVoiceDevices() {
-      const page = await listDevicePage(options.aiotClient, { page: 1, page_size: 200 });
-      return page.items
+      const devices = await loadAllDevicePages(options.aiotClient);
+      return devices
         .map((device) => mapVoiceDevice(readRecord(device)))
         .filter((device) => device.deviceId.length > 0);
     },

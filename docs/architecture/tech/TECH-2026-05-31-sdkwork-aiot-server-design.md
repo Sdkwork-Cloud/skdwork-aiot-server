@@ -1366,14 +1366,5 @@ Reviewed as aligned:
 - AIoT does not create `sdkwork-aiot-iam`, IAM APIs, or IAM tables.
 - Protocol and hardware abstractions cover xiaozhi plus MQTT, CoAP/LwM2M, Matter, Zigbee2MQTT, LoRaWAN, Modbus, OPC UA, ESPHome, Tasmota, and OpenBeken at catalog/adapter-contract level.
 - SDKWork API prefixes, generated SDK source-of-truth, dual-token security declaration, RFC 9457 problem details, and dotted operationId rules are represented in OpenAPI contracts.
-
-Remaining next-stage implementation work:
-
-- Production-grade async HTTP/WebSocket server integration and route mounting.
-- Concrete repository implementations over SQLx pools.
-- Device authentication validators, HMAC/mTLS verification, credential rotation, and rate limiting.
-- Actual xiaozhi WebSocket frame decode/encode and OTA response handling.
-- Command routing, session actors, Redis/NATS/Kafka integration, and backpressure behavior.
-- Generated TypeScript SDK materialization from OpenAPI instead of placeholder package boundaries.
-- Contract validation tooling for OpenAPI and SDK generation in CI.
+- Standards alignment phases A–Z are complete; see `docs/adr/004-standards-alignment-roadmap.md` for verification commands and the intentional gateway transport exception.
 

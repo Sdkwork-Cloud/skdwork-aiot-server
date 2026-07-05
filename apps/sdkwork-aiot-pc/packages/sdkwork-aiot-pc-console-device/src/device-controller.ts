@@ -21,6 +21,7 @@ export interface SdkworkDeviceControllerState {
   isBootstrapped: boolean;
   isLoading: boolean;
   lastError?: string;
+  listPage: number;
   selectedDevice: SdkworkManagedDevice | null;
   selectedDeviceId: string | null;
   visibleDevices: SdkworkManagedDevice[];
@@ -29,6 +30,7 @@ export interface SdkworkDeviceControllerState {
 export interface SdkworkDeviceController {
   bootstrap(input?: GetSdkworkDeviceCatalogInput): Promise<SdkworkDeviceControllerState>;
   getState(): SdkworkDeviceControllerState;
+  goToListPage(page: number): Promise<SdkworkDeviceControllerState>;
   refresh(input?: GetSdkworkDeviceCatalogInput): Promise<SdkworkDeviceControllerState>;
   selectDevice(deviceId: string | null): void;
   service: SdkworkDeviceService;
@@ -100,6 +102,7 @@ export function createSdkworkDeviceController(
     catalog: fallbackCatalog,
     isBootstrapped: false,
     isLoading: false,
+    listPage: 1,
     selectedDevice: null,
     selectedDeviceId: fallbackCatalog.selectedDeviceId,
     visibleDevices: fallbackCatalog.devices,
@@ -131,11 +134,15 @@ export function createSdkworkDeviceController(
       });
 
       try {
-        const catalog = await service.getCatalog(input);
+        const catalog = await service.getCatalog({
+          ...input,
+          page: input?.page ?? state.listPage,
+        });
         setState({
           catalog,
           isBootstrapped: true,
           isLoading: false,
+          listPage: catalog.pageInfo?.page ?? state.listPage,
           selectedDeviceId: catalog.selectedDeviceId,
         });
         return state;
@@ -143,6 +150,36 @@ export function createSdkworkDeviceController(
         setState({
           isLoading: false,
           lastError: error instanceof Error ? error.message : "Failed to load device center.",
+        });
+        throw error;
+      }
+    },
+
+    async goToListPage(page) {
+      const nextPage = Math.max(1, page);
+      setState({
+        isLoading: true,
+        lastError: undefined,
+        listPage: nextPage,
+      });
+
+      try {
+        const catalog = await service.getCatalog({
+          deviceId: state.selectedDeviceId,
+          page: nextPage,
+        });
+        setState({
+          catalog,
+          isBootstrapped: true,
+          isLoading: false,
+          listPage: catalog.pageInfo?.page ?? nextPage,
+          selectedDeviceId: catalog.selectedDeviceId,
+        });
+        return state;
+      } catch (error) {
+        setState({
+          isLoading: false,
+          lastError: error instanceof Error ? error.message : "Failed to load device page.",
         });
         throw error;
       }
@@ -156,11 +193,13 @@ export function createSdkworkDeviceController(
       const catalog = await service.getCatalog({
         ...input,
         deviceId: state.selectedDeviceId,
+        page: input?.page ?? state.listPage,
       });
       setState({
         catalog,
         isBootstrapped: true,
         isLoading: false,
+        listPage: catalog.pageInfo?.page ?? state.listPage,
       });
       return state;
     },

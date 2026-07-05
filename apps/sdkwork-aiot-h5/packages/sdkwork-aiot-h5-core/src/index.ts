@@ -50,5 +50,6 @@ export {
   createAiotCommandService,
   createAiotVoiceService,
   listDevicePage,
+  loadAllDevicePages,
   readDeviceId,
 } from '@sdkwork/aiot-app-core';

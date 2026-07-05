@@ -76,6 +76,13 @@ export interface SdkworkManagedDevice {
   route: string;
 }
 
+export interface SdkworkListPageInfo {
+  hasMore: boolean;
+  page: number;
+  pageSize: number;
+  total?: number;
+}
+
 export interface SdkworkDeviceSummary {
   connectedPeripherals: number;
   criticalDevices: number;
@@ -89,6 +96,7 @@ export interface SdkworkDeviceSummary {
 export interface SdkworkDeviceCatalogData {
   devices: SdkworkManagedDevice[];
   isAuthenticated: boolean;
+  pageInfo?: SdkworkListPageInfo;
   routeIntents: {
     overview: SdkworkDeviceRouteIntent;
     peripherals: SdkworkDeviceRouteIntent;
@@ -102,6 +110,7 @@ export interface CreateEmptySdkworkDeviceCatalogOptions {
   basePath?: string;
   devices?: readonly SdkworkManagedDevice[];
   isAuthenticated?: boolean;
+  pageInfo?: SdkworkListPageInfo;
   selectedDeviceId?: string | null;
 }
 
@@ -357,16 +366,21 @@ export function createEmptySdkworkDeviceCatalog(
 ): SdkworkDeviceCatalogData {
   const devices = sortSdkworkManagedDevices(options.devices ?? []);
   const basePath = options.basePath ?? "/devices";
+  const summary = summarizeSdkworkDevices(devices);
+  const pageTotal = options.pageInfo?.total;
 
   return {
     devices,
     isAuthenticated: Boolean(options.isAuthenticated),
+    ...(options.pageInfo ? { pageInfo: options.pageInfo } : {}),
     routeIntents: {
       overview: createDeviceRouteIntent({ basePath }),
       peripherals: createDeviceRouteIntent({ basePath, section: "peripherals" }),
       posture: createDeviceRouteIntent({ basePath, section: "posture" }),
     },
     selectedDeviceId: resolveSelectedDeviceId(devices, options.selectedDeviceId),
-    summary: summarizeSdkworkDevices(devices),
+    summary: typeof pageTotal === "number"
+      ? { ...summary, totalDevices: pageTotal }
+      : summary,
   };
 }

@@ -197,6 +197,36 @@ export function SdkworkIotPage({
               onSelectNode={(nodeId) => controller.selectNode(nodeId)}
               selectedNodeId={state.selectedNodeId}
             />
+            {state.catalog.pageInfo ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sdk-color-border-default)] pt-4">
+                <div className="text-xs text-[var(--sdk-color-text-secondary)]">
+                  Page {state.catalog.pageInfo.page}
+                  {typeof state.catalog.pageInfo.total === "number"
+                    ? ` of ${Math.max(1, Math.ceil(state.catalog.pageInfo.total / state.catalog.pageInfo.pageSize))}`
+                    : ""}
+                  {" · "}
+                  {state.catalog.nodes.length} node(s) on this page
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    disabled={state.isLoading || state.listPage <= 1}
+                    onClick={() => void controller.goToListPage(state.listPage - 1)}
+                    type="button"
+                    variant="outline"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    disabled={state.isLoading || !state.catalog.pageInfo.hasMore}
+                    onClick={() => void controller.goToListPage(state.listPage + 1)}
+                    type="button"
+                    variant="outline"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
 

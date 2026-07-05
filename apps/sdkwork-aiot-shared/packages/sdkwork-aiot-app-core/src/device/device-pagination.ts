@@ -2,6 +2,8 @@ import type { AiotDevice, SdkworkAiotAppClient } from '@sdkwork/aiot-app-sdk';
 
 import { readRecord, readString } from '../utils/session';
 
+export const DEFAULT_DEVICE_LIST_PAGE_SIZE = 20;
+
 export interface ListDevicePageParams {
   page?: number;
   page_size?: number;
@@ -12,6 +14,7 @@ export interface ListDevicePageResult {
   items: AiotDevice[];
   page: number;
   pageSize: number;
+  total?: number;
 }
 
 export async function listDevicePage(
@@ -19,7 +22,7 @@ export async function listDevicePage(
   params: ListDevicePageParams = {},
 ): Promise<ListDevicePageResult> {
   const page = params.page ?? 1;
-  const pageSize = params.page_size ?? 20;
+  const pageSize = params.page_size ?? DEFAULT_DEVICE_LIST_PAGE_SIZE;
   const response = await aiotClient.iot.devices.list({ page, page_size: pageSize });
   const items = Array.isArray(response.items) ? response.items : [];
   const pageInfo = readRecord(response.pageInfo);
@@ -29,6 +32,7 @@ export async function listDevicePage(
     items,
     page: typeof pageInfo.page === 'number' ? pageInfo.page : page,
     pageSize: typeof pageInfo.pageSize === 'number' ? pageInfo.pageSize : pageSize,
+    total: typeof pageInfo.total === 'number' ? pageInfo.total : undefined,
   };
 }
 

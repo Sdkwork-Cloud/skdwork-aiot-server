@@ -36,6 +36,10 @@ This document tracks production readiness for the SDKWork AIoT server after the 
 | Production topology guardrails | Done | `pnpm check:production-topology`, production env profiles (`cloud/standalone.split-services.production`) |
 | Postgres device persistence (cloud HA) | Done | `BlockingDevicePool` + dialect-aware device/credential/outbox/admin-entity repos; `SDKWORK_AIOT_DEVICE_DATABASE_*` in cloud production topology |
 | Drive Uploader (PC firmware upload) | Done | `@sdkwork/drive-app-sdk` + `check:drive-standard`; OTA resolves `drive://nodes/{id}` to edge download URLs |
+| Store pagination + API governance CI | Done | `pnpm check:api-envelope`, `check:pagination`, `check:app-sdk-consumer-imports`; store-level `list_*_page` |
+| SDK manifest contract | Done | `sdk-manifest.json` per SDK family; architecture tests + `tools/aiot_sdk_generate.mjs` |
+| Gateway WS command delivery | Done | `command_delivery_worker` + `active_ws_sessions` for `audio.playback/speak` |
+| Interactive console list pagination | Done | Device/IoT grids use server `listDevicePage` (page size 20); device pickers use `loadAllDevicePages` |
 
 ## Shared SQLite Without Persistent Path
 

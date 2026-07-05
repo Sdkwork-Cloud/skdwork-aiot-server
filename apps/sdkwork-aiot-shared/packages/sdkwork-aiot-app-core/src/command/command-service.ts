@@ -5,6 +5,7 @@ import type {
 } from '@sdkwork/aiot-app-sdk';
 
 import { createMessageId, nowIso, readRecord, readString, sleep } from '../utils/session';
+import { DEFAULT_DEVICE_LIST_PAGE_SIZE } from '../device/device-pagination';
 
 export interface CreateAiotCommandServiceOptions {
   aiotClient: SdkworkAiotAppClient;
@@ -91,7 +92,7 @@ export async function pollCommandResult(
     while (true) {
       const eventsPage = await aiotClient.iot.devices.events.list(deviceId, {
         page,
-        page_size: 200,
+        page_size: DEFAULT_DEVICE_LIST_PAGE_SIZE,
         q: commandId,
       });
       const items = Array.isArray(eventsPage.items) ? eventsPage.items : [];
