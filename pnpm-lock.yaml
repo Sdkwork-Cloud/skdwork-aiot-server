@@ -39,6 +39,12 @@ importers:
         specifier: workspace:*
         version: link:../sdkwork-app-topology
 
+  ../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript:
+    dependencies:
+      '@sdkwork/sdk-common':
+        specifier: workspace:*
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+
   ../sdkwork-app-topology: {}
 
   ../sdkwork-appbase/packages/common/foundation/sdkwork-runtime-bootstrap:
@@ -539,6 +545,12 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  ../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript:
+    dependencies:
+      '@sdkwork/sdk-common':
+        specifier: workspace:*
+        version: link:../../../../sdkwork-sdk-commons/sdkwork-sdk-common-typescript
+
   apps/sdkwork-aiot-h5:
     dependencies:
       '@sdkwork/aiot-h5-console-agent':
@@ -602,6 +614,9 @@ importers:
 
   apps/sdkwork-aiot-h5/packages/sdkwork-aiot-h5-console-device:
     dependencies:
+      '@sdkwork/aiot-app-core':
+        specifier: workspace:*
+        version: link:../../../sdkwork-aiot-shared/packages/sdkwork-aiot-app-core
       '@sdkwork/aiot-h5-core':
         specifier: workspace:*
         version: link:../sdkwork-aiot-h5-core
@@ -611,6 +626,9 @@ importers:
 
   apps/sdkwork-aiot-h5/packages/sdkwork-aiot-h5-console-iot:
     dependencies:
+      '@sdkwork/aiot-app-core':
+        specifier: workspace:*
+        version: link:../../../sdkwork-aiot-shared/packages/sdkwork-aiot-app-core
       '@sdkwork/aiot-h5-core':
         specifier: workspace:*
         version: link:../sdkwork-aiot-h5-core
@@ -629,12 +647,18 @@ importers:
 
   apps/sdkwork-aiot-h5/packages/sdkwork-aiot-h5-core:
     dependencies:
+      '@sdkwork/agents-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript
       '@sdkwork/aiot-app-core':
         specifier: workspace:*
         version: link:../../../sdkwork-aiot-shared/packages/sdkwork-aiot-app-core
       '@sdkwork/aiot-app-sdk':
         specifier: workspace:*
         version: link:../../../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript
+      '@sdkwork/voice-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript
       react:
         specifier: ^18.0.0 || ^19.0.0
         version: 19.2.4
@@ -780,6 +804,9 @@ importers:
 
   apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core:
     dependencies:
+      '@sdkwork/agents-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript
       '@sdkwork/aiot-app-core':
         specifier: workspace:*
         version: link:../../../sdkwork-aiot-shared/packages/sdkwork-aiot-app-core
@@ -798,6 +825,9 @@ importers:
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+      '@sdkwork/voice-app-sdk':
+        specifier: workspace:*
+        version: link:../../../../../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript
 
   apps/sdkwork-aiot-shared:
     devDependencies:

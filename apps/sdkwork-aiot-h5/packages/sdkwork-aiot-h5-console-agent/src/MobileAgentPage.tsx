@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  createAiotAgentService,
+  createAiotAgentsDialoguePort,
+  createAiotH5AgentService,
   getAiotH5AppSdkClient,
   loadAllDevicePages,
   readDeviceId,
@@ -34,7 +35,7 @@ export function MobileAgentPage() {
 
   const ensureSession = (deviceId: string) => {
     if (!agentServiceRef.current) {
-      agentServiceRef.current = createAiotAgentService({ aiotClient: getAiotH5AppSdkClient() });
+      agentServiceRef.current = createAiotH5AgentService();
     }
     const agentService = agentServiceRef.current;
     const session = agentService.createSession(deviceId, '移动端智能体');

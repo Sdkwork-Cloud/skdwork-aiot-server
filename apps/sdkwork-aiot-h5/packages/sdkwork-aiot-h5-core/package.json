@@ -14,8 +14,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@sdkwork/agents-app-sdk": "workspace:*",
     "@sdkwork/aiot-app-core": "workspace:*",
-    "@sdkwork/aiot-app-sdk": "workspace:*"
+    "@sdkwork/aiot-app-sdk": "workspace:*",
+    "@sdkwork/voice-app-sdk": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"

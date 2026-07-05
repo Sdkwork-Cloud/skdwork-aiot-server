@@ -10,7 +10,7 @@ import {
   isAgentsAppSdkConfigured,
   sendAgentChatMessageSync,
 } from '../sdk/agentsAppSdkClient';
-import { resolveDefaultAiotAgentId } from '../sdk/topologyEnvKeys';
+import { resolveDefaultAiotAgentId } from '../sdk/siblingAppUrls';
 import { getVoiceAppSdkClient, isVoiceAppSdkConfigured } from '../sdk/voiceAppSdkClient';
 
 export function createAiotAgentsDialoguePort(): AiotAgentsDialoguePort {

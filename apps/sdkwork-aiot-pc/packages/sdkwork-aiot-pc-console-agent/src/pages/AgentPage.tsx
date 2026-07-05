@@ -4,12 +4,12 @@ import { loadAllDevicePages, readDeviceId } from '@sdkwork/aiot-app-core';
 import { getAiotAppSdkClient } from '@sdkwork/aiot-pc-core';
 import { Button, LoadingBlock, StatusNotice } from '@sdkwork/ui-pc-react';
 
-import { createAgentWorkspaceManifest } from './agent';
+import { createAgentWorkspaceManifest } from '../agent';
 import {
   createSdkworkAgentService,
   type SdkworkAgentCatalog,
   type SdkworkAgentServicePort,
-} from './agent-service';
+} from '../agent-service';
 
 export interface SdkworkAgentPageProps {
   service?: SdkworkAgentServicePort;
@@ -84,8 +84,13 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
           </div>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight">智能体集成</h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
-            与 AIoT 智能体进行多轮对话，通过设备命令 API 触发 assistant.chat 并展示会话历史。
+            优先通过 sdkwork-agents 云端对话；未配置时回退到设备 assistant.chat 命令并轮询结果。
           </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs">
+            <span className={`rounded-full px-3 py-1 ${catalog.agentsConfigured ? 'bg-emerald-500/20 text-emerald-100' : 'bg-white/10 text-white/60'}`}>
+              Agents {catalog.agentsConfigured ? '已连接' : '设备命令回退'}
+            </span>
+          </div>
         </section>
 
         {error ? <StatusNotice tone="danger">{error}</StatusNotice> : null}

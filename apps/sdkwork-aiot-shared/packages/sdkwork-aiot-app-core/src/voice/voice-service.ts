@@ -28,6 +28,14 @@ export interface SpeechRecognitionLike {
   stop(): void;
 }
 
+const DEFAULT_SPEECH_RECOGNITION_LANG = 'zh-CN';
+const MAX_MEDIA_RECORDING_MS = 30_000;
+
+export interface StartListeningOptions {
+  /** Maximum MediaRecorder capture duration before auto-stop (sdkwork-voice STT path). */
+  maxRecordingMs?: number;
+}
+
 export interface AiotVoiceService {
   isCloudVoiceConfigured(): boolean;
   isListening(): boolean;
@@ -35,7 +43,10 @@ export interface AiotVoiceService {
   speakOnDevice(deviceId: string, text: string, sessionId?: string): Promise<void>;
   speakLocally(text: string, lang?: string): Promise<void>;
   speakViaCloud(text: string, options?: { model?: string; voice?: string }): Promise<void>;
-  startListening(onResult: (text: string, isFinal: boolean) => void): Promise<void>;
+  startListening(
+    onResult: (text: string, isFinal: boolean) => void,
+    options?: StartListeningOptions,
+  ): Promise<void>;
   stopListening(): void;
 }
 
@@ -143,7 +154,74 @@ export function createAiotVoiceService(
       await this.speakLocally(text);
     },
 
-    async startListening(onResult) {
+    async startListening(onResult, listenOptions = {}) {
+      if (voiceDialoguePort?.transcribe && typeof MediaRecorder !== 'undefined' && navigator.mediaDevices) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const recorder = new MediaRecorder(stream);
+          const chunks: Blob[] = [];
+          const maxRecordingMs = listenOptions.maxRecordingMs ?? MAX_MEDIA_RECORDING_MS;
+          let recordingTimer: ReturnType<typeof setTimeout> | undefined;
+
+          listening = true;
+          activeRecognition = null;
+
+          recorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              chunks.push(event.data);
+            }
+          };
+
+          recorder.onstop = async () => {
+            if (recordingTimer) {
+              clearTimeout(recordingTimer);
+            }
+            listening = false;
+            stream.getTracks().forEach((track) => track.stop());
+            if (chunks.length === 0) {
+              onResult('', true);
+              return;
+            }
+
+            try {
+              const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+              const result = await voiceDialoguePort.transcribe!({
+                audioBlob: blob,
+                fileName: 'aiot-input.webm',
+                language: 'zh',
+              });
+              onResult(result.text, true);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : '语音识别失败';
+              onResult(message, true);
+            }
+          };
+
+          recorder.start();
+          recordingTimer = setTimeout(() => {
+            if (recorder.state === 'recording') {
+              recorder.stop();
+            }
+          }, maxRecordingMs);
+
+          activeRecognition = {
+            abort: () => recorder.stop(),
+            addEventListener: () => undefined,
+            continuous: false,
+            interimResults: false,
+            lang: DEFAULT_SPEECH_RECOGNITION_LANG,
+            removeEventListener: () => undefined,
+            start: () => undefined,
+            stop: () => recorder.stop(),
+          };
+          return;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '麦克风不可用';
+          onResult(message, true);
+          return;
+        }
+      }
+
       if (!speechRecognition || listening) {
         return;
       }
@@ -152,7 +230,7 @@ export function createAiotVoiceService(
       activeRecognition = speechRecognition;
       speechRecognition.continuous = false;
       speechRecognition.interimResults = true;
-      speechRecognition.lang = 'zh-CN';
+      speechRecognition.lang = DEFAULT_SPEECH_RECOGNITION_LANG;
 
       const handleResult = (event: Event) => {
         const resultEvent = event as Event & {
@@ -167,12 +245,19 @@ export function createAiotVoiceService(
         onResult(latest[0].transcript, latest.isFinal);
       };
 
+      const handleError = () => {
+        listening = false;
+        activeRecognition = null;
+        onResult('浏览器语音识别失败', true);
+      };
+
       const handleEnd = () => {
         listening = false;
         activeRecognition = null;
       };
 
       speechRecognition.addEventListener('result', handleResult);
+      speechRecognition.addEventListener('error', handleError);
       speechRecognition.addEventListener('end', handleEnd);
       speechRecognition.start();
     },

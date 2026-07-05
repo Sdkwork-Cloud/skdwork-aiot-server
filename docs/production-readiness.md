@@ -35,7 +35,8 @@ This document tracks production readiness for the SDKWork AIoT server. Items mar
 | Gateway WS command delivery | Done | Runs on shared device DB (SQLite file, Postgres, or dev memory); tenant-aware association lookup |
 | Interactive console list pagination | Done | PC/H5/mini-program use server pagination; SDK `pageSize` param |
 | PC IoT fleet alerts | Done | Derived from live device health/offline state (no demo seed data) |
-| Mini-program SDK envelope + command polling | Done | `aiot-app-sdk-client.js` unwraps `{ items, pageInfo }`, polls command results |
+| Agents + Voice dialogue (PC/H5) | Done | `@sdkwork/agents-app-sdk` + `@sdkwork/voice-app-sdk`; online device speak priority; auto STT→chat→TTS loop |
+| Mini-program voice | Partial | Device `speak` command only; no sibling agents/voice SDK (WeChat runtime limits) |
 
 ## Shared SQLite Without Persistent Path
 

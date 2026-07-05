@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Mic, MicOff, Volume2 } from 'lucide-react';
+import { Mic, MicOff, MessageSquare, Volume2 } from 'lucide-react';
 import { Button, LoadingBlock, StatusNotice } from '@sdkwork/ui-pc-react';
 
-import { createVoiceWorkspaceManifest } from './voice';
+import { createVoiceWorkspaceManifest } from '../voice';
 import {
   createSdkworkVoiceService,
   type SdkworkVoiceCatalog,
   type SdkworkVoiceServicePort,
-} from './voice-service';
+} from '../voice-service';
 
 export interface SdkworkVoicePageProps {
   onNavigate?: (route: string) => void;
@@ -21,6 +21,8 @@ export function SdkworkVoicePage({ service: serviceProp }: SdkworkVoicePageProps
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isListening, setIsListening] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -38,17 +40,23 @@ export function SdkworkVoicePage({ service: serviceProp }: SdkworkVoicePageProps
     void refresh();
   }, [refresh]);
 
-  const handleSpeak = async () => {
-    if (!draft.trim()) {
+  const handleDialogueTurn = async () => {
+    if (!draft.trim() || isSending) {
       return;
     }
 
+    setIsSending(true);
+    setError(null);
     try {
-      await service.speakSelected(draft.trim());
+      await service.runDialogueTurn(draft.trim());
       setDraft('');
-      await refresh();
+      const nextCatalog = await service.getCatalog();
+      setCatalog(nextCatalog);
+      setIsSpeaking(nextCatalog.isSpeaking);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '语音播放失败');
+      setError(cause instanceof Error ? cause.message : '语音对话失败');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -60,10 +68,22 @@ export function SdkworkVoicePage({ service: serviceProp }: SdkworkVoicePageProps
     }
 
     setIsListening(true);
-    await service.startListening((text) => {
-      setDraft(text);
+    setError(null);
+    try {
+      await service.startListening((text, isFinal) => {
+        setDraft(text);
+        if (isFinal) {
+          setIsListening(false);
+          void service.getCatalog().then((next) => {
+            setCatalog(next);
+            setIsSpeaking(next.isSpeaking);
+          });
+        }
+      }, { autoRunDialogue: true });
+    } catch (cause) {
       setIsListening(false);
-    });
+      setError(cause instanceof Error ? cause.message : '语音识别启动失败');
+    }
   };
 
   if (isLoading && !catalog) {
@@ -80,8 +100,16 @@ export function SdkworkVoicePage({ service: serviceProp }: SdkworkVoicePageProps
           </div>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight">智能语音对话</h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
-            选择 AIoT 语音设备，通过浏览器语音识别与设备 TTS 命令实现自然语言交互。
+            sdkwork-agents 生成回复，sdkwork-voice 负责 STT/TTS；在线设备优先通过 speak 命令播报。
           </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs">
+            <span className={`rounded-full px-3 py-1 ${catalog?.agentsConfigured ? 'bg-emerald-500/20 text-emerald-100' : 'bg-white/10 text-white/60'}`}>
+              Agents {catalog?.agentsConfigured ? '已连接' : '未配置'}
+            </span>
+            <span className={`rounded-full px-3 py-1 ${catalog?.voiceConfigured ? 'bg-cyan-500/20 text-cyan-100' : 'bg-white/10 text-white/60'}`}>
+              Voice {catalog?.voiceConfigured ? '已连接' : '未配置'}
+            </span>
+          </div>
         </section>
 
         {error ? <StatusNotice tone="danger">{error}</StatusNotice> : null}
@@ -111,7 +139,7 @@ export function SdkworkVoicePage({ service: serviceProp }: SdkworkVoicePageProps
                 </button>
               ))}
               {(catalog?.devices.length ?? 0) === 0 ? (
-                <p className="text-sm text-zinc-500">暂无可用语音设备，可直接使用本地 TTS 预览。</p>
+                <p className="text-sm text-zinc-500">暂无可用语音设备，将使用云端 Voice TTS 或浏览器本地播报。</p>
               ) : null}
             </div>
           </div>
@@ -120,22 +148,29 @@ export function SdkworkVoicePage({ service: serviceProp }: SdkworkVoicePageProps
             <h2 className="text-lg font-semibold text-zinc-900">对话输入</h2>
             <textarea
               className="mt-4 min-h-40 w-full rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-cyan-500"
+              disabled={isSending}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="输入文字或使用麦克风说话..."
+              placeholder="输入文字或使用麦克风说话，然后发起完整语音对话..."
               value={draft}
             />
             <div className="mt-4 flex flex-wrap gap-3">
-              <Button onClick={() => void handleToggleListen()} type="button" variant="outline">
+              <Button disabled={isSending} onClick={() => void handleToggleListen()} type="button" variant="outline">
                 {isListening ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
                 {isListening ? '停止聆听' : '开始聆听'}
               </Button>
-              <Button onClick={() => void handleSpeak()} type="button">
-                <Volume2 className="mr-2 h-4 w-4" />
-                发送并播放
+              <Button disabled={isSending || isSpeaking || !draft.trim()} onClick={() => void handleDialogueTurn()} type="button">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                {isSending ? '对话中...' : isSpeaking ? '播报中...' : '发起语音对话'}
               </Button>
             </div>
             {catalog?.transcript ? (
               <p className="mt-4 text-sm text-zinc-500">识别结果：{catalog.transcript}</p>
+            ) : null}
+            {catalog?.lastAssistantReply ? (
+              <div className="mt-4 rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+                <div className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">Assistant</div>
+                <p className="mt-2 leading-6">{catalog.lastAssistantReply}</p>
+              </div>
             ) : null}
           </div>
         </section>

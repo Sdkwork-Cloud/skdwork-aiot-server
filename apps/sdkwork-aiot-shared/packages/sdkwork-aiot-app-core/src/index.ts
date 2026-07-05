@@ -6,6 +6,7 @@ export {
 } from './agent/agent-service';
 export {
   createAiotCommandService,
+  createLocalAssistantReply,
   pollCommandResult,
   type AiotCommandService,
   type CreateAiotCommandServiceOptions,
@@ -25,6 +26,12 @@ export type {
   AiotVoiceSynthesisResult,
   AiotVoiceTranscriptionResult,
 } from './ports/dialogue-ports';
+export {
+  createAiotAgentsDialoguePortFromSdk,
+  createAiotVoiceDialoguePortFromSdk,
+  type AiotAgentsSdkBridge,
+  type AiotVoiceSdkBridge,
+} from './ports/dialogue-port-factory';
 export type {
   AiotAgentToolCall,
   AiotConversationMessage,
@@ -38,12 +45,14 @@ export {
   type AiotVoiceService,
   type CreateAiotVoiceServiceOptions,
   type SpeechRecognitionLike,
+  type StartListeningOptions,
 } from './voice/voice-service';
 export {
   createAiotVoiceDialogueService,
   type AiotVoiceDialogueCatalog,
   type AiotVoiceDialogueService,
   type CreateAiotVoiceDialogueServiceOptions,
+  type RunDialogueTurnOptions,
 } from './voice/voice-dialogue-service';
 export {
   extractSdkItems,

@@ -6,6 +6,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+!configs/topology/*.env
 
 # SDKWork local environment and runtime config overrides
 .env.local
