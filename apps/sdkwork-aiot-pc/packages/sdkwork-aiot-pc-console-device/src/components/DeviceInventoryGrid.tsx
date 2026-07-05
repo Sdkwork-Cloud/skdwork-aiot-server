@@ -58,7 +58,9 @@ export function SdkworkDeviceInventoryGrid({
               </div>
               <div>
                 <div className="text-[var(--sdk-color-text-muted)]">Posture</div>
-                <div className="mt-1 font-medium text-[var(--sdk-color-text-primary)]">{device.postureScore}%</div>
+                <div className="mt-1 font-medium text-[var(--sdk-color-text-primary)]">
+                  {device.postureScore === null ? '—' : `${device.postureScore}%`}
+                </div>
               </div>
               <div>
                 <div className="text-[var(--sdk-color-text-muted)]">Peripherals</div>

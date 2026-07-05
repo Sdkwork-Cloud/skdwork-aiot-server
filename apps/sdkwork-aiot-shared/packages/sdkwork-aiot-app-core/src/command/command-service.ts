@@ -87,29 +87,43 @@ export async function pollCommandResult(
   const maxAttempts = options.maxAttempts ?? 12;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const eventsPage = await aiotClient.iot.devices.events.list(deviceId);
-    const items = Array.isArray(eventsPage.items) ? eventsPage.items : [];
-    const match = items.find((event) => {
-      const payload = readRecord(event.payload);
-      return readString(payload.commandId) === commandId;
-    });
+    let page = 1;
+    while (true) {
+      const eventsPage = await aiotClient.iot.devices.events.list(deviceId, {
+        page,
+        page_size: 200,
+        q: commandId,
+      });
+      const items = Array.isArray(eventsPage.items) ? eventsPage.items : [];
+      const match = items.find((event) => {
+        const payload = readRecord(event.payload);
+        const correlationId = readString(payload.correlationId) || readString(payload.commandId);
+        return correlationId === commandId;
+      });
 
-    if (match) {
-      const payload = readRecord(match.payload);
-      return {
-        ackAt: readString(payload.ackAt) || undefined,
-        capabilityName: readString(payload.capabilityName),
-        commandId,
-        commandName: readString(payload.commandName),
-        createdAt: readString(match.occurredAt, nowIso()),
-        deviceId,
-        requestPayload: payload.requestPayload ?? {},
-        result: payload.result as AiotCommand['result'],
-        resultAt: readString(payload.resultAt) || undefined,
-        sessionId: readString(payload.sessionId) || undefined,
-        status: readString(payload.status, 'completed'),
-        traceId: readString(payload.traceId) || undefined,
-      };
+      if (match) {
+        const payload = readRecord(match.payload);
+        return {
+          ackAt: readString(payload.ackAt) || undefined,
+          capabilityName: readString(payload.capabilityName),
+          commandId,
+          commandName: readString(payload.commandName),
+          createdAt: readString(match.occurredAt, nowIso()),
+          deviceId,
+          requestPayload: payload.requestPayload ?? {},
+          result: payload.result as AiotCommand['result'],
+          resultAt: readString(payload.resultAt) || undefined,
+          sessionId: readString(payload.sessionId) || undefined,
+          status: readString(payload.status, 'completed'),
+          traceId: readString(payload.traceId) || undefined,
+        };
+      }
+
+      const pageInfo = readRecord(eventsPage.pageInfo);
+      if (!pageInfo.hasMore || items.length === 0) {
+        break;
+      }
+      page += 1;
     }
 
     await sleep(intervalMs);

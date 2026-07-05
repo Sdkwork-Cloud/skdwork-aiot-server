@@ -2,10 +2,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
 mod outbox;
+mod pagination;
 
 pub use outbox::{
     AiotOutboxPendingEvent, OutboxEventRepository, OutboxEventRepositoryError,
     OUTBOX_STATUS_CLAIMED, OUTBOX_STATUS_FAILED, OUTBOX_STATUS_PENDING, OUTBOX_STATUS_PUBLISHED,
+};
+pub use pagination::{
+    offset_list_page_info, paginate_vec, AiotOffsetListResult, OffsetListPageParams,
+    DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -258,7 +263,18 @@ pub trait AiotDeviceRepository: Send + Sync {
         association: &AiotStorageAssociation,
         device_id: &str,
     ) -> Option<AiotDeviceRecord>;
-    fn list_devices(&self, association: &AiotStorageAssociation) -> Vec<AiotDeviceRecord>;
+    fn list_devices(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceRecord>, AiotDeviceRepositoryError>;
+    /// Rollout/batch targeting: returns device ids only, optionally filtered by product, bounded by limit.
+    fn list_device_ids_for_rollout(
+        &self,
+        association: &AiotStorageAssociation,
+        product_id: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Vec<String>, AiotDeviceRepositoryError>;
     fn update_device(
         &self,
         command: AiotDeviceUpdateCommand,
@@ -409,7 +425,8 @@ pub trait AiotCommandRepository: Send + Sync {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Result<Vec<AiotCommandRecord>, AiotCommandRepositoryError>;
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotCommandRecord>, AiotCommandRepositoryError>;
     fn cancel_command(
         &self,
         association: &AiotStorageAssociation,
@@ -418,7 +435,67 @@ pub trait AiotCommandRepository: Send + Sync {
     ) -> Result<Option<AiotCommandRecord>, AiotCommandRepositoryError>;
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AiotDeviceSessionRecord {
+    pub session_id: String,
+    pub device_id: String,
+    pub status: String,
+    pub connected_at: Option<String>,
+    pub disconnected_at: Option<String>,
+    pub transport: String,
+    pub protocol_id: String,
+    pub adapter_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AiotCommandDeliveryRecord {
+    pub id: String,
+    pub tenant_id: i64,
+    pub organization_id: i64,
+    pub command_id: String,
+    pub session_id: Option<String>,
+    pub delivery_state: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AiotCommandDeliveryEnqueueCommand {
+    pub association: AiotStorageAssociation,
+    pub command_id: String,
+    pub session_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AiotCommandDeliveryRepositoryError {
+    PersistenceFailure,
+    CommandNotFound,
+}
+
+pub trait AiotCommandDeliveryRepository: Send + Sync {
+    fn enqueue_delivery(
+        &self,
+        command: AiotCommandDeliveryEnqueueCommand,
+    ) -> Result<AiotCommandDeliveryRecord, AiotCommandDeliveryRepositoryError>;
+    fn list_pending_for_device(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        limit: i64,
+    ) -> Result<Vec<AiotCommandDeliveryRecord>, AiotCommandDeliveryRepositoryError>;
+    fn mark_delivered(
+        &self,
+        association: &AiotStorageAssociation,
+        command_id: &str,
+    ) -> Result<(), AiotCommandDeliveryRepositoryError>;
+}
+
 pub trait AiotDeviceSessionRepository: Send + Sync {
+    fn list_sessions(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceSessionRecord>, AiotDeviceRepositoryError>;
     fn disconnect_session(
         &self,
         association: &AiotStorageAssociation,
@@ -604,7 +681,8 @@ pub trait AiotEventRepository: Send + Sync {
         &self,
         association: &AiotStorageAssociation,
         device_id: Option<&str>,
-    ) -> Result<Vec<AiotDeviceEventRecord>, AiotEventRepositoryError>;
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceEventRecord>, AiotEventRepositoryError>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -749,8 +827,13 @@ impl AiotDeviceRepository for InMemoryAiotDeviceRepository {
             .cloned()
     }
 
-    fn list_devices(&self, association: &AiotStorageAssociation) -> Vec<AiotDeviceRecord> {
-        self.state
+    fn list_devices(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceRecord>, AiotDeviceRepositoryError> {
+        let items = self
+            .state
             .lock()
             .expect("in-memory device repo poisoned")
             .devices
@@ -760,7 +843,36 @@ impl AiotDeviceRepository for InMemoryAiotDeviceRepository {
                     && device.organization_id == association.organization_id
             })
             .cloned()
-            .collect()
+            .collect::<Vec<_>>();
+        Ok(paginate_vec(items, params))
+    }
+
+    fn list_device_ids_for_rollout(
+        &self,
+        association: &AiotStorageAssociation,
+        product_id: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Vec<String>, AiotDeviceRepositoryError> {
+        let mut ids = self
+            .state
+            .lock()
+            .expect("in-memory device repo poisoned")
+            .devices
+            .values()
+            .filter(|device| {
+                device.tenant_id == association.tenant_id
+                    && device.organization_id == association.organization_id
+                    && product_id.is_none_or(|product| device.product_id == product)
+            })
+            .map(|device| device.device_id.clone())
+            .collect::<Vec<_>>();
+        ids.sort();
+        ids.dedup();
+        if let Some(limit) = limit {
+            let max = limit.max(0) as usize;
+            ids.truncate(max);
+        }
+        Ok(ids)
     }
 
     fn update_device(
@@ -870,7 +982,8 @@ impl AiotCommandRepository for InMemoryAiotCommandRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Result<Vec<AiotCommandRecord>, AiotCommandRepositoryError> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotCommandRecord>, AiotCommandRepositoryError> {
         let mut commands = self
             .state
             .lock()
@@ -885,7 +998,7 @@ impl AiotCommandRepository for InMemoryAiotCommandRepository {
             .cloned()
             .collect::<Vec<_>>();
         commands.sort_by(|left, right| left.id.cmp(&right.id));
-        Ok(commands)
+        Ok(paginate_vec(commands, params))
     }
 
     fn cancel_command(
@@ -927,21 +1040,50 @@ impl InMemoryAiotDeviceSessionRepository {
 }
 
 impl AiotDeviceSessionRepository for InMemoryAiotDeviceSessionRepository {
+    fn list_sessions(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceSessionRecord>, AiotDeviceRepositoryError> {
+        let state = self.state.lock().expect("in-memory session repo poisoned");
+        let session_id = format!("session-{device_id}-primary");
+        let key = scoped_device_session_key(association, device_id, &session_id);
+        if state.disconnected_sessions.contains_key(&key) {
+            return Ok(paginate_vec(Vec::new(), params));
+        }
+        let session = AiotDeviceSessionRecord {
+            session_id,
+            device_id: device_id.to_string(),
+            status: "connected".to_string(),
+            connected_at: Some(default_timestamp().to_string()),
+            disconnected_at: None,
+            transport: "websocket".to_string(),
+            protocol_id: "xiaozhi.websocket".to_string(),
+            adapter_id: "xiaozhi".to_string(),
+        };
+        Ok(paginate_vec(vec![session], params))
+    }
+
     fn disconnect_session(
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
         session_id: &str,
     ) -> Result<bool, AiotDeviceRepositoryError> {
+        let expected_session_id = format!("session-{device_id}-primary");
+        if session_id != expected_session_id {
+            return Ok(false);
+        }
         let mut state = self.state.lock().expect("in-memory session repo poisoned");
-        let inserted = state
+        let key = scoped_device_session_key(association, device_id, session_id);
+        if state.disconnected_sessions.contains_key(&key) {
+            return Ok(false);
+        }
+        state
             .disconnected_sessions
-            .insert(
-                scoped_device_session_key(association, device_id, session_id),
-                default_timestamp().to_string(),
-            )
-            .is_none();
-        Ok(inserted)
+            .insert(key, default_timestamp().to_string());
+        Ok(true)
     }
 
     fn is_session_disconnected(
@@ -1027,7 +1169,8 @@ impl AiotEventRepository for InMemoryAiotEventRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: Option<&str>,
-    ) -> Result<Vec<AiotDeviceEventRecord>, AiotEventRepositoryError> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceEventRecord>, AiotEventRepositoryError> {
         let mut events = self
             .state
             .lock()
@@ -1044,7 +1187,92 @@ impl AiotEventRepository for InMemoryAiotEventRepository {
             .cloned()
             .collect::<Vec<_>>();
         events.sort_by(|left, right| left.id.cmp(&right.id));
-        Ok(events)
+        Ok(paginate_vec(events, params))
+    }
+}
+
+#[derive(Debug, Default)]
+struct InMemoryAiotCommandDeliveryRepositoryState {
+    next_pk: u64,
+    deliveries: BTreeMap<String, AiotCommandDeliveryRecord>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct InMemoryAiotCommandDeliveryRepository {
+    state: Arc<Mutex<InMemoryAiotCommandDeliveryRepositoryState>>,
+}
+
+impl InMemoryAiotCommandDeliveryRepository {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl AiotCommandDeliveryRepository for InMemoryAiotCommandDeliveryRepository {
+    fn enqueue_delivery(
+        &self,
+        command: AiotCommandDeliveryEnqueueCommand,
+    ) -> Result<AiotCommandDeliveryRecord, AiotCommandDeliveryRepositoryError> {
+        let mut state = self
+            .state
+            .lock()
+            .expect("in-memory command delivery repo poisoned");
+        state.next_pk = state.next_pk.saturating_add(1);
+        let record = AiotCommandDeliveryRecord {
+            id: state.next_pk.to_string(),
+            tenant_id: command.association.tenant_id,
+            organization_id: command.association.organization_id,
+            command_id: command.command_id.clone(),
+            session_id: command.session_id.clone(),
+            delivery_state: "pending".to_string(),
+            created_at: default_timestamp().to_string(),
+        };
+        state.deliveries.insert(command.command_id, record.clone());
+        Ok(record)
+    }
+
+    fn list_pending_for_device(
+        &self,
+        association: &AiotStorageAssociation,
+        _device_id: &str,
+        limit: i64,
+    ) -> Result<Vec<AiotCommandDeliveryRecord>, AiotCommandDeliveryRepositoryError> {
+        let limit = limit.max(1) as usize;
+        Ok(self
+            .state
+            .lock()
+            .expect("in-memory command delivery repo poisoned")
+            .deliveries
+            .values()
+            .filter(|record| {
+                record.tenant_id == association.tenant_id
+                    && record.organization_id == association.organization_id
+                    && record.delivery_state == "pending"
+            })
+            .take(limit)
+            .cloned()
+            .collect())
+    }
+
+    fn mark_delivered(
+        &self,
+        association: &AiotStorageAssociation,
+        command_id: &str,
+    ) -> Result<(), AiotCommandDeliveryRepositoryError> {
+        let mut state = self
+            .state
+            .lock()
+            .expect("in-memory command delivery repo poisoned");
+        let Some(record) = state.deliveries.get_mut(command_id) else {
+            return Err(AiotCommandDeliveryRepositoryError::CommandNotFound);
+        };
+        if record.tenant_id != association.tenant_id
+            || record.organization_id != association.organization_id
+        {
+            return Err(AiotCommandDeliveryRepositoryError::CommandNotFound);
+        }
+        record.delivery_state = "delivered".to_string();
+        Ok(())
     }
 }
 

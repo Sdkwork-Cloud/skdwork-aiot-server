@@ -9,6 +9,7 @@ import {
   readNumber,
   readRecord,
   readString,
+  listDevicePage,
 } from "@sdkwork/aiot-app-core";
 import {
   createEmptySdkworkIotCatalog,
@@ -46,6 +47,14 @@ function normalizeHealth(status: string): SdkworkIotNode["healthLevel"] {
   return "critical";
 }
 
+function readOptionalPostureScore(metadata: Record<string, unknown>): number | null {
+  if (!('postureScore' in metadata) || metadata.postureScore === null || metadata.postureScore === undefined) {
+    return null;
+  }
+  const score = readNumber(metadata.postureScore, Number.NaN);
+  return Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null;
+}
+
 function mapAiotDeviceToNode(device: AiotDevice): SdkworkIotNode {
   const metadata = readRecord(device.metadata);
   const deviceId = device.deviceId || device.id;
@@ -65,7 +74,7 @@ function mapAiotDeviceToNode(device: AiotDevice): SdkworkIotNode {
     lastSeenAt: device.lastSeenAt ?? "",
     name: device.displayName || deviceId,
     online: status.toLowerCase() === "online",
-    postureScore: readNumber(metadata.postureScore, status.toLowerCase() === "online" ? 90 : 30),
+    postureScore: readOptionalPostureScore(metadata),
     route: `/iot/${deviceId}`,
     sensors: [],
     site: readString(metadata.site, readString(metadata.location, "Unassigned")),
@@ -77,10 +86,8 @@ async function loadSdkNodes(options: CreateSdkworkIotServiceOptions): Promise<Sd
     return undefined;
   }
 
-  const page = await options.aiotClient.iot.devices.list();
-  return Array.isArray(page.items)
-    ? page.items.map((item) => mapAiotDeviceToNode(item as AiotDevice))
-    : [];
+  const page = await listDevicePage(options.aiotClient, { page: 1, page_size: 200 });
+  return page.items.map((item) => mapAiotDeviceToNode(item as AiotDevice));
 }
 
 export function createSdkworkIotService(

@@ -1,24 +1,29 @@
 //! Resolves rollout target devices and materializes per-device deployment records.
 
-use sdkwork_aiot_storage::{AiotDeviceRecord, AiotStorageAssociation};
+use sdkwork_aiot_storage::{AiotDeviceRepository, AiotStorageAssociation};
 use serde_json::Value;
 
 pub const ENTITY_FIRMWARE_DEPLOYMENT: &str = "firmware_deployment";
 const DEPLOYMENT_STATE_PENDING: &str = "pending";
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RolloutTargetPolicyError {
+    InvalidJson,
+}
+
 pub fn resolve_rollout_target_device_ids(
     target_policy_json: &str,
-    devices: &[AiotDeviceRecord],
-) -> Vec<String> {
-    let Ok(policy) = serde_json::from_str::<Value>(target_policy_json) else {
-        return Vec::new();
-    };
+    association: &AiotStorageAssociation,
+    device_repository: &dyn AiotDeviceRepository,
+) -> Result<Vec<String>, RolloutTargetPolicyError> {
+    let policy = serde_json::from_str::<Value>(target_policy_json)
+        .map_err(|_| RolloutTargetPolicyError::InvalidJson)?;
 
     let scope = policy.get("scope").and_then(Value::as_str).unwrap_or("all");
     let batch = policy
         .get("batch")
         .and_then(Value::as_u64)
-        .map(|value| value as usize);
+        .map(|value| value as i64);
 
     let mut candidates = match scope {
         "devices" => policy
@@ -39,26 +44,26 @@ pub fn resolve_rollout_target_device_ids(
                 .get("productId")
                 .and_then(Value::as_str)
                 .unwrap_or_default();
-            devices
-                .iter()
-                .filter(|device| device.product_id == product_id)
-                .map(|device| device.device_id.clone())
-                .collect()
+            device_repository
+                .list_device_ids_for_rollout(association, Some(product_id), batch)
+                .map_err(|_| RolloutTargetPolicyError::InvalidJson)?
         }
-        _ => devices
-            .iter()
-            .map(|device| device.device_id.clone())
-            .collect(),
+        _ => device_repository
+            .list_device_ids_for_rollout(association, None, batch)
+            .map_err(|_| RolloutTargetPolicyError::InvalidJson)?,
     };
 
     candidates.sort();
     candidates.dedup();
 
-    if let Some(limit) = batch {
-        candidates.truncate(limit);
+    if scope == "devices" {
+        if let Some(limit) = batch {
+            let max = limit.max(0) as usize;
+            candidates.truncate(max);
+        }
     }
 
-    candidates
+    Ok(candidates)
 }
 
 pub fn rollout_force_from_policy(target_policy_json: &str) -> u32 {
@@ -86,7 +91,74 @@ pub fn firmware_deployment_payload_json(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sdkwork_aiot_storage::AiotDeviceRecord;
+    use sdkwork_aiot_storage::{
+        AiotDeviceRecord, AiotDeviceRepository, AiotDeviceRepositoryError, AiotOffsetListResult,
+        OffsetListPageParams,
+    };
+
+    struct StubDeviceRepository {
+        devices: Vec<AiotDeviceRecord>,
+    }
+
+    impl AiotDeviceRepository for StubDeviceRepository {
+        fn create_device(
+            &self,
+            _command: sdkwork_aiot_storage::AiotDeviceCreateCommand,
+        ) -> Result<AiotDeviceRecord, AiotDeviceRepositoryError> {
+            Err(AiotDeviceRepositoryError::PersistenceFailure)
+        }
+
+        fn get_device(
+            &self,
+            _association: &AiotStorageAssociation,
+            _device_id: &str,
+        ) -> Option<AiotDeviceRecord> {
+            None
+        }
+
+        fn list_devices(
+            &self,
+            _association: &AiotStorageAssociation,
+            _params: OffsetListPageParams,
+        ) -> Result<AiotOffsetListResult<AiotDeviceRecord>, AiotDeviceRepositoryError> {
+            Ok(AiotOffsetListResult::empty())
+        }
+
+        fn list_device_ids_for_rollout(
+            &self,
+            _association: &AiotStorageAssociation,
+            product_id: Option<&str>,
+            limit: Option<i64>,
+        ) -> Result<Vec<String>, AiotDeviceRepositoryError> {
+            let mut ids = self
+                .devices
+                .iter()
+                .filter(|device| product_id.is_none_or(|product| device.product_id == product))
+                .map(|device| device.device_id.clone())
+                .collect::<Vec<_>>();
+            ids.sort();
+            ids.dedup();
+            if let Some(limit) = limit {
+                ids.truncate(limit.max(0) as usize);
+            }
+            Ok(ids)
+        }
+
+        fn update_device(
+            &self,
+            _command: sdkwork_aiot_storage::AiotDeviceUpdateCommand,
+        ) -> Result<AiotDeviceRecord, AiotDeviceRepositoryError> {
+            Err(AiotDeviceRepositoryError::PersistenceFailure)
+        }
+
+        fn delete_device(
+            &self,
+            _association: &AiotStorageAssociation,
+            _device_id: &str,
+        ) -> Result<(), AiotDeviceRepositoryError> {
+            Err(AiotDeviceRepositoryError::PersistenceFailure)
+        }
+    }
 
     fn sample_device(device_id: &str, product_id: &str) -> AiotDeviceRecord {
         AiotDeviceRecord {
@@ -104,14 +176,25 @@ mod tests {
         }
     }
 
+    fn association() -> AiotStorageAssociation {
+        AiotStorageAssociation::tenant_org(100001, 0)
+    }
+
     #[test]
     fn resolve_all_scope_honors_batch_limit() {
-        let devices = vec![
-            sample_device("device-b", "1009"),
-            sample_device("device-a", "1009"),
-            sample_device("device-c", "1009"),
-        ];
-        let targets = resolve_rollout_target_device_ids(r#"{"scope":"all","batch":2}"#, &devices);
+        let repo = StubDeviceRepository {
+            devices: vec![
+                sample_device("device-b", "1009"),
+                sample_device("device-a", "1009"),
+                sample_device("device-c", "1009"),
+            ],
+        };
+        let targets = resolve_rollout_target_device_ids(
+            r#"{"scope":"all","batch":2}"#,
+            &association(),
+            &repo,
+        )
+        .expect("targets");
         assert_eq!(
             targets,
             vec!["device-a".to_string(), "device-b".to_string()]
@@ -120,14 +203,26 @@ mod tests {
 
     #[test]
     fn resolve_devices_scope_uses_explicit_ids() {
-        let devices = vec![sample_device("device-a", "1009")];
+        let repo = StubDeviceRepository {
+            devices: vec![sample_device("device-a", "1009")],
+        };
         let targets = resolve_rollout_target_device_ids(
             r#"{"scope":"devices","deviceIds":["device-x","device-a"]}"#,
-            &devices,
-        );
+            &association(),
+            &repo,
+        )
+        .expect("targets");
         assert_eq!(
             targets,
             vec!["device-a".to_string(), "device-x".to_string()]
         );
+    }
+
+    #[test]
+    fn invalid_policy_json_returns_error() {
+        let repo = StubDeviceRepository { devices: vec![] };
+        let error = resolve_rollout_target_device_ids("{", &association(), &repo)
+            .expect_err("invalid json");
+        assert_eq!(error, RolloutTargetPolicyError::InvalidJson);
     }
 }

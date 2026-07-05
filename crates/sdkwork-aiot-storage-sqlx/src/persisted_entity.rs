@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use sdkwork_aiot_storage::AiotStorageAssociation;
+use sdkwork_aiot_storage::{AiotOffsetListResult, AiotStorageAssociation, OffsetListPageParams};
 use sqlx::Row;
 
 use crate::blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine, DeviceDbTransaction};
@@ -239,6 +239,90 @@ impl SqlitePersistedEntityRepository {
         })
         .ok()
         .flatten()
+    }
+
+    pub fn list_entities_page(
+        &self,
+        association: &AiotStorageAssociation,
+        entity_kind: &str,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<SqlitePersistedEntityRecord>, SqlitePersistedEntityError> {
+        let association = association.clone();
+        let entity_kind = entity_kind.to_string();
+        let limit = params.page_size.max(1);
+        let offset = params.offset.max(0);
+        self.db
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let count_sql = adapt_sqlite_placeholders(
+                    dialect,
+                    "SELECT COUNT(1) FROM iot_admin_entity
+                     WHERE tenant_id = ?1 AND organization_id = ?2 AND entity_kind = ?3 AND status = ?4",
+                );
+                let list_sql = adapt_sqlite_placeholders(
+                    dialect,
+                    "SELECT entity_kind, entity_key, payload_json
+                     FROM iot_admin_entity
+                     WHERE tenant_id = ?1 AND organization_id = ?2 AND entity_kind = ?3 AND status = ?4
+                     ORDER BY id ASC
+                     LIMIT ?5 OFFSET ?6",
+                );
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let total: i64 = sqlx::query_scalar(&count_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&entity_kind)
+                            .bind(ENTITY_STATUS_ACTIVE)
+                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&entity_kind)
+                            .bind(ENTITY_STATUS_ACTIVE)
+                            .bind(limit)
+                            .bind(offset)
+                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        Ok::<AiotOffsetListResult<SqlitePersistedEntityRecord>, sqlx::Error>(
+                            AiotOffsetListResult {
+                            items: rows
+                                .iter()
+                                .filter_map(|row| row_to_entity_record(row).ok())
+                                .collect(),
+                            total,
+                        })
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let total: i64 = sqlx::query_scalar(&count_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&entity_kind)
+                            .bind(ENTITY_STATUS_ACTIVE)
+                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&entity_kind)
+                            .bind(ENTITY_STATUS_ACTIVE)
+                            .bind(limit)
+                            .bind(offset)
+                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        Ok::<AiotOffsetListResult<SqlitePersistedEntityRecord>, sqlx::Error>(
+                            AiotOffsetListResult {
+                            items: rows
+                                .iter()
+                                .filter_map(|row| row_to_entity_record_postgres(row).ok())
+                                .collect(),
+                            total,
+                        })
+                    }
+                }
+            })
+            .map_err(|_: sqlx::Error| SqlitePersistedEntityError::PersistenceFailure)
     }
 
     pub fn list_entities(

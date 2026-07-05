@@ -72,7 +72,7 @@ export interface SdkworkManagedDevice {
   online: boolean;
   osName: string;
   peripherals: SdkworkDevicePeripheral[];
-  postureScore: number;
+  postureScore: number | null;
   route: string;
 }
 
@@ -239,7 +239,7 @@ export function sortSdkworkManagedDevices(
     (left, right) =>
       Number(right.isPrimary) - Number(left.isPrimary)
       || toHealthRank(left.healthLevel) - toHealthRank(right.healthLevel)
-      || right.postureScore - left.postureScore
+      || (right.postureScore ?? 0) - (left.postureScore ?? 0)
       || left.name.localeCompare(right.name),
   );
 }
@@ -251,7 +251,10 @@ export function summarizeSdkworkDevices(
     (state, device) => {
       state.totalDevices += 1;
       state.connectedPeripherals += device.peripherals.filter((peripheral) => peripheral.connected).length;
-      state.postureAverage += clampScore(device.postureScore);
+      if (device.postureScore !== null) {
+        state.postureAverage += clampScore(device.postureScore);
+        state.scoredDevices += 1;
+      }
 
       if (device.healthLevel === "critical") {
         state.criticalDevices += 1;
@@ -273,6 +276,7 @@ export function summarizeSdkworkDevices(
       healthyDevices: 0,
       postureAverage: 0,
       primaryDeviceId: null,
+      scoredDevices: 0,
       totalDevices: 0,
       warningDevices: 0,
     },
@@ -280,8 +284,8 @@ export function summarizeSdkworkDevices(
 
   return {
     ...summary,
-    postureAverage: summary.totalDevices > 0
-      ? clampScore(summary.postureAverage / summary.totalDevices)
+    postureAverage: summary.scoredDevices > 0
+      ? clampScore(summary.postureAverage / summary.scoredDevices)
       : 0,
   };
 }

@@ -60,7 +60,6 @@ export function createSdkworkVoiceService(
       }
 
       await voiceService.speakOnDevice(selectedDeviceId, text);
-      await voiceService.speakLocally(text);
     },
 
     async startListening(onTranscript) {

@@ -1,18 +1,21 @@
 //! Production Xiaozhi intelligence bridge: kernel agent runtime + Claw Router speech.
 
 mod claw_router;
-mod config;
-mod kernel_runtime;
+pub mod config;
+pub mod kernel_runtime;
 mod mcp;
-mod session_map;
+pub mod session_map;
 mod speech;
 
 pub use config::{
     intelligence_mode_from_env, is_kernel_mode, IntelligenceConfig, IntelligenceMode,
-    ENV_INTELLIGENCE_ASR_MODEL, ENV_INTELLIGENCE_KERNEL_AGENT_ID, ENV_INTELLIGENCE_KERNEL_HTTP_URL,
-    ENV_INTELLIGENCE_MODE, ENV_INTELLIGENCE_TTS_MODEL, ENV_INTELLIGENCE_TTS_VOICE,
+    DEFAULT_KERNEL_AGENT_ID, ENV_INTELLIGENCE_ASR_MODEL, ENV_INTELLIGENCE_KERNEL_AGENT_ID,
+    ENV_INTELLIGENCE_KERNEL_HTTP_URL, ENV_INTELLIGENCE_MODE, ENV_INTELLIGENCE_TTS_MODEL,
+    ENV_INTELLIGENCE_TTS_VOICE, KERNEL_PUBLIC_HTTP_URL_FALLBACK_ENV,
 };
+pub use kernel_runtime::KernelRuntimeClient;
 pub use mcp::{KernelMcpStack, KernelMcpToolInvoker, KernelMcpToolProvider};
+pub use session_map::SessionMap;
 pub use speech::{KernelSpeechPipeline, SpeechTurnInput, SpeechTurnOutput};
 
 use std::sync::Arc;

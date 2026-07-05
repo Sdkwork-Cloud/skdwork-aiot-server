@@ -12,7 +12,7 @@ const families = [
     familyName: 'sdkwork-aiot-app-sdk',
     authority: 'apis/app-api/iot/sdkwork-aiot-app-api.openapi.json',
     sdkgen: 'sdks/sdkwork-aiot-app-sdk/openapi/sdkwork-aiot-app-sdk.sdkgen.json',
-    assembly: 'sdks/sdkwork-aiot-app-sdk/.sdkwork-assembly.json',
+    assembly: 'sdks/sdkwork-aiot-app-sdk/sdk-manifest.json',
     routeManifest: 'sdks/_route-manifests/app-api/sdkwork-aiot-app-api.route-manifest.json',
     typescriptRoot: 'sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript',
     apiSurface: 'app-api',
@@ -23,7 +23,7 @@ const families = [
     familyName: 'sdkwork-aiot-backend-sdk',
     authority: 'apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json',
     sdkgen: 'sdks/sdkwork-aiot-backend-sdk/openapi/sdkwork-aiot-backend-sdk.sdkgen.json',
-    assembly: 'sdks/sdkwork-aiot-backend-sdk/.sdkwork-assembly.json',
+    assembly: 'sdks/sdkwork-aiot-backend-sdk/sdk-manifest.json',
     routeManifest:
       'sdks/_route-manifests/backend-api/sdkwork-aiot-admin-api.route-manifest.json',
     typescriptRoot: 'sdks/sdkwork-aiot-backend-sdk/sdkwork-aiot-backend-sdk-typescript',
@@ -109,13 +109,13 @@ function validateFamily(family) {
     throw new Error(`${family.sdkgen} packageName mismatch for ${family.familyName}`);
   }
 
-  const assembly = readJson(family.assembly);
-  const assemblyText = readText(family.assembly);
-  if (!assemblyText.includes(family.authority.replace(/^apis\//, '../../apis/'))) {
+  const manifest = readJson(family.assembly);
+  const manifestText = readText(family.assembly);
+  if (!manifestText.includes(family.authority.replace(/^apis\//, '../../apis/'))) {
     throw new Error(`${family.assembly} must reference ${family.authority}`);
   }
   const generatedProtocols =
-    assembly.generatedProtocols ?? assembly.discoverySurface?.generatedProtocols;
+    manifest.generatedProtocols ?? manifest.discoverySurface?.generatedProtocols;
   if (!Array.isArray(generatedProtocols) || !generatedProtocols.includes('http')) {
     throw new Error(`${family.assembly} must declare generatedProtocols http`);
   }

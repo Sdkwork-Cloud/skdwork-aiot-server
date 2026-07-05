@@ -64,7 +64,7 @@ export function SdkworkIotFleetGrid({
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-[var(--sdk-color-text-secondary)]">
-                  {node.site} | Firmware {node.firmwareVersion} | Posture {node.postureScore}%
+                  {node.site} | Firmware {node.firmwareVersion} | Posture {node.postureScore === null ? '—' : `${node.postureScore}%`}
                 </p>
               </div>
 

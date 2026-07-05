@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bot, MessageSquarePlus, Send } from 'lucide-react';
+import { listDevicePage, readDeviceId } from '@sdkwork/aiot-app-core';
+import { getAiotAppSdkClient } from '@sdkwork/aiot-pc-core';
 import { Button, LoadingBlock, StatusNotice } from '@sdkwork/ui-pc-react';
 
 import { createAgentWorkspaceManifest } from './agent';
@@ -16,6 +18,8 @@ export interface SdkworkAgentPageProps {
 export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps) {
   const service = useMemo(() => serviceProp ?? createSdkworkAgentService(), [serviceProp]);
   const [catalog, setCatalog] = useState<SdkworkAgentCatalog>(() => service.getCatalog());
+  const [devices, setDevices] = useState<Array<{ deviceId: string; displayName: string }>>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -25,11 +29,28 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
   }, [service]);
 
   useEffect(() => {
-    if (catalog.sessions.length === 0) {
-      service.createSession(undefined, '默认智能体会话');
-      refresh();
+    void listDevicePage(getAiotAppSdkClient(), { page: 1, page_size: 200 })
+      .then((page) => {
+        setDevices(
+          page.items.map((device) => ({
+            deviceId: readDeviceId(device),
+            displayName: String(device.displayName ?? readDeviceId(device)),
+          })),
+        );
+      })
+      .catch((cause) => {
+        setError(cause instanceof Error ? cause.message : '设备列表加载失败');
+      });
+  }, []);
+
+  const handleCreateSession = () => {
+    if (!selectedDeviceId) {
+      setError('请先选择设备');
+      return;
     }
-  }, [catalog.sessions.length, refresh, service]);
+    service.createSession(selectedDeviceId, `会话 ${catalog.sessions.length + 1}`);
+    refresh();
+  };
 
   const handleSend = async () => {
     if (!draft.trim()) {
@@ -49,8 +70,8 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
     }
   };
 
-  if (!catalog.activeSession) {
-    return <LoadingBlock label="初始化智能体会话..." />;
+  if (!catalog.activeSession && catalog.sessions.length === 0) {
+    return <LoadingBlock label="选择设备后开始智能体会话..." />;
   }
 
   return (
@@ -70,44 +91,60 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
         {error ? <StatusNotice tone="danger">{error}</StatusNotice> : null}
 
         <section className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
-          <aside className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-zinc-900">会话</h2>
-              <Button
-                onClick={() => {
-                  service.createSession(undefined, `会话 ${catalog.sessions.length + 1}`);
-                  refresh();
-                }}
-                type="button"
-                variant="outline"
-              >
-                <MessageSquarePlus className="h-4 w-4" />
-              </Button>
+          <aside className="space-y-4">
+            <div className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <h2 className="text-sm font-semibold text-zinc-900">设备</h2>
+              <div className="mt-3 max-h-48 space-y-2 overflow-y-auto">
+                {devices.map((device) => (
+                  <button
+                    className={`w-full rounded-2xl px-3 py-2 text-left text-sm ${
+                      selectedDeviceId === device.deviceId
+                        ? 'bg-indigo-50 text-indigo-700'
+                        : 'text-zinc-600 hover:bg-zinc-50'
+                    }`}
+                    key={device.deviceId}
+                    onClick={() => setSelectedDeviceId(device.deviceId)}
+                    type="button"
+                  >
+                    {device.displayName}
+                  </button>
+                ))}
+                {devices.length === 0 ? <p className="text-sm text-zinc-500">暂无可用设备</p> : null}
+              </div>
             </div>
-            <div className="mt-3 space-y-2">
-              {catalog.sessions.map((session) => (
-                <button
-                  className={`w-full rounded-2xl px-3 py-2 text-left text-sm ${
-                    catalog.activeSession?.id === session.id
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-zinc-600 hover:bg-zinc-50'
-                  }`}
-                  key={session.id}
-                  onClick={() => {
-                    service.selectSession(session.id);
-                    refresh();
-                  }}
-                  type="button"
-                >
-                  {session.title}
-                </button>
-              ))}
+
+            <div className="rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-zinc-900">会话</h2>
+                <Button onClick={handleCreateSession} type="button" variant="outline">
+                  <MessageSquarePlus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="mt-3 space-y-2">
+                {catalog.sessions.map((session) => (
+                  <button
+                    className={`w-full rounded-2xl px-3 py-2 text-left text-sm ${
+                      catalog.activeSession?.id === session.id
+                        ? 'bg-indigo-50 text-indigo-700'
+                        : 'text-zinc-600 hover:bg-zinc-50'
+                    }`}
+                    key={session.id}
+                    onClick={() => {
+                      service.selectSession(session.id);
+                      refresh();
+                    }}
+                    type="button"
+                  >
+                    {session.title}
+                  </button>
+                ))}
+              </div>
             </div>
           </aside>
 
           <div className="flex min-h-[32rem] flex-col rounded-3xl border border-zinc-200 bg-white shadow-sm">
             <div className="flex-1 space-y-4 overflow-y-auto p-5">
-              {catalog.messages.map((message) => (
+              {catalog.activeSession ? catalog.messages.map((message) => (
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 ${
                     message.role === 'user'
@@ -121,13 +158,16 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
                   </div>
                   {message.content || (message.status === 'pending' ? '思考中...' : '')}
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm text-zinc-500">选择设备并创建会话后开始对话。</p>
+              )}
             </div>
 
             <div className="border-t border-zinc-200 p-4">
               <div className="flex gap-3">
                 <input
                   className="flex-1 rounded-2xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:border-indigo-500"
+                  disabled={!catalog.activeSession || isSending}
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
@@ -138,7 +178,7 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
                   placeholder="向 AIoT 智能体发送指令..."
                   value={draft}
                 />
-                <Button disabled={isSending} onClick={() => void handleSend()} type="button">
+                <Button disabled={!catalog.activeSession || isSending} onClick={() => void handleSend()} type="button">
                   <Send className="mr-2 h-4 w-4" />
                   发送
                 </Button>

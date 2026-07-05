@@ -17,11 +17,6 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts",
       "default": "./src/index.ts"
-    },
-    "./generated": {
-      "types": "./generated/server-openapi/src/index.ts",
-      "import": "./generated/server-openapi/src/index.ts",
-      "default": "./generated/server-openapi/src/index.ts"
     }
   },
   "sideEffects": false,

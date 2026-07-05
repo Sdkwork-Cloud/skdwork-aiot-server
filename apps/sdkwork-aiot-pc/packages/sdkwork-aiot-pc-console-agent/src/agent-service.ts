@@ -14,11 +14,10 @@ export interface SdkworkAgentCatalog {
 
 export interface CreateSdkworkAgentServiceOptions {
   agentService?: AiotAgentService;
-  defaultDeviceId?: string;
 }
 
 export interface SdkworkAgentServicePort {
-  createSession(deviceId?: string, title?: string): AiotConversationSession;
+  createSession(deviceId: string, title?: string): AiotConversationSession;
   getCatalog(): SdkworkAgentCatalog;
   selectSession(sessionId: string | null): void;
   sendMessage(text: string): Promise<AiotConversationMessage>;
@@ -32,11 +31,10 @@ export function createSdkworkAgentService(
   });
 
   let activeSessionId: string | null = null;
-  const defaultDeviceId = options.defaultDeviceId ?? 'default-voice-device';
 
   return {
     createSession(deviceId, title) {
-      const session = agentService.createSession(deviceId ?? defaultDeviceId, title);
+      const session = agentService.createSession(deviceId, title);
       activeSessionId = session.id;
       return session;
     },
@@ -61,7 +59,11 @@ export function createSdkworkAgentService(
 
     async sendMessage(text) {
       const catalog = this.getCatalog();
-      const session = catalog.activeSession ?? this.createSession(defaultDeviceId);
+      const session = catalog.activeSession;
+      if (!session?.deviceId) {
+        throw new Error('请先选择设备后再发送智能体消息。');
+      }
+
       return agentService.sendMessage({
         deviceId: session.deviceId,
         sessionId: session.id,

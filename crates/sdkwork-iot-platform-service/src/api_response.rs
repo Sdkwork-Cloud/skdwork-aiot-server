@@ -1,11 +1,9 @@
 use sdkwork_aiot_transport::{HttpRequest, HttpResponse, HttpStatus};
 use sdkwork_utils_rust::{
-    SdkWorkApiResponse, SdkWorkCommandData, SdkWorkPageData, SdkWorkResourceData,
-    SDKWORK_TRACE_ID_HEADER,
+    offset_list_page_info, OffsetListPageParams, SdkWorkApiResponse, SdkWorkCommandData,
+    SdkWorkPageData, SdkWorkResourceData, SDKWORK_TRACE_ID_HEADER,
 };
 use sdkwork_web_core::trace::{resolve_problem_trace_id, trace_id_from_traceparent};
-
-use crate::pagination::{paginated_page_info, PageQuery};
 
 pub fn resolve_trace_id(request: &HttpRequest) -> String {
     let traceparent = request
@@ -28,17 +26,17 @@ pub fn success_json_response(status: HttpStatus, body: String, trace_id: &str) -
 
 pub fn success_list_body(
     items_json: &str,
-    page_query: PageQuery,
-    total: usize,
+    page_params: OffsetListPageParams,
+    total: i64,
     trace_id: &str,
 ) -> String {
-    let page_info = paginated_page_info(page_query, total);
+    let page_info = offset_list_page_info(total, page_params);
     let payload = SdkWorkPageData::<serde_json::Value> {
         items: parse_json_array(items_json),
         page_info,
     };
     serde_json::to_string(&SdkWorkApiResponse::success(payload, trace_id))
-        .unwrap_or_else(|_| legacy_fallback_list(items_json, page_query, total, trace_id))
+        .unwrap_or_else(|_| legacy_fallback_list(items_json, page_params, total, trace_id))
 }
 
 pub fn success_resource_body(data_json: &str, trace_id: &str) -> String {
@@ -63,13 +61,13 @@ pub fn success_command_body(resource_id: &str, status: Option<&str>, trace_id: &
 pub fn json_collection_response(
     request: &HttpRequest,
     items_joined: &str,
-    page_query: PageQuery,
-    total: usize,
+    page_params: OffsetListPageParams,
+    total: i64,
 ) -> HttpResponse {
     let trace_id = resolve_trace_id(request);
     success_json_response(
         HttpStatus::Ok,
-        success_list_body(items_joined, page_query, total, &trace_id),
+        success_list_body(items_joined, page_params, total, &trace_id),
         &trace_id,
     )
 }
@@ -114,11 +112,11 @@ fn parse_json_array(items_json: &str) -> Vec<serde_json::Value> {
 
 fn legacy_fallback_list(
     items_json: &str,
-    page_query: PageQuery,
-    total: usize,
+    page_params: OffsetListPageParams,
+    total: i64,
     trace_id: &str,
 ) -> String {
-    let page_info = paginated_page_info(page_query, total);
+    let page_info = offset_list_page_info(total, page_params);
     format!(
         r#"{{"code":0,"data":{{"items":[{items_json}],"pageInfo":{}}},"traceId":"{trace_id}"}}"#,
         serde_json::to_string(&page_info).unwrap_or_else(|_| "{}".to_string())
@@ -129,16 +127,14 @@ fn legacy_fallback_list(
 mod tests {
     use super::*;
     use sdkwork_aiot_transport::HttpRequest;
+    use sdkwork_utils_rust::OffsetListPageParams;
 
     #[test]
     fn list_envelope_uses_sdkwork_v3_shape() {
         let request = HttpRequest::new("GET", "/app/v3/api/iot/devices");
         let body = success_list_body(
             "",
-            PageQuery {
-                page: 1,
-                page_size: 20,
-            },
+            OffsetListPageParams::parse(Some(1), Some(20)),
             0,
             "trace-1",
         );

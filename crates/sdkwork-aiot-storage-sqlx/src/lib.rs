@@ -60,14 +60,16 @@ pub use persisted_entity::{
 pub use postgres_sync::{BlockingPostgresPool, StoragePostgresError};
 use schema::ensure_device_schema;
 use sdkwork_aiot_storage::{
-    table_contract, AiotCommandCreateCommand, AiotCommandRecord, AiotCommandRepository,
-    AiotCommandRepositoryError, AiotDeviceCreateCommand, AiotDeviceEventCreateCommand,
-    AiotDeviceEventRecord, AiotDeviceRecord, AiotDeviceRepository, AiotDeviceRepositoryError,
-    AiotDeviceSessionRepository, AiotDeviceTwinRepository, AiotDeviceTwinRepositoryError,
-    AiotDeviceTwinSnapshot, AiotDeviceUpdateCommand, AiotEventRepository, AiotEventRepositoryError,
+    paginate_vec, table_contract, AiotCommandCreateCommand, AiotCommandDeliveryEnqueueCommand,
+    AiotCommandDeliveryRecord, AiotCommandDeliveryRepository, AiotCommandDeliveryRepositoryError,
+    AiotCommandRecord, AiotCommandRepository, AiotCommandRepositoryError, AiotDeviceCreateCommand,
+    AiotDeviceEventCreateCommand, AiotDeviceEventRecord, AiotDeviceRecord, AiotDeviceRepository,
+    AiotDeviceRepositoryError, AiotDeviceSessionRecord, AiotDeviceSessionRepository,
+    AiotDeviceTwinRepository, AiotDeviceTwinRepositoryError, AiotDeviceTwinSnapshot,
+    AiotDeviceUpdateCommand, AiotEventRepository, AiotEventRepositoryError, AiotOffsetListResult,
     AiotProtocolDeadLetterIntent, AiotProtocolIngestUnitOfWork, AiotProtocolStorageCommand,
     AiotStorageAssociation, AiotStorageWriteReceipt, AiotTwinPropertyUpsertCommand,
-    OUTBOX_STATUS_PENDING,
+    OffsetListPageParams, OUTBOX_STATUS_PENDING,
 };
 use sdkwork_database_sqlx::PoolError;
 use sdkwork_utils_rust::uuid;
@@ -225,6 +227,9 @@ struct InMemorySqlxDeviceRepositoryState {
     events: Vec<AiotDeviceEventRecord>,
     twins: BTreeMap<String, AiotDeviceTwinSnapshot>,
     disconnected_sessions: BTreeSet<String>,
+    sessions: Vec<AiotDeviceSessionRecord>,
+    next_delivery_pk: u64,
+    deliveries: BTreeMap<String, AiotCommandDeliveryRecord>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -307,8 +312,13 @@ impl AiotDeviceRepository for InMemorySqlxDeviceRepository {
             .cloned()
     }
 
-    fn list_devices(&self, association: &AiotStorageAssociation) -> Vec<AiotDeviceRecord> {
-        self.state
+    fn list_devices(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceRecord>, AiotDeviceRepositoryError> {
+        let items = self
+            .state
             .lock()
             .expect("sqlx device repo state poisoned")
             .devices
@@ -318,7 +328,35 @@ impl AiotDeviceRepository for InMemorySqlxDeviceRepository {
                     && device.organization_id == association.organization_id
             })
             .cloned()
-            .collect()
+            .collect::<Vec<_>>();
+        Ok(paginate_vec(items, params))
+    }
+
+    fn list_device_ids_for_rollout(
+        &self,
+        association: &AiotStorageAssociation,
+        product_id: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Vec<String>, AiotDeviceRepositoryError> {
+        let mut ids = self
+            .state
+            .lock()
+            .expect("sqlx device repo state poisoned")
+            .devices
+            .values()
+            .filter(|device| {
+                device.tenant_id == association.tenant_id
+                    && device.organization_id == association.organization_id
+                    && product_id.is_none_or(|product| device.product_id == product)
+            })
+            .map(|device| device.device_id.clone())
+            .collect::<Vec<_>>();
+        ids.sort();
+        ids.dedup();
+        if let Some(limit) = limit {
+            ids.truncate(limit.max(0) as usize);
+        }
+        Ok(ids)
     }
 
     fn update_device(
@@ -451,7 +489,8 @@ impl AiotCommandRepository for InMemorySqlxDeviceRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Result<Vec<AiotCommandRecord>, AiotCommandRepositoryError> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotCommandRecord>, AiotCommandRepositoryError> {
         let mut commands = self
             .state
             .lock()
@@ -466,7 +505,7 @@ impl AiotCommandRepository for InMemorySqlxDeviceRepository {
             .cloned()
             .collect::<Vec<_>>();
         commands.sort_by(|left, right| left.id.cmp(&right.id));
-        Ok(commands)
+        Ok(paginate_vec(commands, params))
     }
 
     fn cancel_command(
@@ -489,6 +528,24 @@ impl AiotCommandRepository for InMemorySqlxDeviceRepository {
 }
 
 impl AiotDeviceSessionRepository for InMemorySqlxDeviceRepository {
+    fn list_sessions(
+        &self,
+        _association: &AiotStorageAssociation,
+        device_id: &str,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceSessionRecord>, AiotDeviceRepositoryError> {
+        let sessions = self
+            .state
+            .lock()
+            .expect("sqlx device repo state poisoned")
+            .sessions
+            .iter()
+            .filter(|session| session.device_id == device_id)
+            .cloned()
+            .collect::<Vec<_>>();
+        Ok(paginate_vec(sessions, params))
+    }
+
     fn disconnect_session(
         &self,
         association: &AiotStorageAssociation,
@@ -560,7 +617,8 @@ impl AiotEventRepository for InMemorySqlxDeviceRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: Option<&str>,
-    ) -> Result<Vec<AiotDeviceEventRecord>, AiotEventRepositoryError> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceEventRecord>, AiotEventRepositoryError> {
         let mut events = self
             .state
             .lock()
@@ -577,7 +635,75 @@ impl AiotEventRepository for InMemorySqlxDeviceRepository {
             .cloned()
             .collect::<Vec<_>>();
         events.sort_by(|left, right| left.id.cmp(&right.id));
-        Ok(events)
+        Ok(paginate_vec(events, params))
+    }
+}
+
+impl AiotCommandDeliveryRepository for InMemorySqlxDeviceRepository {
+    fn enqueue_delivery(
+        &self,
+        command: AiotCommandDeliveryEnqueueCommand,
+    ) -> Result<AiotCommandDeliveryRecord, AiotCommandDeliveryRepositoryError> {
+        let mut state = self.state.lock().expect("sqlx device repo state poisoned");
+        let command_key = scoped_command_key(&command.association, &command.command_id);
+        if !state.commands.contains_key(&command_key) {
+            return Err(AiotCommandDeliveryRepositoryError::CommandNotFound);
+        }
+        state.next_delivery_pk = state.next_delivery_pk.saturating_add(1);
+        let record = AiotCommandDeliveryRecord {
+            id: state.next_delivery_pk.to_string(),
+            tenant_id: command.association.tenant_id,
+            organization_id: command.association.organization_id,
+            command_id: command.command_id.clone(),
+            session_id: command.session_id.clone(),
+            delivery_state: "pending".to_string(),
+            created_at: default_timestamp().to_string(),
+        };
+        state.deliveries.insert(command.command_id, record.clone());
+        Ok(record)
+    }
+
+    fn list_pending_for_device(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        limit: i64,
+    ) -> Result<Vec<AiotCommandDeliveryRecord>, AiotCommandDeliveryRepositoryError> {
+        let limit = limit.max(1) as usize;
+        let state = self.state.lock().expect("sqlx device repo state poisoned");
+        Ok(state
+            .deliveries
+            .values()
+            .filter(|record| {
+                record.tenant_id == association.tenant_id
+                    && record.organization_id == association.organization_id
+                    && record.delivery_state == "pending"
+                    && state
+                        .commands
+                        .get(&scoped_command_key(association, &record.command_id))
+                        .is_some_and(|command| command.device_id == device_id)
+            })
+            .take(limit)
+            .cloned()
+            .collect())
+    }
+
+    fn mark_delivered(
+        &self,
+        association: &AiotStorageAssociation,
+        command_id: &str,
+    ) -> Result<(), AiotCommandDeliveryRepositoryError> {
+        let mut state = self.state.lock().expect("sqlx device repo state poisoned");
+        let Some(record) = state.deliveries.get_mut(command_id) else {
+            return Err(AiotCommandDeliveryRepositoryError::CommandNotFound);
+        };
+        if record.tenant_id != association.tenant_id
+            || record.organization_id != association.organization_id
+        {
+            return Err(AiotCommandDeliveryRepositoryError::CommandNotFound);
+        }
+        record.delivery_state = "delivered".to_string();
+        Ok(())
     }
 }
 

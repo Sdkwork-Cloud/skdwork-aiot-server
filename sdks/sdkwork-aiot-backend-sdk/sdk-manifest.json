@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "sdkFamily": "sdkwork-aiot-backend-sdk",
+  "sdkName": "sdkwork-aiot-backend-sdk",
+  "packageName": "@sdkwork/aiot-backend-sdk",
+  "transportPackageName": "sdkwork-aiot-backend-sdk-generated-typescript",
+  "typescript": {
+    "composedRoot": "sdkwork-aiot-backend-sdk-typescript",
+    "composedEntry": "sdkwork-aiot-backend-sdk-typescript/src/index.ts",
+    "transportRoot": "sdkwork-aiot-backend-sdk-typescript/generated/server-openapi",
+    "transportEntry": "sdkwork-aiot-backend-sdk-typescript/generated/server-openapi/src/index.ts"
+  },
+  "workspace": "sdkwork-aiot-backend-sdk",
+  "title": "SDKWork AIoT Backend API SDK",
+  "apiVersion": "0.1.0",
+  "authoritySpec": "../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json",
+  "generationInputSpec": "../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json",
+  "discoverySurface": {
+    "sdkTarget": "backend",
+    "apiPrefix": "/backend/v3/api/iot",
+    "generatedProtocols": [
+      "http"
+    ],
+    "manualTransports": []
+  },
+  "languages": [
+    {
+      "language": "typescript",
+      "workspace": "sdkwork-aiot-backend-sdk-typescript",
+      "generationState": "reserved",
+      "releaseState": "not_published",
+      "version": "0.1.0",
+      "description": "SDKWork AIoT backend API generated transport SDK",
+      "consumerSurface": {
+        "primaryClient": "SdkworkAiotBackendClient",
+        "apiPrefix": "/backend/v3/api/iot"
+      },
+      "consumerPackageName": "@sdkwork/aiot-backend-sdk",
+      "transportPackageName": "sdkwork-aiot-backend-sdk-generated-typescript"
+    }
+  ],
+  "sdkOwner": "sdkwork-aiot",
+  "apiAuthority": "sdkwork-aiot-backend-api",
+  "sdkDependencies": []
+}

@@ -76,7 +76,7 @@ export function SdkworkIotPostureOverview({
               onClick={() => onTriggerIntent?.(intent.id)}
               type="button"
             >
-              Trigger {intent.label}
+              Go to {intent.label}
             </button>
           </article>
         ))}

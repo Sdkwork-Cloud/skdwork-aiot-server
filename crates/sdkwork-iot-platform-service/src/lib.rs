@@ -6,7 +6,7 @@ mod pagination;
 use api_response::{
     json_collection_response, standard_command_acceptance_response, standard_resource_response,
 };
-use pagination::PageQuery;
+use pagination::{page_params_from_request, PageQuery};
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 
 use crate::firmware_rollout_planner::{
     firmware_deployment_payload_json, resolve_rollout_target_device_ids, rollout_force_from_policy,
+    RolloutTargetPolicyError,
 };
 use sdkwork_aiot_contract::{
     AiotRequestContext, IOT_PERMISSION_COMMANDS_CANCEL, IOT_PERMISSION_COMMANDS_EXECUTE,
@@ -31,14 +32,15 @@ use sdkwork_aiot_service_host::{
     standard_aiot_runtime, AiotRuntime, RuntimeBuildError, RuntimeMode,
 };
 use sdkwork_aiot_storage::{
-    AiotCommandCreateCommand, AiotCommandRecord, AiotCommandRepository, AiotCommandRepositoryError,
-    AiotDeviceCreateCommand, AiotDeviceEventRecord, AiotDeviceRecord, AiotDeviceRepository,
-    AiotDeviceRepositoryError, AiotDeviceSessionRepository, AiotDeviceTwinRepository,
-    AiotDeviceTwinRepositoryError, AiotDeviceTwinSnapshot, AiotDeviceUpdateCommand,
-    AiotEventRepository, AiotEventRepositoryError, AiotStorageAssociation,
-    AiotTwinPropertyUpsertCommand, InMemoryAiotCommandRepository, InMemoryAiotDeviceRepository,
+    paginate_vec, AiotCommandCreateCommand, AiotCommandRecord, AiotCommandRepository,
+    AiotCommandRepositoryError, AiotDeviceCreateCommand, AiotDeviceEventRecord, AiotDeviceRecord,
+    AiotDeviceRepository, AiotDeviceRepositoryError, AiotDeviceSessionRecord,
+    AiotDeviceSessionRepository, AiotDeviceTwinRepository, AiotDeviceTwinRepositoryError,
+    AiotDeviceTwinSnapshot, AiotDeviceUpdateCommand, AiotEventRepository, AiotEventRepositoryError,
+    AiotOffsetListResult, AiotStorageAssociation, AiotTwinPropertyUpsertCommand,
+    InMemoryAiotCommandRepository, InMemoryAiotDeviceRepository,
     InMemoryAiotDeviceSessionRepository, InMemoryAiotDeviceTwinRepository,
-    InMemoryAiotEventRepository,
+    InMemoryAiotEventRepository, OffsetListPageParams,
 };
 use sdkwork_aiot_transport::{build_health_response, HttpRequest, HttpResponse, HttpStatus};
 use sdkwork_iot_device_service::{CapabilityDefinition, CapabilityKind, ProtocolProfile};
@@ -121,7 +123,8 @@ pub trait AiotCredentialRepository: Send + Sync {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Vec<AiotDeviceCredentialRecord>;
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceCredentialRecord>, HttpResponse>;
 
     fn get_credential(
         &self,
@@ -208,23 +211,37 @@ impl AiotCredentialRepository for SqliteCredentialRepositoryAdapter {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Vec<AiotDeviceCredentialRecord> {
-        self.inner
-            .list_credentials(association, device_id)
-            .into_iter()
-            .map(|record| AiotDeviceCredentialRecord {
-                credential_id: record.credential_id,
-                tenant_id: record.tenant_id,
-                organization_id: record.organization_id,
-                device_id: record.device_id,
-                credential_type: record.credential_type,
-                status: record.status,
-                expires_at: record.expires_at,
-                created_at: record.created_at,
-                revoked_at: record.revoked_at,
-                issued_secret: None,
-            })
-            .collect()
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceCredentialRecord>, HttpResponse> {
+        let page = self
+            .inner
+            .list_credentials(association, device_id, params)
+            .map_err(|_| {
+                problem_response(
+                    HttpStatus::InternalServerError,
+                    "api.storage.read_failed",
+                    "Storage read failed",
+                )
+            })?;
+        Ok(AiotOffsetListResult {
+            items: page
+                .items
+                .into_iter()
+                .map(|record| AiotDeviceCredentialRecord {
+                    credential_id: record.credential_id,
+                    tenant_id: record.tenant_id,
+                    organization_id: record.organization_id,
+                    device_id: record.device_id,
+                    credential_type: record.credential_type,
+                    status: record.status,
+                    expires_at: record.expires_at,
+                    created_at: record.created_at,
+                    revoked_at: record.revoked_at,
+                    issued_secret: None,
+                })
+                .collect(),
+            total: page.total,
+        })
     }
 
     fn get_credential(
@@ -1407,11 +1424,19 @@ impl AiotApiServer {
     fn list_products(
         &self,
         context: &AiotRequestContext,
-    ) -> Result<Vec<AiotProductRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotProductRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         let mut records = standard_product_records();
-        records.extend(self.catalog_repository.list_products(&association));
-        Ok(records)
+        for record in self.catalog_repository.list_products(&association) {
+            if !records
+                .iter()
+                .any(|existing| existing.product_id == record.product_id)
+            {
+                records.push(record);
+            }
+        }
+        Ok(paginate_vec(records, params))
     }
 
     fn get_product(
@@ -1469,11 +1494,19 @@ impl AiotApiServer {
     fn list_hardware_profiles(
         &self,
         context: &AiotRequestContext,
-    ) -> Result<Vec<AiotHardwareProfileRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotHardwareProfileRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         let mut records = standard_hardware_profile_records();
-        records.extend(self.catalog_repository.list_hardware_profiles(&association));
-        Ok(records)
+        for record in self.catalog_repository.list_hardware_profiles(&association) {
+            if !records
+                .iter()
+                .any(|existing| existing.hardware_profile_id == record.hardware_profile_id)
+            {
+                records.push(record);
+            }
+        }
+        Ok(paginate_vec(records, params))
     }
 
     fn get_hardware_profile(
@@ -1531,11 +1564,19 @@ impl AiotApiServer {
     fn list_protocol_profiles(
         &self,
         context: &AiotRequestContext,
-    ) -> Result<Vec<AiotProtocolProfileRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotProtocolProfileRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         let mut records = standard_protocol_profile_records();
-        records.extend(self.catalog_repository.list_protocol_profiles(&association));
-        Ok(records)
+        for record in self.catalog_repository.list_protocol_profiles(&association) {
+            if !records
+                .iter()
+                .any(|existing| existing.protocol_profile_id == record.protocol_profile_id)
+            {
+                records.push(record);
+            }
+        }
+        Ok(paginate_vec(records, params))
     }
 
     fn get_protocol_profile(
@@ -1608,11 +1649,19 @@ impl AiotApiServer {
     fn list_capability_models(
         &self,
         context: &AiotRequestContext,
-    ) -> Result<Vec<AiotCapabilityModelRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotCapabilityModelRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         let mut records = standard_capability_model_records();
-        records.extend(self.catalog_repository.list_capability_models(&association));
-        Ok(records)
+        for record in self.catalog_repository.list_capability_models(&association) {
+            if !records
+                .iter()
+                .any(|existing| existing.capability_model_id == record.capability_model_id)
+            {
+                records.push(record);
+            }
+        }
+        Ok(paginate_vec(records, params))
     }
 
     fn update_capability_model(
@@ -1665,9 +1714,12 @@ impl AiotApiServer {
     fn list_devices(
         &self,
         context: &AiotRequestContext,
-    ) -> Result<Vec<AiotDeviceRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        Ok(self.device_repository.list_devices(&association))
+        self.device_repository
+            .list_devices(&association, params)
+            .map_err(device_repository_error_to_response)
     }
 
     fn get_device(
@@ -1721,7 +1773,7 @@ impl AiotApiServer {
     ) -> Result<AiotCommandRecord, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         let mut command = AiotCommandCreateCommand::new(
-            association,
+            association.clone(),
             device_id.to_string(),
             payload.capability_name,
             payload.command_name,
@@ -1745,19 +1797,25 @@ impl AiotApiServer {
             command = command.with_session_id(session_id);
         }
 
-        self.command_repository
+        let record = self
+            .command_repository
             .create_command(command)
-            .map_err(command_repository_error_to_response)
+            .map_err(command_repository_error_to_response)?;
+
+        self.maybe_process_assistant_chat_kernel(&association, &record)?;
+
+        Ok(record)
     }
 
     fn list_commands(
         &self,
         context: &AiotRequestContext,
         device_id: &str,
-    ) -> Result<Vec<AiotCommandRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotCommandRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         self.command_repository
-            .list_commands(&association, device_id)
+            .list_commands(&association, device_id, params)
             .map_err(command_repository_error_to_response)
     }
 
@@ -1765,33 +1823,20 @@ impl AiotApiServer {
         &self,
         context: &AiotRequestContext,
         device_id: &str,
-    ) -> Result<Vec<AiotDeviceSessionRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceSessionRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        let device = self
+        if self
             .device_repository
             .get_device(&association, device_id)
-            .ok_or_else(|| device_not_found_response(device_id))?;
-
-        let status = device.status.to_ascii_lowercase();
-        if matches!(status.as_str(), "online" | "active" | "connected") {
-            let session_id = format!("session-{}-primary", device.device_id);
-            if !self
-                .device_session_repository
-                .is_session_disconnected(&association, device_id, &session_id)
-                .map_err(device_repository_error_to_response)?
-            {
-                return Ok(vec![AiotDeviceSessionRecord {
-                    session_id,
-                    device_id: device.device_id,
-                    status: "connected".to_string(),
-                    connected_at: Some(device.last_seen_at),
-                    disconnected_at: None,
-                    transport: "websocket".to_string(),
-                }]);
-            }
+            .is_none()
+        {
+            return Err(device_not_found_response(device_id));
         }
 
-        Ok(Vec::new())
+        self.device_session_repository
+            .list_sessions(&association, device_id, params)
+            .map_err(device_repository_error_to_response)
     }
 
     fn disconnect_device_session(
@@ -1801,24 +1846,20 @@ impl AiotApiServer {
         session_id: &str,
     ) -> Result<(), HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        let device = self
+        if self
             .device_repository
             .get_device(&association, device_id)
-            .ok_or_else(|| device_not_found_response(device_id))?;
-        let expected_session_id = format!("session-{}-primary", device.device_id);
-        if session_id != expected_session_id {
-            return Err(device_session_not_found_response(session_id));
-        }
-        if self
-            .device_session_repository
-            .is_session_disconnected(&association, device_id, session_id)
-            .map_err(device_repository_error_to_response)?
+            .is_none()
         {
-            return Err(device_session_not_found_response(session_id));
+            return Err(device_not_found_response(device_id));
         }
-        self.device_session_repository
+        let disconnected = self
+            .device_session_repository
             .disconnect_session(&association, device_id, session_id)
             .map_err(device_repository_error_to_response)?;
+        if !disconnected {
+            return Err(device_session_not_found_response(session_id));
+        }
         Ok(())
     }
 
@@ -1826,55 +1867,40 @@ impl AiotApiServer {
         &self,
         context: &AiotRequestContext,
         device_id: &str,
-    ) -> Result<Vec<AiotDeviceCapabilityRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceCapabilityRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         let device = self
             .device_repository
             .get_device(&association, device_id)
             .ok_or_else(|| device_not_found_response(device_id))?;
 
-        let mut capabilities = vec![
-            AiotDeviceCapabilityRecord {
-                capability_name: "audio.capture".to_string(),
-                capability_kind: "sensor".to_string(),
-                status: "enabled".to_string(),
-            },
-            AiotDeviceCapabilityRecord {
-                capability_name: "audio.playback".to_string(),
-                capability_kind: "actuator".to_string(),
-                status: "enabled".to_string(),
-            },
-            AiotDeviceCapabilityRecord {
-                capability_name: "system.reboot".to_string(),
-                capability_kind: "control".to_string(),
-                status: "enabled".to_string(),
-            },
-        ];
+        let product = self.get_product(context, &device.product_id)?;
+        let capability_model =
+            self.get_capability_model(context, &product.default_capability_model_id)?;
 
-        if device
-            .chip_family
-            .as_deref()
-            .unwrap_or_default()
-            .contains("s3")
-        {
-            capabilities.push(AiotDeviceCapabilityRecord {
-                capability_name: "display.render".to_string(),
-                capability_kind: "actuator".to_string(),
+        let capabilities = capability_model
+            .capabilities
+            .iter()
+            .map(|definition| AiotDeviceCapabilityRecord {
+                capability_name: definition.name.clone(),
+                capability_kind: capability_kind_name(definition.kind).to_string(),
                 status: "enabled".to_string(),
-            });
-        }
+            })
+            .collect::<Vec<_>>();
 
-        Ok(capabilities)
+        Ok(paginate_vec(capabilities, params))
     }
 
     fn list_events(
         &self,
         context: &AiotRequestContext,
         device_id: Option<&str>,
-    ) -> Result<Vec<AiotDeviceEventRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceEventRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         self.event_repository
-            .list_events(&association, device_id)
+            .list_events(&association, device_id, params)
             .map_err(event_repository_error_to_response)
     }
 
@@ -1933,7 +1959,8 @@ impl AiotApiServer {
         &self,
         context: &AiotRequestContext,
         device_id: &str,
-    ) -> Result<Vec<AiotDeviceCredentialRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceCredentialRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
         if self
             .device_repository
@@ -1942,9 +1969,10 @@ impl AiotApiServer {
         {
             return Err(device_not_found_response(device_id));
         }
-        Ok(self
-            .credential_repository
-            .list_credentials(&association, device_id))
+        let credentials =
+            self.credential_repository
+                .list_credentials(&association, device_id, params)?;
+        Ok(credentials)
     }
 
     fn create_device_credential(
@@ -2044,9 +2072,12 @@ impl AiotApiServer {
     fn list_firmware_artifacts(
         &self,
         context: &AiotRequestContext,
-    ) -> Result<Vec<AiotFirmwareArtifactRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotFirmwareArtifactRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        Ok(self.firmware_repository.list_artifacts(&association))
+        Ok(self
+            .firmware_repository
+            .list_artifacts_page(&association, params))
     }
 
     fn get_firmware_artifact(
@@ -2089,9 +2120,18 @@ impl AiotApiServer {
         payload: AiotFirmwareRolloutCreatePayload,
     ) -> Result<AiotFirmwareRolloutRecord, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        let devices = self.device_repository.list_devices(&association);
-        let target_device_ids =
-            resolve_rollout_target_device_ids(&payload.target_policy_json, &devices);
+        let target_device_ids = resolve_rollout_target_device_ids(
+            &payload.target_policy_json,
+            &association,
+            self.device_repository.as_ref(),
+        )
+        .map_err(|error| match error {
+            RolloutTargetPolicyError::InvalidJson => problem_response(
+                HttpStatus::BadRequest,
+                "api.firmware.rollout.invalid_target_policy",
+                "Firmware rollout target policy JSON is invalid",
+            ),
+        })?;
         self.firmware_repository
             .create_rollout(association, payload, &target_device_ids)
             .map_err(firmware_repository_error_to_response)
@@ -2100,9 +2140,12 @@ impl AiotApiServer {
     fn list_firmware_rollouts(
         &self,
         context: &AiotRequestContext,
-    ) -> Result<Vec<AiotFirmwareRolloutRecord>, HttpResponse> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotFirmwareRolloutRecord>, HttpResponse> {
         let association = request_context_to_storage_association(context)?;
-        Ok(self.firmware_repository.list_rollouts(&association))
+        Ok(self
+            .firmware_repository
+            .list_rollouts_page(&association, params))
     }
 
     fn get_firmware_rollout(
@@ -2137,6 +2180,120 @@ impl AiotApiServer {
         self.firmware_repository
             .delete_rollout(&association, rollout_id)
             .map_err(firmware_repository_error_to_response)
+    }
+
+    fn maybe_process_assistant_chat_kernel(
+        &self,
+        #[cfg_attr(not(feature = "intelligence-kernel"), allow(unused_variables))]
+        association: &AiotStorageAssociation,
+        command: &AiotCommandRecord,
+    ) -> Result<(), HttpResponse> {
+        if command.capability_name != "assistant" || command.command_name != "chat" {
+            return Ok(());
+        }
+
+        #[cfg(feature = "intelligence-kernel")]
+        {
+            use sdkwork_aiot_intelligence_bridge::{
+                is_kernel_mode, KernelRuntimeClient, SessionMap, DEFAULT_KERNEL_AGENT_ID,
+                ENV_INTELLIGENCE_KERNEL_AGENT_ID, ENV_INTELLIGENCE_KERNEL_HTTP_URL,
+                KERNEL_PUBLIC_HTTP_URL_FALLBACK_ENV,
+            };
+            use sdkwork_aiot_storage::AiotDeviceEventCreateCommand;
+
+            if !is_kernel_mode() {
+                return Ok(());
+            }
+
+            let user_text = assistant_chat_user_text(&command.request_payload_json);
+            if user_text.is_empty() {
+                return Ok(());
+            }
+
+            let kernel_http_url = std::env::var(ENV_INTELLIGENCE_KERNEL_HTTP_URL)
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .or_else(|| {
+                    std::env::var(KERNEL_PUBLIC_HTTP_URL_FALLBACK_ENV)
+                        .ok()
+                        .filter(|value| !value.trim().is_empty())
+                })
+                .ok_or_else(|| {
+                    problem_response(
+                        HttpStatus::InternalServerError,
+                        "api.intelligence.kernel_misconfigured",
+                        "Kernel runtime HTTP URL is not configured",
+                    )
+                })?;
+
+            let agent_id = std::env::var(ENV_INTELLIGENCE_KERNEL_AGENT_ID)
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or_else(|| DEFAULT_KERNEL_AGENT_ID.to_string());
+
+            let kernel = KernelRuntimeClient::new(kernel_http_url).map_err(|error| {
+                problem_response(
+                    HttpStatus::InternalServerError,
+                    "api.intelligence.kernel_unavailable",
+                    &error,
+                )
+            })?;
+            let session_map = SessionMap::new();
+            let xiaozhi_session_id = command
+                .session_id
+                .as_deref()
+                .unwrap_or(command.device_id.as_str());
+            let kernel_session_id = kernel
+                .ensure_session(&session_map, xiaozhi_session_id, &agent_id)
+                .map_err(|error| {
+                    problem_response(
+                        HttpStatus::BadGateway,
+                        "api.intelligence.kernel_session_failed",
+                        &error,
+                    )
+                })?;
+            let reply = kernel
+                .send_user_message(&kernel_session_id, &user_text)
+                .map_err(|error| {
+                    problem_response(
+                        HttpStatus::BadGateway,
+                        "api.intelligence.kernel_message_failed",
+                        &error,
+                    )
+                })?;
+
+            let occurred_at = current_rfc3339_timestamp();
+            let event_payload = serde_json::json!({
+                "commandId": command.command_id,
+                "capabilityName": command.capability_name,
+                "commandName": command.command_name,
+                "status": "completed",
+                "sessionId": command.session_id,
+                "traceId": command.trace_id,
+                "result": {
+                    "resultPayload": { "text": reply },
+                    "occurredAt": occurred_at,
+                }
+            })
+            .to_string();
+
+            let mut event_command = AiotDeviceEventCreateCommand::new(
+                association.clone(),
+                &command.device_id,
+                "iot.command.resultRecorded",
+            )
+            .with_message_routing("command", "result", "http", "cloud_to_app")
+            .with_payload_json(event_payload);
+            if let Some(trace_id) = command.trace_id.as_deref() {
+                event_command = event_command.with_trace_id(trace_id);
+            }
+
+            self.event_repository
+                .record_event(event_command)
+                .map_err(event_repository_error_to_response)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -2307,11 +2464,10 @@ pub fn handle_resolved_api_request(
 
     match (server.surface, route.operation_id) {
         (AiotApiSurface::Admin, "protocolAdapters.list") => {
-            let page_query = PageQuery::from_request(request);
+            let page_params = page_params_from_request(request);
             let items = protocol_adapter_item_json(server.runtime());
-            let total = items.len();
-            let (start, end) = page_query.slice_bounds(total);
-            json_collection_response(request, &items[start..end].join(","), page_query, total)
+            let page = paginate_vec(items, page_params);
+            json_collection_response(request, &page.items.join(","), page_params, page.total)
         }
         (AiotApiSurface::Admin, "runtime.capacity.retrieve") => {
             standard_resource_response(request, HttpStatus::Ok, runtime_capacity_data_json())
@@ -2324,18 +2480,14 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            match server.list_products(context) {
-                Ok(records) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = records.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_product_collection_response(
-                        request,
-                        &records[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_products(context, page_params) {
+                Ok(page) => standard_product_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2410,18 +2562,14 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            match server.list_hardware_profiles(context) {
-                Ok(records) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = records.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_hardware_profile_collection_response(
-                        request,
-                        &records[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_hardware_profiles(context, page_params) {
+                Ok(page) => standard_hardware_profile_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2504,18 +2652,14 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            match server.list_protocol_profiles(context) {
-                Ok(records) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = records.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_protocol_profile_collection_response(
-                        request,
-                        &records[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_protocol_profiles(context, page_params) {
+                Ok(page) => standard_protocol_profile_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2598,18 +2742,14 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            match server.list_capability_models(context) {
-                Ok(records) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = records.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_capability_model_collection_response(
-                        request,
-                        &records[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_capability_models(context, page_params) {
+                Ok(page) => standard_capability_model_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2640,18 +2780,14 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            match server.list_devices(context) {
-                Ok(devices) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = devices.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_device_collection_response(
-                        request,
-                        &devices[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_devices(context, page_params) {
+                Ok(page) => standard_device_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2664,18 +2800,14 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            match server.list_device_sessions(context, device_id) {
-                Ok(sessions) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = sessions.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_device_session_collection_response(
-                        request,
-                        &sessions[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_device_sessions(context, device_id, page_params) {
+                Ok(page) => standard_device_session_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2703,18 +2835,14 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            match server.list_device_capabilities(context, device_id) {
-                Ok(capabilities) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = capabilities.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_device_capability_collection_response(
-                        request,
-                        &capabilities[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_device_capabilities(context, device_id, page_params) {
+                Ok(page) => standard_device_capability_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2727,18 +2855,14 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            match server.list_commands(context, device_id) {
-                Ok(commands) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = commands.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_command_collection_response(
-                        request,
-                        &commands[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_commands(context, device_id, page_params) {
+                Ok(page) => standard_command_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2770,18 +2894,14 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            match server.list_events(context, None) {
-                Ok(events) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = events.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_event_collection_response(
-                        request,
-                        &events[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_events(context, None, page_params) {
+                Ok(page) => standard_event_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2794,18 +2914,14 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            match server.list_events(context, Some(device_id)) {
-                Ok(events) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = events.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_event_collection_response(
-                        request,
-                        &events[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_events(context, Some(device_id), page_params) {
+                Ok(page) => standard_event_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -2937,18 +3053,14 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            match server.list_device_credentials(context, device_id) {
-                Ok(credentials) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = credentials.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_device_credential_collection_response(
-                        request,
-                        &credentials[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_device_credentials(context, device_id, page_params) {
+                Ok(page) => standard_device_credential_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -3066,18 +3178,14 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            match server.list_firmware_artifacts(context) {
-                Ok(artifacts) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = artifacts.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_firmware_artifact_collection_response(
-                        request,
-                        &artifacts[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_firmware_artifacts(context, page_params) {
+                Ok(page) => standard_firmware_artifact_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -3154,18 +3262,14 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            match server.list_firmware_rollouts(context) {
-                Ok(rollouts) => {
-                    let page_query = PageQuery::from_request(request);
-                    let total = rollouts.len();
-                    let (start, end) = page_query.slice_bounds(total);
-                    standard_firmware_rollout_collection_response(
-                        request,
-                        &rollouts[start..end],
-                        page_query,
-                        total,
-                    )
-                }
+            let page_params = page_params_from_request(request);
+            match server.list_firmware_rollouts(context, page_params) {
+                Ok(page) => standard_firmware_rollout_collection_response(
+                    request,
+                    &page.items,
+                    page_params,
+                    page.total,
+                ),
                 Err(problem) => problem,
             }
         }
@@ -3723,6 +3827,9 @@ fn standard_capability_models() -> Vec<AiotCapabilityModel> {
                     .with_command("rebootNow")
                     .with_event("rebooted")
                     .with_protocol_mapping("xiaozhi.websocket", "system.reboot"),
+                CapabilityDefinition::new("assistant", CapabilityKind::Command)
+                    .with_command("chat")
+                    .with_event("chatCompleted"),
             ],
         },
         AiotCapabilityModel {
@@ -3760,7 +3867,7 @@ fn standard_product_collection_response(
     request: &HttpRequest,
     products: &[AiotProductRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = products
         .iter()
@@ -3782,7 +3889,7 @@ fn standard_hardware_profile_collection_response(
     request: &HttpRequest,
     profiles: &[AiotHardwareProfileRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = profiles
         .iter()
@@ -3804,7 +3911,7 @@ fn standard_protocol_profile_collection_response(
     request: &HttpRequest,
     profiles: &[AiotProtocolProfileRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = profiles
         .iter()
@@ -3826,7 +3933,7 @@ fn standard_capability_model_collection_response(
     request: &HttpRequest,
     models: &[AiotCapabilityModelRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = models
         .iter()
@@ -3947,16 +4054,6 @@ struct AiotFirmwareRolloutRecord {
     artifact_id: String,
     target_policy_json: String,
     status: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct AiotDeviceSessionRecord {
-    session_id: String,
-    device_id: String,
-    status: String,
-    connected_at: Option<String>,
-    disconnected_at: Option<String>,
-    transport: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -4486,8 +4583,10 @@ impl InMemoryAiotCredentialRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Vec<AiotDeviceCredentialRecord> {
-        self.state
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceCredentialRecord>, HttpResponse> {
+        let items = self
+            .state
             .lock()
             .expect("in-memory credential repo poisoned")
             .credentials
@@ -4498,7 +4597,8 @@ impl InMemoryAiotCredentialRepository {
                     && credential.device_id == device_id
             })
             .cloned()
-            .collect()
+            .collect::<Vec<_>>();
+        Ok(paginate_vec(items, params))
     }
 
     fn get_credential(
@@ -4554,8 +4654,9 @@ impl AiotCredentialRepository for InMemoryAiotCredentialRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Vec<AiotDeviceCredentialRecord> {
-        InMemoryAiotCredentialRepository::list_credentials(self, association, device_id)
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceCredentialRecord>, HttpResponse> {
+        InMemoryAiotCredentialRepository::list_credentials(self, association, device_id, params)
     }
 
     fn get_credential(
@@ -5892,7 +5993,7 @@ fn standard_command_collection_response(
     request: &HttpRequest,
     commands: &[AiotCommandRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = commands
         .iter()
@@ -5946,7 +6047,7 @@ fn standard_event_collection_response(
     request: &HttpRequest,
     events: &[AiotDeviceEventRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = events
         .iter()
@@ -6004,7 +6105,7 @@ fn standard_device_session_collection_response(
     request: &HttpRequest,
     sessions: &[AiotDeviceSessionRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = sessions
         .iter()
@@ -6030,7 +6131,7 @@ fn standard_device_capability_collection_response(
     request: &HttpRequest,
     capabilities: &[AiotDeviceCapabilityRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = capabilities
         .iter()
@@ -6052,7 +6153,7 @@ fn standard_device_credential_collection_response(
     request: &HttpRequest,
     credentials: &[AiotDeviceCredentialRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = credentials
         .iter()
@@ -6102,7 +6203,7 @@ fn standard_firmware_artifact_collection_response(
     request: &HttpRequest,
     artifacts: &[AiotFirmwareArtifactRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = artifacts
         .iter()
@@ -6141,7 +6242,7 @@ fn standard_firmware_rollout_collection_response(
     request: &HttpRequest,
     rollouts: &[AiotFirmwareRolloutRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = rollouts
         .iter()
@@ -6173,7 +6274,7 @@ fn standard_device_collection_response(
     request: &HttpRequest,
     devices: &[AiotDeviceRecord],
     page_query: PageQuery,
-    total: usize,
+    total: i64,
 ) -> HttpResponse {
     let items = devices
         .iter()
@@ -6401,6 +6502,32 @@ where
         .map(|value| format!(r#""{}""#, json_escape(value)))
         .collect::<Vec<_>>()
         .join(",")
+}
+
+#[cfg(feature = "intelligence-kernel")]
+fn assistant_chat_user_text(payload_json: &str) -> String {
+    serde_json::from_str::<JsonValue>(payload_json)
+        .ok()
+        .and_then(|value| {
+            value
+                .get("text")
+                .or_else(|| value.get("content"))
+                .and_then(JsonValue::as_str)
+                .map(str::to_string)
+        })
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
+#[cfg(feature = "intelligence-kernel")]
+fn current_rfc3339_timestamp() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0);
+    format!("{seconds}")
 }
 
 fn json_escape(value: &str) -> String {

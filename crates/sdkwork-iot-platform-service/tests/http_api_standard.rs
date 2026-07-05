@@ -421,7 +421,7 @@ fn backend_device_sessions_and_capabilities_routes_are_device_scoped_and_typed()
 
     let create = handle_api_request_bytes(
         &admin,
-        b"POST /backend/v3/api/iot/devices HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.write\r\n\r\n{\"deviceId\":\"session-capability-001\",\"displayName\":\"Session Capability Device\",\"productId\":\"9101\",\"chipFamily\":\"esp32_s3\"}",
+        b"POST /backend/v3/api/iot/devices HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.write\r\n\r\n{\"deviceId\":\"session-capability-001\",\"displayName\":\"Session Capability Device\",\"productId\":\"9001\",\"chipFamily\":\"esp32_s3\"}",
     )
     .expect("backend devices.create session-capability");
     assert!(create.starts_with("HTTP/1.1 201"));
@@ -2317,8 +2317,21 @@ fn backend_device_create_maps_storage_failure_to_500_problem() {
         fn list_devices(
             &self,
             _association: &sdkwork_aiot_storage::AiotStorageAssociation,
-        ) -> Vec<sdkwork_aiot_storage::AiotDeviceRecord> {
-            Vec::new()
+            _params: sdkwork_aiot_storage::OffsetListPageParams,
+        ) -> Result<
+            sdkwork_aiot_storage::AiotOffsetListResult<sdkwork_aiot_storage::AiotDeviceRecord>,
+            sdkwork_aiot_storage::AiotDeviceRepositoryError,
+        > {
+            Ok(sdkwork_aiot_storage::AiotOffsetListResult::empty())
+        }
+
+        fn list_device_ids_for_rollout(
+            &self,
+            _association: &sdkwork_aiot_storage::AiotStorageAssociation,
+            _product_id: Option<&str>,
+            _limit: Option<i64>,
+        ) -> Result<Vec<String>, sdkwork_aiot_storage::AiotDeviceRepositoryError> {
+            Ok(Vec::new())
         }
 
         fn update_device(
@@ -3258,11 +3271,15 @@ fn problem_code_from_response(response: &str) -> String {
         response.contains("application/problem+json"),
         "expected problem response, got {response}"
     );
-    response_body_json(response)
-        .get("code")
-        .and_then(serde_json::Value::as_str)
+    let body = response_body_json(response);
+    body.get("code")
+        .and_then(|value| {
+            value
+                .as_str()
+                .map(str::to_string)
+                .or_else(|| value.as_i64().map(|code| code.to_string()))
+        })
         .unwrap_or_else(|| panic!("problem response missing code field: {response}"))
-        .to_string()
 }
 
 fn assert_problem_component_declares_problem_json_media_type(openapi_json: &serde_json::Value) {

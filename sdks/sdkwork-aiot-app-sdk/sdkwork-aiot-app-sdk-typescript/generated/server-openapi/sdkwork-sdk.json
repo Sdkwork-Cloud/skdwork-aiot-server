@@ -1,10 +1,12 @@
 {
   "schemaVersion": 1,
   "name": "sdkwork-aiot-app-sdk",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "language": "typescript",
   "sdkType": "app",
-  "packageName": "@sdkwork/aiot-app-sdk",
+  "packageName": "sdkwork-aiot-app-sdk-generated-typescript",
+  "transportPackageName": "sdkwork-aiot-app-sdk-generated-typescript",
+  "consumerPackageName": "@sdkwork/aiot-app-sdk",
   "generator": "@sdkwork/sdk-generator",
   "capabilities": {
     "supportsGeneratedTests": true,

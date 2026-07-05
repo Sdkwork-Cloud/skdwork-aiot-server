@@ -2015,6 +2015,7 @@ dependencies = [
  "sdkwork-aiot-storage-sqlx",
  "sdkwork-aiot-transport",
  "sdkwork-utils-rust",
+ "serde_json",
  "sqlx",
 ]
 
@@ -2092,6 +2093,9 @@ dependencies = [
 [[package]]
 name = "sdkwork-aiot-storage"
 version = "0.1.0"
+dependencies = [
+ "sdkwork-utils-rust",
+]
 
 [[package]]
 name = "sdkwork-aiot-storage-sqlx"
@@ -2293,6 +2297,7 @@ version = "0.1.0"
 dependencies = [
  "sdkwork-aiot-app-context",
  "sdkwork-aiot-contract",
+ "sdkwork-aiot-intelligence-bridge",
  "sdkwork-aiot-observability",
  "sdkwork-aiot-protocol",
  "sdkwork-aiot-service-host",

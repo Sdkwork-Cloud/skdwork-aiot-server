@@ -1,10 +1,12 @@
 {
   "schemaVersion": 1,
   "name": "sdkwork-aiot-backend-sdk",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "language": "typescript",
   "sdkType": "backend",
-  "packageName": "@sdkwork/aiot-backend-sdk",
+  "packageName": "sdkwork-aiot-backend-sdk-generated-typescript",
+  "transportPackageName": "sdkwork-aiot-backend-sdk-generated-typescript",
+  "consumerPackageName": "@sdkwork/aiot-backend-sdk",
   "generator": "@sdkwork/sdk-generator",
   "capabilities": {
     "supportsGeneratedTests": true,

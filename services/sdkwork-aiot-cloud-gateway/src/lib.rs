@@ -1,6 +1,12 @@
+mod active_ws_sessions;
+mod command_delivery_worker;
 mod mqtt_bridge_readiness;
 mod xiaozhi_ws_media_session;
 
+pub use active_ws_sessions::{
+    register_active_ws_session, touch_active_ws_session, unregister_active_ws_session,
+};
+pub use command_delivery_worker::start_command_delivery_worker;
 pub use mqtt_bridge_readiness::{
     mqtt_bridge_health_status, mqtt_bridge_readiness_probe, MqttBridgeRuntimeSnapshot,
     MqttBridgeRuntimeState, ENV_MQTT_BRIDGE_ENABLE,
@@ -1789,6 +1795,49 @@ fn xiaozhi_websocket_binary_audio_reply(
         .encode(builder.build())
         .map_err(|error| TransportError::new(error.code))?;
     Ok(WebSocketSessionReply::Binary(frame.payload))
+}
+
+pub fn xiaozhi_speak_websocket_replies(
+    request: &HttpRequest,
+    session_id: &str,
+    text: &str,
+) -> Result<Vec<WebSocketSessionReply>, TransportError> {
+    xiaozhi_simulator_websocket_speech_replies(request, session_id, text, text)
+}
+
+pub fn xiaozhi_mqtt_device_token_valid(
+    inbound_json: &str,
+    options: &XiaozhiSessionOptions,
+) -> bool {
+    if dev_mode_enabled() {
+        return true;
+    }
+
+    let Some(device_id) = json_string_field(inbound_json, "device_id") else {
+        return false;
+    };
+    let token = json_string_field(inbound_json, "token")
+        .or_else(|| json_string_field(inbound_json, "authorization"))
+        .map(|value| {
+            value
+                .strip_prefix("Bearer ")
+                .or_else(|| value.strip_prefix("bearer "))
+                .map(str::trim)
+                .unwrap_or(value.as_str())
+                .to_string()
+        });
+
+    let Some(token) = token.filter(|value| !value.is_empty()) else {
+        return false;
+    };
+
+    if let Some(repository) = options.device_credential_repository() {
+        return repository.verify_bearer_token(&device_id, &token);
+    }
+
+    env_string(ENV_XIAOZHI_DEVICE_TOKEN)
+        .map(|expected| secure_compare(&token, &expected))
+        .unwrap_or(false)
 }
 
 fn xiaozhi_simulator_websocket_speech_replies(

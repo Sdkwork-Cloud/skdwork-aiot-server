@@ -5,7 +5,7 @@ use sdkwork_aiot_storage::{
     AiotDeviceSessionRepository, AiotDeviceTwinRepository, AiotDeviceUpdateCommand,
     AiotEventRepository, AiotOutboxWriteIntent, AiotProtocolDeadLetterIntent,
     AiotProtocolIngestUnitOfWork, AiotProtocolStorageCommand, AiotStorageAssociation,
-    AiotStorageWriteKind, AiotTwinPropertyUpsertCommand,
+    AiotStorageWriteKind, AiotTwinPropertyUpsertCommand, OffsetListPageParams,
 };
 use sdkwork_aiot_storage_sqlx::{
     initial_migration_sql, migration_catalog, schema_version, InMemorySqlStatementExecutor,
@@ -182,13 +182,17 @@ fn sqlite_sqlx_command_repository_persists_create_and_list() {
     assert_eq!(created.capability_name, "speaker");
 
     let listed = repo
-        .list_commands(&association, "device-001")
+        .list_commands(
+            &association,
+            "device-001",
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list commands");
-    assert_eq!(listed.len(), 1);
-    assert_eq!(listed[0].command_name, "play");
-    assert_eq!(listed[0].status, "accepted");
+    assert_eq!(listed.items.len(), 1);
+    assert_eq!(listed.items[0].command_name, "play");
+    assert_eq!(listed.items[0].status, "accepted");
     assert_eq!(
-        listed[0].request_media_resource_id.as_deref(),
+        listed.items[0].request_media_resource_id.as_deref(),
         Some("media-res-001")
     );
 
@@ -220,10 +224,14 @@ fn sqlite_sqlx_command_repository_supports_cancel_command() {
     assert_eq!(cancelled.status, "cancelled");
 
     let listed = repo
-        .list_commands(&association, "device-cancel-001")
+        .list_commands(
+            &association,
+            "device-cancel-001",
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list commands");
-    assert_eq!(listed.len(), 1);
-    assert_eq!(listed[0].status, "cancelled");
+    assert_eq!(listed.items.len(), 1);
+    assert_eq!(listed.items[0].status, "cancelled");
 
     let missing = repo
         .cancel_command(&association, "device-cancel-001", "cmd-missing")
@@ -277,15 +285,23 @@ fn sqlite_sqlx_command_repository_scopes_idempotency_by_tenant_and_organization(
     assert_eq!(created_b.command_name, "play-b");
 
     let listed_a = repo
-        .list_commands(&association_a, "device-scope-001")
+        .list_commands(
+            &association_a,
+            "device-scope-001",
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list commands organization A");
     let listed_b = repo
-        .list_commands(&association_b, "device-scope-001")
+        .list_commands(
+            &association_b,
+            "device-scope-001",
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list commands organization B");
-    assert_eq!(listed_a.len(), 1);
-    assert_eq!(listed_b.len(), 1);
-    assert_eq!(listed_a[0].command_name, "play-a");
-    assert_eq!(listed_b[0].command_name, "play-b");
+    assert_eq!(listed_a.items.len(), 1);
+    assert_eq!(listed_b.items.len(), 1);
+    assert_eq!(listed_a.items[0].command_name, "play-a");
+    assert_eq!(listed_b.items[0].command_name, "play-b");
 
     let _ = std::fs::remove_file(path);
 }
@@ -332,13 +348,17 @@ fn sqlite_sqlx_event_and_twin_repositories_persist_and_read_snapshot() {
     .expect("record event");
 
     let events = repo
-        .list_events(&association, Some("device-001"))
+        .list_events(
+            &association,
+            Some("device-001"),
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list events");
-    assert_eq!(events.len(), 1);
-    assert_eq!(events[0].event_id, "evt-device-001-0001");
-    assert_eq!(events[0].protocol_id, "xiaozhi.websocket");
+    assert_eq!(events.items.len(), 1);
+    assert_eq!(events.items[0].event_id, "evt-device-001-0001");
+    assert_eq!(events.items[0].protocol_id, "xiaozhi.websocket");
     assert_eq!(
-        events[0].payload_hash.as_deref(),
+        events.items[0].payload_hash.as_deref(),
         Some("d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb7625e5c7c5f5a4c5d6")
     );
 
@@ -1612,12 +1632,15 @@ fn sqlite_credential_repository_verifies_hashed_bearer_tokens() {
     assert!(!repository.verify_bearer_token("device-auth-001", "wrong-token"));
     assert!(!repository.verify_bearer_token("other-device", &issued_secret));
 
-    let listed = repository.list_credentials(
-        &AiotStorageAssociation::tenant_org(100001, 0),
-        "device-auth-001",
-    );
-    assert_eq!(listed.len(), 1);
-    assert_eq!(listed[0].credential_type, "device-bearer");
+    let listed = repository
+        .list_credentials(
+            &AiotStorageAssociation::tenant_org(100001, 0),
+            "device-auth-001",
+            OffsetListPageParams::parse(None, None),
+        )
+        .expect("list credentials");
+    assert_eq!(listed.items.len(), 1);
+    assert_eq!(listed.items[0].credential_type, "device-bearer");
 
     repository
         .revoke_credential(

@@ -61,7 +61,7 @@ export interface SdkworkIotNode {
   lastSeenAt: string;
   name: string;
   online: boolean;
-  postureScore: number;
+  postureScore: number | null;
   route: string;
   sensors: SdkworkIotSensorSignal[];
   site: string;
@@ -81,7 +81,7 @@ export interface SdkworkIotSitePosture {
   criticalNodes: number;
   level: SdkworkIotSitePostureLevel;
   nodeCount: number;
-  postureScore: number;
+  postureScore: number | null;
   site: string;
   warningNodes: number;
 }
@@ -301,12 +301,16 @@ export function createDefaultSdkworkIotAlerts(): SdkworkIotAlert[] {
   ];
 }
 
+function postureScoreValue(score: number | null): number {
+  return score ?? 0;
+}
+
 export function sortSdkworkIotNodes(nodes: readonly SdkworkIotNode[]): SdkworkIotNode[] {
   return [...nodes].sort(
     (left, right) =>
       Number(right.kind === "gateway") - Number(left.kind === "gateway")
       || toHealthRank(left.healthLevel) - toHealthRank(right.healthLevel)
-      || right.postureScore - left.postureScore
+      || postureScoreValue(right.postureScore) - postureScoreValue(left.postureScore)
       || left.name.localeCompare(right.name),
   );
 }
@@ -327,7 +331,10 @@ export function summarizeSdkworkIotFleet(
   const summary = nodes.reduce(
     (state, node) => {
       state.totalNodes += 1;
-      state.postureAverage += roundPercent(node.postureScore);
+      if (node.postureScore !== null) {
+        state.postureAverage += roundPercent(node.postureScore);
+        state.scoredNodes += 1;
+      }
       if (node.kind === "gateway") {
         state.gatewayCount += 1;
       } else {
@@ -357,6 +364,7 @@ export function summarizeSdkworkIotFleet(
       offlineNodes: 0,
       onlineNodes: 0,
       postureAverage: 0,
+      scoredNodes: 0,
       sensorCount: 0,
       totalNodes: 0,
       warningNodes: 0,
@@ -369,7 +377,9 @@ export function summarizeSdkworkIotFleet(
   return {
     ...summary,
     acknowledgedAlerts,
-    postureAverage: summary.totalNodes > 0 ? roundPercent(summary.postureAverage / summary.totalNodes) : 0,
+    postureAverage: summary.scoredNodes > 0
+      ? roundPercent(summary.postureAverage / summary.scoredNodes)
+      : 0,
     totalAlerts,
     unacknowledgedAlerts: totalAlerts - acknowledgedAlerts,
   };
@@ -397,9 +407,12 @@ export function createSdkworkIotSitePosture(nodes: readonly SdkworkIotNode[]): S
 
   return [...map.entries()]
     .map(([site, siteNodes]) => {
-      const postureScore = roundPercent(
-        siteNodes.reduce((sum, node) => sum + node.postureScore, 0) / siteNodes.length,
-      );
+      const scoredNodes = siteNodes.filter((node) => node.postureScore !== null);
+      const postureScore = scoredNodes.length > 0
+        ? roundPercent(
+            scoredNodes.reduce((sum, node) => sum + (node.postureScore ?? 0), 0) / scoredNodes.length,
+          )
+        : 0;
 
       return {
         criticalNodes: siteNodes.filter((node) => node.healthLevel === "critical").length,

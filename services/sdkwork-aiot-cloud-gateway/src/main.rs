@@ -6,8 +6,12 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rumqttc::{Client, Event, Incoming, MqttOptions, QoS};
-use sdkwork_aiot_cloud_gateway::WebSocketSessionReply;
+use sdkwork_aiot_adapter_xiaozhi::{CLIENT_ID_HEADER, DEVICE_ID_HEADER};
 use sdkwork_aiot_cloud_gateway::XiaozhiMqttUdpSession;
+use sdkwork_aiot_cloud_gateway::{
+    register_active_ws_session, touch_active_ws_session, unregister_active_ws_session,
+    WebSocketSessionReply,
+};
 
 const HTTP_READ_TIMEOUT: Duration = Duration::from_secs(5);
 const XIAOZHI_WEBSOCKET_READ_TIMEOUT: Duration = Duration::from_secs(125);
@@ -75,6 +79,7 @@ fn main() {
         Arc::clone(&running),
         Arc::clone(&outbox_lag),
     );
+    sdkwork_aiot_cloud_gateway::start_command_delivery_worker(Arc::clone(&running));
     let bridge_enabled = bridge_state.bridge_enabled();
     let bridge_stats = Arc::new(BridgeStats::new(current_unix_time_millis()));
     let bridge_control = if bridge_enabled {
@@ -1162,9 +1167,48 @@ fn handle_xiaozhi_websocket_session(
 ) {
     let _ = stream.set_read_timeout(Some(XIAOZHI_WEBSOCKET_READ_TIMEOUT));
 
+    let device_id = request
+        .header(DEVICE_ID_HEADER)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("")
+        .to_string();
+    let session_id = request
+        .header(CLIENT_ID_HEADER)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| device_id.clone());
+    let (command_outbound_tx, command_outbound_rx) =
+        std::sync::mpsc::channel::<Vec<WebSocketSessionReply>>();
+    if !device_id.is_empty() {
+        register_active_ws_session(&device_id, &session_id, command_outbound_tx);
+    }
+
+    struct ActiveWsSessionGuard {
+        device_id: String,
+    }
+    impl Drop for ActiveWsSessionGuard {
+        fn drop(&mut self) {
+            if !self.device_id.is_empty() {
+                unregister_active_ws_session(&self.device_id);
+            }
+        }
+    }
+    let _ws_session_guard = ActiveWsSessionGuard {
+        device_id: device_id.clone(),
+    };
+
     let mut read_buffer = [0u8; 8192];
     let mut frame_buffer = initial_frame_bytes;
     loop {
+        if flush_ws_command_outbound(&mut stream, &command_outbound_rx) {
+            return;
+        }
+        if !device_id.is_empty() {
+            touch_active_ws_session(&device_id);
+        }
+
         if !frame_buffer.is_empty()
             && process_xiaozhi_frame_buffer(
                 server,
@@ -1191,6 +1235,26 @@ fn handle_xiaozhi_websocket_session(
             return;
         }
     }
+}
+
+fn flush_ws_command_outbound(
+    stream: &mut TcpStream,
+    command_outbound_rx: &std::sync::mpsc::Receiver<Vec<WebSocketSessionReply>>,
+) -> bool {
+    while let Ok(replies) = command_outbound_rx.try_recv() {
+        for reply in replies {
+            let should_close = matches!(reply, WebSocketSessionReply::Close);
+            let frame = websocket_reply_frame(reply);
+            if let Err(error) = stream.write_all(&frame) {
+                eprintln!("sdkwork-aiot-cloud-gateway websocket_write_error={error}");
+                return true;
+            }
+            if should_close {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 fn process_xiaozhi_frame_buffer(

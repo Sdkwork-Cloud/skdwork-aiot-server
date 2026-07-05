@@ -153,6 +153,20 @@ test('sdkwork-aiot h5 core must not read live tokens from VITE env', () => {
   assert.match(h5AppSource, /<AiotH5AuthGate/u);
 });
 
+test('sdkwork-aiot root check script includes sdkwork-spec governance gates', () => {
+  const packageJson = JSON.parse(read('package.json'));
+  const checkCommand = String(packageJson.scripts?.check ?? '');
+  for (const gate of [
+    'check:api-envelope',
+    'check:pagination',
+    'check:app-sdk-consumer-imports',
+    'check:drive-standard',
+    'db:validate',
+  ]) {
+    assert.match(checkCommand, new RegExp(gate, 'u'), `pnpm check must invoke ${gate}`);
+  }
+});
+
 test('sdkwork-aiot firmware rollout OTA alignment artifacts are present', () => {
   for (const relativePath of [
     'database/ddl/baseline/sqlite/0001_aiot_baseline.sql',

@@ -3,13 +3,17 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use sdkwork_aiot_storage::{
-    AiotCommandCreateCommand, AiotCommandRecord, AiotCommandRepository, AiotCommandRepositoryError,
-    AiotCommandResultRecord, AiotDeviceCreateCommand, AiotDeviceEventCreateCommand,
-    AiotDeviceEventRecord, AiotDeviceRecord, AiotDeviceRepository, AiotDeviceRepositoryError,
+    AiotCommandCreateCommand, AiotCommandDeliveryEnqueueCommand, AiotCommandDeliveryRecord,
+    AiotCommandDeliveryRepository, AiotCommandDeliveryRepositoryError, AiotCommandRecord,
+    AiotCommandRepository, AiotCommandRepositoryError, AiotCommandResultRecord,
+    AiotDeviceCreateCommand, AiotDeviceEventCreateCommand, AiotDeviceEventRecord, AiotDeviceRecord,
+    AiotDeviceRepository, AiotDeviceRepositoryError, AiotDeviceSessionRecord,
     AiotDeviceSessionRepository, AiotDeviceTwinRepository, AiotDeviceTwinRepositoryError,
     AiotDeviceTwinSnapshot, AiotDeviceUpdateCommand, AiotEventRepository, AiotEventRepositoryError,
-    AiotStorageAssociation, AiotTwinPropertyUpsertCommand,
+    AiotOffsetListResult, AiotStorageAssociation, AiotTwinPropertyUpsertCommand,
+    OffsetListPageParams, OUTBOX_STATUS_PENDING,
 };
+use sdkwork_utils_rust::uuid;
 use serde_json::Value as JsonValue;
 use sqlx::Row;
 
@@ -28,6 +32,7 @@ type TwinPropertyState = (i64, Option<String>, i64, Option<String>, i64);
 enum SqliteRepoTxError {
     Device(AiotDeviceRepositoryError),
     Command(AiotCommandRepositoryError),
+    Delivery(AiotCommandDeliveryRepositoryError),
     Event(AiotEventRepositoryError),
     Twin(AiotDeviceTwinRepositoryError),
     Storage,
@@ -39,21 +44,50 @@ impl From<sqlx::Error> for SqliteRepoTxError {
     }
 }
 
+fn map_device_sql_error(_: sqlx::Error) -> AiotDeviceRepositoryError {
+    AiotDeviceRepositoryError::PersistenceFailure
+}
+
+fn map_command_sql_error(_: sqlx::Error) -> AiotCommandRepositoryError {
+    AiotCommandRepositoryError::PersistenceFailure
+}
+
+fn map_delivery_sql_error(_: sqlx::Error) -> AiotCommandDeliveryRepositoryError {
+    AiotCommandDeliveryRepositoryError::PersistenceFailure
+}
+
+fn map_event_sql_error(_: sqlx::Error) -> AiotEventRepositoryError {
+    AiotEventRepositoryError::PersistenceFailure
+}
+
 impl SqliteRepoTxError {
     fn into_device(self) -> AiotDeviceRepositoryError {
         match self {
             Self::Device(error) => error,
-            Self::Command(_) | Self::Event(_) | Self::Twin(_) | Self::Storage => {
-                AiotDeviceRepositoryError::PersistenceFailure
-            }
+            Self::Command(_)
+            | Self::Delivery(_)
+            | Self::Event(_)
+            | Self::Twin(_)
+            | Self::Storage => AiotDeviceRepositoryError::PersistenceFailure,
         }
     }
 
     fn into_command(self) -> AiotCommandRepositoryError {
         match self {
             Self::Command(error) => error,
-            Self::Device(_) | Self::Event(_) | Self::Twin(_) | Self::Storage => {
-                AiotCommandRepositoryError::PersistenceFailure
+            Self::Device(_)
+            | Self::Delivery(_)
+            | Self::Event(_)
+            | Self::Twin(_)
+            | Self::Storage => AiotCommandRepositoryError::PersistenceFailure,
+        }
+    }
+
+    fn into_delivery(self) -> AiotCommandDeliveryRepositoryError {
+        match self {
+            Self::Delivery(error) => error,
+            Self::Device(_) | Self::Command(_) | Self::Event(_) | Self::Twin(_) | Self::Storage => {
+                AiotCommandDeliveryRepositoryError::PersistenceFailure
             }
         }
     }
@@ -61,18 +95,22 @@ impl SqliteRepoTxError {
     fn into_event(self) -> AiotEventRepositoryError {
         match self {
             Self::Event(error) => error,
-            Self::Device(_) | Self::Command(_) | Self::Twin(_) | Self::Storage => {
-                AiotEventRepositoryError::PersistenceFailure
-            }
+            Self::Device(_)
+            | Self::Command(_)
+            | Self::Delivery(_)
+            | Self::Twin(_)
+            | Self::Storage => AiotEventRepositoryError::PersistenceFailure,
         }
     }
 
     fn into_twin(self) -> AiotDeviceTwinRepositoryError {
         match self {
             Self::Twin(error) => error,
-            Self::Device(_) | Self::Command(_) | Self::Event(_) | Self::Storage => {
-                AiotDeviceTwinRepositoryError::PersistenceFailure
-            }
+            Self::Device(_)
+            | Self::Command(_)
+            | Self::Delivery(_)
+            | Self::Event(_)
+            | Self::Storage => AiotDeviceTwinRepositoryError::PersistenceFailure,
         }
     }
 }
@@ -107,6 +145,60 @@ impl SqliteSqlxDeviceRepository {
 
     fn execute_batch(&self, batch: SqlStatementBatch) -> Result<(), sqlx::Error> {
         self.db.execute_statement_batch(batch)
+    }
+
+    pub fn get_command_by_id(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        command_id: &str,
+    ) -> Result<Option<AiotCommandRecord>, AiotCommandRepositoryError> {
+        let association = association.clone();
+        let device_id = device_id.to_string();
+        let command_id = command_id.to_string();
+        self.db
+            .run_owned(|pool| async move {
+                let sql = pool.adapt_sql(
+                    "SELECT id, command_id, device_id, session_id, capability_name, command_name, request_payload, request_media_resource_id, request_object_blob_id, request_media_resource_snapshot, status, timeout_at, ack_at, result_at, trace_id, created_at FROM iot_command WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 AND command_id = ?4 LIMIT 1",
+                );
+                let mut command = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let row = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(&command_id)
+                            .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        row.as_ref()
+                            .map(|row| row_to_command_record(row, &association))
+                            .transpose()?
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let row = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(&command_id)
+                            .fetch_optional(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        row.as_ref()
+                            .map(|row| row_to_command_record_postgres(row, &association))
+                            .transpose()?
+                    }
+                };
+                if let Some(command) = command.as_mut() {
+                    command.result = command_result_for(
+                        &pool,
+                        association.tenant_id,
+                        association.organization_id,
+                        &command.command_id,
+                    )
+                    .await?;
+                }
+                Ok(command)
+            })
+            .map_err(map_command_sql_error)
     }
 }
 
@@ -250,41 +342,132 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
             .flatten()
     }
 
-    fn list_devices(&self, association: &AiotStorageAssociation) -> Vec<AiotDeviceRecord> {
+    fn list_devices(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceRecord>, AiotDeviceRepositoryError> {
         let association = association.clone();
         self.db
             .run_owned(|pool| async move {
-                let sql = pool.adapt_sql(
-                    "SELECT id, tenant_id, organization_id, device_id, display_name, product_id, client_id, chip_family, status, metadata, last_seen_at FROM iot_device WHERE tenant_id = ?1 AND organization_id = ?2 ORDER BY id ASC",
+                let count_sql = pool.adapt_sql(
+                    "SELECT COUNT(1) FROM iot_device WHERE tenant_id = ?1 AND organization_id = ?2",
                 );
+                let list_sql = pool.adapt_sql(
+                    "SELECT id, tenant_id, organization_id, device_id, display_name, product_id, client_id, chip_family, status, metadata, last_seen_at FROM iot_device WHERE tenant_id = ?1 AND organization_id = ?2 ORDER BY id ASC LIMIT ?3 OFFSET ?4",
+                );
+                let limit = params.page_size.max(1);
+                let offset = params.offset.max(0);
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let rows = sqlx::query(&sql)
+                        let total: i64 = sqlx::query_scalar(&count_sql)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
+                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(limit)
+                            .bind(offset)
                             .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        Ok::<Vec<AiotDeviceRecord>, sqlx::Error>(
-                            rows.iter()
+                        Ok::<AiotOffsetListResult<AiotDeviceRecord>, sqlx::Error>(AiotOffsetListResult {
+                            items: rows
+                                .iter()
                                 .filter_map(|row| row_to_device_record(row).ok())
                                 .collect(),
-                        )
+                            total,
+                        })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let rows = sqlx::query(&sql)
+                        let total: i64 = sqlx::query_scalar(&count_sql)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
+                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(limit)
+                            .bind(offset)
                             .fetch_all(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        Ok::<Vec<AiotDeviceRecord>, sqlx::Error>(
-                            rows.iter()
+                        Ok(AiotOffsetListResult {
+                            items: rows
+                                .iter()
                                 .filter_map(|row| row_to_device_record_postgres(row).ok())
                                 .collect(),
-                        )
+                            total,
+                        })
                     }
                 }
             })
-            .unwrap_or_default()
+            .map_err(map_device_sql_error)
+    }
+
+    fn list_device_ids_for_rollout(
+        &self,
+        association: &AiotStorageAssociation,
+        product_id: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Vec<String>, AiotDeviceRepositoryError> {
+        let association = association.clone();
+        let product_id = product_id.map(str::to_string);
+        self.db
+            .run_owned(|pool| async move {
+                let product_filter = product_id
+                    .as_deref()
+                    .map(|value| value.parse::<i64>())
+                    .transpose()
+                    .map_err(|_| sqlx::Error::RowNotFound)?;
+                let mut sql = String::from(
+                    "SELECT device_id FROM iot_device WHERE tenant_id = ?1 AND organization_id = ?2",
+                );
+                if product_filter.is_some() {
+                    sql.push_str(" AND product_id = ?3");
+                }
+                sql.push_str(" ORDER BY id ASC");
+                if limit.is_some() {
+                    sql.push_str(if product_filter.is_some() {
+                        " LIMIT ?4"
+                    } else {
+                        " LIMIT ?3"
+                    });
+                }
+                let sql = pool.adapt_sql(&sql);
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let mut query = sqlx::query_scalar::<_, String>(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id);
+                        if let Some(product_id) = product_filter {
+                            query = query.bind(product_id);
+                        }
+                        if let Some(limit) = limit {
+                            query = query.bind(limit.max(1));
+                        }
+                        query
+                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                            .await
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let mut query = sqlx::query_scalar::<_, String>(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id);
+                        if let Some(product_id) = product_filter {
+                            query = query.bind(product_id);
+                        }
+                        if let Some(limit) = limit {
+                            query = query.bind(limit.max(1));
+                        }
+                        query
+                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                            .await
+                    }
+                }
+            })
+            .map_err(map_device_sql_error)
     }
 
     fn update_device(
@@ -307,8 +490,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
             .planner
             .plan_update_device(&existing)
             .map_err(|_| AiotDeviceRepositoryError::PersistenceFailure)?;
-        self.execute_batch(batch)
-            .map_err(|_| AiotDeviceRepositoryError::PersistenceFailure)?;
+        self.execute_batch(batch).map_err(map_device_sql_error)?;
         Ok(existing)
     }
 
@@ -324,8 +506,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
             .planner
             .plan_delete_device(association, device_id)
             .map_err(|_| AiotDeviceRepositoryError::PersistenceFailure)?;
-        self.execute_batch(batch)
-            .map_err(|_| AiotDeviceRepositoryError::PersistenceFailure)?;
+        self.execute_batch(batch).map_err(map_device_sql_error)?;
         Ok(())
     }
 }
@@ -348,11 +529,11 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                 .get(&cache_key)
                 .cloned()
             {
-                let existing = self
-                    .list_commands(&command.association, &command.device_id)?
-                    .into_iter()
-                    .find(|record| record.command_id == existing_command_id);
-                if let Some(existing) = existing {
+                if let Some(existing) = self.get_command_by_id(
+                    &command.association,
+                    &command.device_id,
+                    &existing_command_id,
+                )? {
                     return Ok(existing);
                 }
             }
@@ -482,6 +663,20 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                     }
                 }
 
+                insert_command_delivery_and_outbox(
+                    &mut tx,
+                    dialect,
+                    &command.association,
+                    &command_id,
+                    command.session_id.as_deref(),
+                    &command.device_id,
+                    &command.capability_name,
+                    &command.command_name,
+                    command.trace_id.as_deref(),
+                    &created_at,
+                )
+                .await?;
+
                 Ok((next_id, command_id))
             })
         })
@@ -529,51 +724,84 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Result<Vec<AiotCommandRecord>, AiotCommandRepositoryError> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotCommandRecord>, AiotCommandRepositoryError> {
         let association = association.clone();
         let device_id = device_id.to_string();
+        let limit = params.page_size.max(1);
+        let offset = params.offset.max(0);
         self.db
             .run_owned(|pool| async move {
-                let sql = pool.adapt_sql(
-                    "SELECT id, command_id, device_id, session_id, capability_name, command_name, request_payload, request_media_resource_id, request_object_blob_id, request_media_resource_snapshot, status, timeout_at, ack_at, result_at, trace_id, created_at FROM iot_command WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 ORDER BY id ASC",
+                let count_sql = pool.adapt_sql(
+                    "SELECT COUNT(1) FROM iot_command WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3",
                 );
-                let mut commands = match pool.engine() {
+                let list_sql = pool.adapt_sql(
+                    "SELECT id, command_id, device_id, session_id, capability_name, command_name, request_payload, request_media_resource_id, request_object_blob_id, request_media_resource_snapshot, status, timeout_at, ack_at, result_at, trace_id, created_at FROM iot_command WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 ORDER BY id ASC LIMIT ?4 OFFSET ?5",
+                );
+                match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let rows = sqlx::query(&sql)
+                        let total: i64 = sqlx::query_scalar(&count_sql)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
+                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(limit)
+                            .bind(offset)
                             .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        rows.iter()
+                        let mut commands = rows
+                            .iter()
                             .map(|row| row_to_command_record(row, &association))
-                            .collect::<Result<Vec<_>, _>>()?
+                            .collect::<Result<Vec<_>, _>>()?;
+                        for command in &mut commands {
+                            command.result = command_result_for(
+                                &pool,
+                                association.tenant_id,
+                                association.organization_id,
+                                &command.command_id,
+                            )
+                            .await?;
+                        }
+                        Ok(AiotOffsetListResult { items: commands, total })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let rows = sqlx::query(&sql)
+                        let total: i64 = sqlx::query_scalar(&count_sql)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
+                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(limit)
+                            .bind(offset)
                             .fetch_all(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        rows.iter()
+                        let mut commands = rows
+                            .iter()
                             .map(|row| row_to_command_record_postgres(row, &association))
-                            .collect::<Result<Vec<_>, _>>()?
+                            .collect::<Result<Vec<_>, _>>()?;
+                        for command in &mut commands {
+                            command.result = command_result_for(
+                                &pool,
+                                association.tenant_id,
+                                association.organization_id,
+                                &command.command_id,
+                            )
+                            .await?;
+                        }
+                        Ok(AiotOffsetListResult { items: commands, total })
                     }
-                };
-
-                for command in &mut commands {
-                    command.result = command_result_for(
-                        &pool,
-                        association.tenant_id,
-                        association.organization_id,
-                        &command.command_id,
-                    )
-                    .await?;
                 }
-                Ok::<Vec<AiotCommandRecord>, sqlx::Error>(commands)
             })
-            .map_err(|_| AiotCommandRepositoryError::PersistenceFailure)
+            .map_err(map_command_sql_error)
     }
 
     fn cancel_command(
@@ -673,15 +901,255 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
             })
         .map_err(SqliteRepoTxError::into_command)?;
 
-        let command = self
-            .list_commands(&association, &device_id)?
-            .into_iter()
-            .find(|record| record.command_id == command_id);
-        Ok(command)
+        self.get_command_by_id(&association, &device_id, &command_id)
+    }
+}
+
+impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
+    fn enqueue_delivery(
+        &self,
+        command: AiotCommandDeliveryEnqueueCommand,
+    ) -> Result<AiotCommandDeliveryRecord, AiotCommandDeliveryRepositoryError> {
+        let created_at = default_timestamp().to_string();
+        let association = command.association.clone();
+        let command_id = command.command_id.clone();
+        let session_id = command.session_id.clone();
+        self.db
+            .with_device_transaction(|mut tx, dialect| {
+                Box::pin(async move {
+                    let exists_sql = adapt_sqlite_placeholders(
+                        dialect,
+                        "SELECT COUNT(1) FROM iot_command WHERE tenant_id = ?1 AND organization_id = ?2 AND command_id = ?3",
+                    );
+                    let exists: i64 = match &mut tx {
+                        DeviceDbTransaction::Sqlite(connection) => {
+                            sqlx::query_scalar(&exists_sql)
+                                .bind(association.tenant_id)
+                                .bind(association.organization_id)
+                                .bind(&command_id)
+                                .fetch_one(&mut **connection)
+                                .await?
+                        }
+                        DeviceDbTransaction::Postgres(connection) => {
+                            sqlx::query_scalar(&exists_sql)
+                                .bind(association.tenant_id)
+                                .bind(association.organization_id)
+                                .bind(&command_id)
+                                .fetch_one(&mut **connection)
+                                .await?
+                        }
+                    };
+                    if exists == 0 {
+                        return Err(SqliteRepoTxError::Delivery(
+                            AiotCommandDeliveryRepositoryError::CommandNotFound,
+                        ));
+                    }
+
+                    let (delivery_id, _) = insert_command_delivery_row(
+                        &mut tx,
+                        dialect,
+                        &association,
+                        &command_id,
+                        session_id.as_deref(),
+                        &created_at,
+                    )
+                    .await?;
+
+                    Ok(AiotCommandDeliveryRecord {
+                        id: delivery_id.to_string(),
+                        tenant_id: association.tenant_id,
+                        organization_id: association.organization_id,
+                        command_id,
+                        session_id,
+                        delivery_state: "pending".to_string(),
+                        created_at,
+                    })
+                })
+            })
+            .map_err(SqliteRepoTxError::into_delivery)
+    }
+
+    fn list_pending_for_device(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        limit: i64,
+    ) -> Result<Vec<AiotCommandDeliveryRecord>, AiotCommandDeliveryRepositoryError> {
+        let association = association.clone();
+        let device_id = device_id.to_string();
+        let limit = limit.max(1);
+        self.db
+            .run_owned(|pool| async move {
+                let sql = pool.adapt_sql(
+                    "SELECT d.id, d.command_id, d.session_id, d.delivery_state, d.created_at
+                     FROM iot_command_delivery d
+                     INNER JOIN iot_command c
+                       ON c.tenant_id = d.tenant_id
+                      AND c.organization_id = d.organization_id
+                      AND c.command_id = d.command_id
+                     WHERE d.tenant_id = ?1
+                       AND d.organization_id = ?2
+                       AND c.device_id = ?3
+                       AND d.delivery_state = 'pending'
+                       AND d.status = 1
+                     ORDER BY d.id ASC
+                     LIMIT ?4",
+                );
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let rows = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(limit)
+                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        Ok(rows
+                            .iter()
+                            .filter_map(|row| {
+                                row_to_command_delivery_record(row, &association).ok()
+                            })
+                            .collect())
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let rows = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(limit)
+                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        Ok(rows
+                            .iter()
+                            .filter_map(|row| {
+                                row_to_command_delivery_record_postgres(row, &association).ok()
+                            })
+                            .collect())
+                    }
+                }
+            })
+            .map_err(map_delivery_sql_error)
+    }
+
+    fn mark_delivered(
+        &self,
+        association: &AiotStorageAssociation,
+        command_id: &str,
+    ) -> Result<(), AiotCommandDeliveryRepositoryError> {
+        let association = association.clone();
+        let command_id = command_id.to_string();
+        let now = default_timestamp().to_string();
+        let updated = self
+            .db
+            .run_owned(|pool| async move {
+                let sql = pool.adapt_sql(
+                    "UPDATE iot_command_delivery
+                     SET delivery_state = 'delivered', updated_at = ?1
+                     WHERE tenant_id = ?2 AND organization_id = ?3 AND command_id = ?4 AND status = 1",
+                );
+                let rows = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        sqlx::query(&sql)
+                            .bind(&now)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&command_id)
+                            .execute(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?
+                            .rows_affected()
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        sqlx::query(&sql)
+                            .bind(&now)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&command_id)
+                            .execute(pool.postgres_pool().expect("postgres pool"))
+                            .await?
+                            .rows_affected()
+                    }
+                };
+                Ok(rows)
+            })
+            .map_err(map_delivery_sql_error)?;
+        if updated == 0 {
+            return Err(AiotCommandDeliveryRepositoryError::CommandNotFound);
+        }
+        Ok(())
     }
 }
 
 impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
+    fn list_sessions(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceSessionRecord>, AiotDeviceRepositoryError> {
+        let association = association.clone();
+        let device_id = device_id.to_string();
+        let limit = params.page_size.max(1);
+        let offset = params.offset.max(0);
+        self.db
+            .run_owned(|pool| async move {
+                let count_sql = pool.adapt_sql(
+                    "SELECT COUNT(1) FROM iot_device_session WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3",
+                );
+                let list_sql = pool.adapt_sql(
+                    "SELECT session_id, device_id, status, connected_at, disconnected_at, protocol_id, adapter_id FROM iot_device_session WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 ORDER BY id ASC LIMIT ?4 OFFSET ?5",
+                );
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let total: i64 = sqlx::query_scalar(&count_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(limit)
+                            .bind(offset)
+                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        Ok(AiotOffsetListResult {
+                            items: rows
+                                .iter()
+                                .filter_map(|row| row_to_device_session_record(row).ok())
+                                .collect(),
+                            total,
+                        })
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let total: i64 = sqlx::query_scalar(&count_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(limit)
+                            .bind(offset)
+                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        Ok(AiotOffsetListResult {
+                            items: rows
+                                .iter()
+                                .filter_map(|row| row_to_device_session_record_postgres(row).ok())
+                                .collect(),
+                            total,
+                        })
+                    }
+                }
+            })
+            .map_err(map_device_sql_error)
+    }
+
     fn disconnect_session(
         &self,
         association: &AiotStorageAssociation,
@@ -867,7 +1335,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                     }
                 }
             })
-            .map_err(|_| AiotDeviceRepositoryError::PersistenceFailure)?;
+            .map_err(map_device_sql_error)?;
         Ok(status == Some(disconnected_status))
     }
 }
@@ -1016,72 +1484,127 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: Option<&str>,
-    ) -> Result<Vec<AiotDeviceEventRecord>, AiotEventRepositoryError> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<AiotDeviceEventRecord>, AiotEventRepositoryError> {
         let association = association.clone();
         let scoped_device_id = device_id.map(str::to_string);
+        let limit = params.page_size.max(1);
+        let offset = params.offset.max(0);
         self.db
             .run_owned(|pool| async move {
                 if let Some(device_id) = scoped_device_id.as_deref() {
-                    let sql = pool.adapt_sql(
-                        "SELECT id, uuid, device_id, event_type, event_payload, media_resource_id, object_blob_id, media_resource_snapshot, created_at FROM iot_device_event WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 ORDER BY id ASC",
+                    let count_sql = pool.adapt_sql(
+                        "SELECT COUNT(1) FROM iot_device_event WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3",
+                    );
+                    let list_sql = pool.adapt_sql(
+                        "SELECT id, uuid, device_id, event_type, event_payload, media_resource_id, object_blob_id, media_resource_snapshot, created_at FROM iot_device_event WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 ORDER BY id ASC LIMIT ?4 OFFSET ?5",
                     );
                     match pool.engine() {
                         DeviceDatabaseEngine::Sqlite => {
-                            let rows = sqlx::query(&sql)
+                            let total: i64 = sqlx::query_scalar(&count_sql)
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(device_id)
+                                .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                                .await?;
+                            let rows = sqlx::query(&list_sql)
+                                .bind(association.tenant_id)
+                                .bind(association.organization_id)
+                                .bind(device_id)
+                                .bind(limit)
+                                .bind(offset)
                                 .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                                 .await?;
-                            rows.iter()
-                                .map(|row| row_to_device_event_record(row, &association))
-                                .collect::<Result<Vec<_>, _>>()
+                            Ok(AiotOffsetListResult {
+                                items: rows
+                                    .iter()
+                                    .map(|row| row_to_device_event_record(row, &association))
+                                    .collect::<Result<Vec<_>, _>>()?,
+                                total,
+                            })
                         }
                         DeviceDatabaseEngine::Postgres => {
-                            let rows = sqlx::query(&sql)
+                            let total: i64 = sqlx::query_scalar(&count_sql)
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(device_id)
+                                .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                                .await?;
+                            let rows = sqlx::query(&list_sql)
+                                .bind(association.tenant_id)
+                                .bind(association.organization_id)
+                                .bind(device_id)
+                                .bind(limit)
+                                .bind(offset)
                                 .fetch_all(pool.postgres_pool().expect("postgres pool"))
                                 .await?;
-                            rows.iter()
-                                .map(|row| {
-                                    row_to_device_event_record_postgres(row, &association)
-                                })
-                                .collect::<Result<Vec<_>, _>>()
+                            Ok(AiotOffsetListResult {
+                                items: rows
+                                    .iter()
+                                    .map(|row| {
+                                        row_to_device_event_record_postgres(row, &association)
+                                    })
+                                    .collect::<Result<Vec<_>, _>>()?,
+                                total,
+                            })
                         }
                     }
                 } else {
-                    let sql = pool.adapt_sql(
-                        "SELECT id, uuid, device_id, event_type, event_payload, media_resource_id, object_blob_id, media_resource_snapshot, created_at FROM iot_device_event WHERE tenant_id = ?1 AND organization_id = ?2 ORDER BY id ASC",
+                    let count_sql = pool.adapt_sql(
+                        "SELECT COUNT(1) FROM iot_device_event WHERE tenant_id = ?1 AND organization_id = ?2",
+                    );
+                    let list_sql = pool.adapt_sql(
+                        "SELECT id, uuid, device_id, event_type, event_payload, media_resource_id, object_blob_id, media_resource_snapshot, created_at FROM iot_device_event WHERE tenant_id = ?1 AND organization_id = ?2 ORDER BY id ASC LIMIT ?3 OFFSET ?4",
                     );
                     match pool.engine() {
                         DeviceDatabaseEngine::Sqlite => {
-                            let rows = sqlx::query(&sql)
+                            let total: i64 = sqlx::query_scalar(&count_sql)
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
+                                .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                                .await?;
+                            let rows = sqlx::query(&list_sql)
+                                .bind(association.tenant_id)
+                                .bind(association.organization_id)
+                                .bind(limit)
+                                .bind(offset)
                                 .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                                 .await?;
-                            rows.iter()
-                                .map(|row| row_to_device_event_record(row, &association))
-                                .collect::<Result<Vec<_>, _>>()
+                            Ok(AiotOffsetListResult {
+                                items: rows
+                                    .iter()
+                                    .map(|row| row_to_device_event_record(row, &association))
+                                    .collect::<Result<Vec<_>, _>>()?,
+                                total,
+                            })
                         }
                         DeviceDatabaseEngine::Postgres => {
-                            let rows = sqlx::query(&sql)
+                            let total: i64 = sqlx::query_scalar(&count_sql)
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
+                                .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                                .await?;
+                            let rows = sqlx::query(&list_sql)
+                                .bind(association.tenant_id)
+                                .bind(association.organization_id)
+                                .bind(limit)
+                                .bind(offset)
                                 .fetch_all(pool.postgres_pool().expect("postgres pool"))
                                 .await?;
-                            rows.iter()
-                                .map(|row| {
-                                    row_to_device_event_record_postgres(row, &association)
-                                })
-                                .collect::<Result<Vec<_>, _>>()
+                            Ok(AiotOffsetListResult {
+                                items: rows
+                                    .iter()
+                                    .map(|row| {
+                                        row_to_device_event_record_postgres(row, &association)
+                                    })
+                                    .collect::<Result<Vec<_>, _>>()?,
+                                total,
+                            })
                         }
                     }
                 }
             })
-            .map_err(|_| AiotEventRepositoryError::PersistenceFailure)
+            .map_err(map_event_sql_error)
     }
 }
 
@@ -1992,4 +2515,241 @@ async fn recompute_twin_versions(
         }
     }
     Ok(())
+}
+
+async fn insert_command_delivery_row(
+    tx: &mut DeviceDbTransaction<'_>,
+    dialect: SqlDialect,
+    association: &AiotStorageAssociation,
+    command_id: &str,
+    session_id: Option<&str>,
+    created_at: &str,
+) -> Result<(i64, String), sqlx::Error> {
+    let max_id_sql = adapt_sqlite_placeholders(
+        dialect,
+        "SELECT COALESCE(MAX(id), 0) FROM iot_command_delivery",
+    );
+    let next_id: i64 = match tx {
+        DeviceDbTransaction::Sqlite(connection) => {
+            sqlx::query_scalar(&max_id_sql)
+                .fetch_one(&mut **connection)
+                .await?
+        }
+        DeviceDbTransaction::Postgres(connection) => {
+            sqlx::query_scalar(&max_id_sql)
+                .fetch_one(&mut **connection)
+                .await?
+        }
+    };
+    let delivery_id = next_id + 1;
+    let delivery_uuid = format!("cmd-delivery-{delivery_id}");
+    let insert_sql = adapt_sqlite_placeholders(
+        dialect,
+        "INSERT INTO iot_command_delivery (id, uuid, tenant_id, organization_id, data_scope, command_id, session_id, delivery_state, status, created_at, updated_at, version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'pending', 1, ?8, ?8, 0)",
+    );
+    match tx {
+        DeviceDbTransaction::Sqlite(connection) => {
+            sqlx::query(&insert_sql)
+                .bind(delivery_id)
+                .bind(&delivery_uuid)
+                .bind(association.tenant_id)
+                .bind(association.organization_id)
+                .bind(association.data_scope as i64)
+                .bind(command_id)
+                .bind(session_id)
+                .bind(created_at)
+                .execute(&mut **connection)
+                .await?;
+        }
+        DeviceDbTransaction::Postgres(connection) => {
+            sqlx::query(&insert_sql)
+                .bind(delivery_id)
+                .bind(&delivery_uuid)
+                .bind(association.tenant_id)
+                .bind(association.organization_id)
+                .bind(association.data_scope as i64)
+                .bind(command_id)
+                .bind(session_id)
+                .bind(created_at)
+                .execute(&mut **connection)
+                .await?;
+        }
+    }
+    Ok((delivery_id, delivery_uuid))
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn insert_command_delivery_and_outbox(
+    tx: &mut DeviceDbTransaction<'_>,
+    dialect: SqlDialect,
+    association: &AiotStorageAssociation,
+    command_id: &str,
+    session_id: Option<&str>,
+    device_id: &str,
+    capability_name: &str,
+    command_name: &str,
+    trace_id: Option<&str>,
+    created_at: &str,
+) -> Result<(), sqlx::Error> {
+    insert_command_delivery_row(tx, dialect, association, command_id, session_id, created_at)
+        .await?;
+
+    let max_outbox_id_sql =
+        adapt_sqlite_placeholders(dialect, "SELECT COALESCE(MAX(id), 0) FROM iot_outbox_event");
+    let next_outbox_id: i64 = match tx {
+        DeviceDbTransaction::Sqlite(connection) => {
+            sqlx::query_scalar(&max_outbox_id_sql)
+                .fetch_one(&mut **connection)
+                .await?
+        }
+        DeviceDbTransaction::Postgres(connection) => {
+            sqlx::query_scalar(&max_outbox_id_sql)
+                .fetch_one(&mut **connection)
+                .await?
+        }
+    };
+    let outbox_id = next_outbox_id + 1;
+    let event_type = "iot.command.dispatchRequested";
+    let aggregate_type = "device_command";
+    let event_id = format!("{aggregate_type}:{command_id}:{event_type}");
+    let payload_json = serde_json::json!({
+        "eventVersion": "1",
+        "commandId": command_id,
+        "deviceId": device_id,
+        "sessionId": session_id,
+        "capabilityName": capability_name,
+        "commandName": command_name,
+        "traceId": trace_id,
+    })
+    .to_string();
+    let outbox_uuid = uuid();
+    let insert_outbox_sql = adapt_sqlite_placeholders(
+        dialect,
+        "INSERT INTO iot_outbox_event (id, uuid, tenant_id, organization_id, data_scope, event_id, event_type, event_version, aggregate_type, aggregate_id, payload, payload_hash, status, trace_id, attempt_count, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, '1', ?8, ?9, ?10, NULL, ?11, ?12, 0, ?13)",
+    );
+    match tx {
+        DeviceDbTransaction::Sqlite(connection) => {
+            sqlx::query(&insert_outbox_sql)
+                .bind(outbox_id)
+                .bind(&outbox_uuid)
+                .bind(association.tenant_id)
+                .bind(association.organization_id)
+                .bind(association.data_scope as i64)
+                .bind(&event_id)
+                .bind(event_type)
+                .bind(aggregate_type)
+                .bind(command_id)
+                .bind(&payload_json)
+                .bind(OUTBOX_STATUS_PENDING)
+                .bind(trace_id)
+                .bind(created_at)
+                .execute(&mut **connection)
+                .await?;
+        }
+        DeviceDbTransaction::Postgres(connection) => {
+            sqlx::query(&insert_outbox_sql)
+                .bind(outbox_id)
+                .bind(&outbox_uuid)
+                .bind(association.tenant_id)
+                .bind(association.organization_id)
+                .bind(association.data_scope as i64)
+                .bind(&event_id)
+                .bind(event_type)
+                .bind(aggregate_type)
+                .bind(command_id)
+                .bind(&payload_json)
+                .bind(OUTBOX_STATUS_PENDING)
+                .bind(trace_id)
+                .bind(created_at)
+                .execute(&mut **connection)
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+fn session_status_text(status: i64) -> String {
+    match status {
+        1 => "connected".to_string(),
+        2 => "disconnected".to_string(),
+        _ => "unknown".to_string(),
+    }
+}
+
+fn transport_from_protocol_id(protocol_id: &str) -> String {
+    if protocol_id.contains("websocket") {
+        "websocket".to_string()
+    } else if protocol_id.contains("mqtt") {
+        "mqtt".to_string()
+    } else if let Some((_prefix, transport)) = protocol_id.rsplit_once('.') {
+        transport.to_string()
+    } else {
+        protocol_id.to_string()
+    }
+}
+
+fn row_to_device_session_record(
+    row: &sqlx::sqlite::SqliteRow,
+) -> Result<AiotDeviceSessionRecord, sqlx::Error> {
+    let protocol_id: String = row.try_get("protocol_id")?;
+    Ok(AiotDeviceSessionRecord {
+        session_id: row.try_get("session_id")?,
+        device_id: row.try_get("device_id")?,
+        status: session_status_text(row.try_get::<i64, _>("status")?),
+        connected_at: row.try_get("connected_at").ok(),
+        disconnected_at: row.try_get("disconnected_at").ok(),
+        transport: transport_from_protocol_id(&protocol_id),
+        protocol_id,
+        adapter_id: row.try_get("adapter_id")?,
+    })
+}
+
+fn row_to_device_session_record_postgres(
+    row: &sqlx::postgres::PgRow,
+) -> Result<AiotDeviceSessionRecord, sqlx::Error> {
+    let protocol_id: String = row.try_get("protocol_id")?;
+    Ok(AiotDeviceSessionRecord {
+        session_id: row.try_get("session_id")?,
+        device_id: row.try_get("device_id")?,
+        status: session_status_text(row.try_get::<i64, _>("status")?),
+        connected_at: row.try_get("connected_at").ok(),
+        disconnected_at: row.try_get("disconnected_at").ok(),
+        transport: transport_from_protocol_id(&protocol_id),
+        protocol_id,
+        adapter_id: row.try_get("adapter_id")?,
+    })
+}
+
+fn row_to_command_delivery_record(
+    row: &sqlx::sqlite::SqliteRow,
+    association: &AiotStorageAssociation,
+) -> Result<AiotCommandDeliveryRecord, sqlx::Error> {
+    Ok(AiotCommandDeliveryRecord {
+        id: row.try_get::<i64, _>("id")?.to_string(),
+        tenant_id: association.tenant_id,
+        organization_id: association.organization_id,
+        command_id: row.try_get("command_id")?,
+        session_id: row.try_get("session_id").ok(),
+        delivery_state: row.try_get("delivery_state")?,
+        created_at: row
+            .try_get::<Option<String>, _>("created_at")?
+            .unwrap_or_else(|| default_timestamp().to_string()),
+    })
+}
+
+fn row_to_command_delivery_record_postgres(
+    row: &sqlx::postgres::PgRow,
+    association: &AiotStorageAssociation,
+) -> Result<AiotCommandDeliveryRecord, sqlx::Error> {
+    Ok(AiotCommandDeliveryRecord {
+        id: row.try_get::<i64, _>("id")?.to_string(),
+        tenant_id: association.tenant_id,
+        organization_id: association.organization_id,
+        command_id: row.try_get("command_id")?,
+        session_id: row.try_get("session_id").ok(),
+        delivery_state: row.try_get("delivery_state")?,
+        created_at: row
+            .try_get::<Option<String>, _>("created_at")?
+            .unwrap_or_else(|| default_timestamp().to_string()),
+    })
 }

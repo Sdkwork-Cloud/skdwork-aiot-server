@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
-use sdkwork_aiot_adapter_xiaozhi::{XiaozhiOpusUplinkBuffer, XiaozhiSessionMediaProfile};
+use sdkwork_aiot_adapter_xiaozhi::XiaozhiSessionMediaProfile;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 struct XiaozhiWsMediaSession {
     profile: XiaozhiSessionMediaProfile,
-    uplink: XiaozhiOpusUplinkBuffer,
+    uplink: sdkwork_aiot_adapter_xiaozhi::XiaozhiOpusUplinkBuffer,
+    last_touched: Instant,
 }
 
 fn store() -> &'static Mutex<HashMap<String, XiaozhiWsMediaSession>> {
@@ -16,8 +18,15 @@ fn store() -> &'static Mutex<HashMap<String, XiaozhiWsMediaSession>> {
 
 pub fn upsert_ws_media_profile(session_id: &str, profile: XiaozhiSessionMediaProfile) {
     if let Ok(mut guard) = store().lock() {
-        let entry = guard.entry(session_id.to_string()).or_default();
+        let entry = guard
+            .entry(session_id.to_string())
+            .or_insert_with(|| XiaozhiWsMediaSession {
+                profile,
+                uplink: sdkwork_aiot_adapter_xiaozhi::XiaozhiOpusUplinkBuffer::default(),
+                last_touched: Instant::now(),
+            });
         entry.profile = profile;
+        entry.last_touched = Instant::now();
     }
 }
 
@@ -25,7 +34,14 @@ pub fn push_ws_uplink_packet(session_id: &str, packet: Vec<u8>) -> Result<(), St
     let mut guard = store()
         .lock()
         .map_err(|_| "xiaozhi ws media session store poisoned".to_string())?;
-    let entry = guard.entry(session_id.to_string()).or_default();
+    let entry = guard
+        .entry(session_id.to_string())
+        .or_insert_with(|| XiaozhiWsMediaSession {
+            profile: XiaozhiSessionMediaProfile::default(),
+            uplink: sdkwork_aiot_adapter_xiaozhi::XiaozhiOpusUplinkBuffer::default(),
+            last_touched: Instant::now(),
+        });
+    entry.last_touched = Instant::now();
     entry.uplink.push_packet(packet)
 }
 
@@ -59,6 +75,16 @@ pub fn ws_media_profile(session_id: &str) -> XiaozhiSessionMediaProfile {
         .ok()
         .and_then(|guard| guard.get(session_id).map(|entry| entry.profile))
         .unwrap_or_default()
+}
+
+pub fn evict_stale_ws_media_sessions(ttl: Duration) -> usize {
+    let Ok(mut guard) = store().lock() else {
+        return 0;
+    };
+    let now = Instant::now();
+    let before = guard.len();
+    guard.retain(|_, entry| now.duration_since(entry.last_touched) <= ttl);
+    before.saturating_sub(guard.len())
 }
 
 #[cfg(test)]

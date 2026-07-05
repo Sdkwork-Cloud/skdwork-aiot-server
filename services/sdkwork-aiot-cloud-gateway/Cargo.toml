@@ -16,6 +16,7 @@ sdkwork-aiot-intelligence-bridge = { path = "../../crates/sdkwork-aiot-intellige
 sdkwork-utils-rust.workspace = true
 rumqttc = "0.24"
 ctrlc = "=3.4.5"
+serde_json = "1"
 sqlx.workspace = true
 redis = "0.28"
 

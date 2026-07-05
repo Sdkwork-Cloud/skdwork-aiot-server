@@ -12,21 +12,14 @@
   "mode": "apply",
   "hasChanges": true,
   "hasDestructiveChanges": false,
-  "changeFingerprint": "3c7e22db6123bb6fc0670e1e718e7f1f97d32859a17321111538c26738577866",
+  "changeFingerprint": "baf16d9c9c2b08a723394c1af24c4ea5e3e4ded9346bf3e062e93367ddc89a5c",
   "changeImpact": {
     "schemaVersion": 1,
     "areas": [
-      "models",
       "build-metadata",
       "documentation"
     ],
     "details": [
-      {
-        "area": "models",
-        "paths": [
-          "src/types/media-source.ts"
-        ]
-      },
       {
         "area": "build-metadata",
         "paths": [
@@ -42,7 +35,7 @@
       }
     ],
     "requiresVerification": true,
-    "summary": "Detected impact areas: models, build-metadata, documentation. Verification is required."
+    "summary": "Detected impact areas: build-metadata, documentation. Verification is required."
   },
   "executionDecision": {
     "schemaVersion": 1,
@@ -63,7 +56,7 @@
         "id": "verify-check",
         "title": "Unified package check",
         "required": true,
-        "rationale": "Validate the generated package with the unified publish helper. Triggered by: models, build-metadata, documentation.",
+        "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -81,7 +74,7 @@
         "id": "verify-build",
         "title": "Unified package build",
         "required": true,
-        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: models, build-metadata, documentation.",
+        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -100,13 +93,13 @@
   "verificationPlan": {
     "shouldRun": true,
     "runPhase": "now",
-    "summary": "Detected impact areas: models, build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
+    "summary": "Detected impact areas: build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
     "steps": [
       {
         "id": "check",
         "title": "Unified package check",
         "required": true,
-        "rationale": "Validate the generated package with the unified publish helper. Triggered by: models, build-metadata, documentation.",
+        "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -124,7 +117,7 @@
         "id": "build",
         "title": "Unified package build",
         "required": true,
-        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: models, build-metadata, documentation.",
+        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -142,7 +135,7 @@
   },
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.9",
+    "version": "0.1.11",
     "language": "typescript",
     "sdkType": "app",
     "protocol": "http",
@@ -150,9 +143,9 @@
     "packageName": "@sdkwork/aiot-app-sdk"
   },
   "versioning": {
-    "resolvedVersion": "0.1.9",
+    "resolvedVersion": "0.1.11",
     "localVersions": [
-      "0.1.8"
+      "0.1.10"
     ]
   },
   "stats": {
@@ -165,19 +158,18 @@
   "syncSummary": {
     "dryRun": false,
     "controlPlaneEnabled": true,
-    "writtenFiles": 4,
+    "writtenFiles": 3,
     "skippedScaffoldFiles": 2,
-    "skippedUnchangedGeneratedFiles": 49,
+    "skippedUnchangedGeneratedFiles": 50,
     "deletedGeneratedFiles": 0,
     "changeSummaryPath": ".sdkwork/sdkwork-generator-changes.json",
-    "changeFingerprint": "3c7e22db6123bb6fc0670e1e718e7f1f97d32859a17321111538c26738577866",
+    "changeFingerprint": "baf16d9c9c2b08a723394c1af24c4ea5e3e4ded9346bf3e062e93367ddc89a5c",
     "changes": {
       "createdGeneratedFiles": [],
       "updatedGeneratedFiles": [
         "CHANGELOG.md",
         "package.json",
-        "sdkwork-sdk.json",
-        "src/types/media-source.ts"
+        "sdkwork-sdk.json"
       ],
       "unchangedGeneratedFiles": [
         "bin/publish-core.mjs",
@@ -217,6 +209,7 @@
         "src/types/media-checksum.ts",
         "src/types/media-kind.ts",
         "src/types/media-resource.ts",
+        "src/types/media-source.ts",
         "src/types/page-info.ts",
         "src/types/problem-detail.ts",
         "src/types/problem-details.ts",
@@ -241,17 +234,10 @@
     "impact": {
       "schemaVersion": 1,
       "areas": [
-        "models",
         "build-metadata",
         "documentation"
       ],
       "details": [
-        {
-          "area": "models",
-          "paths": [
-            "src/types/media-source.ts"
-          ]
-        },
         {
           "area": "build-metadata",
           "paths": [
@@ -267,18 +253,18 @@
         }
       ],
       "requiresVerification": true,
-      "summary": "Detected impact areas: models, build-metadata, documentation. Verification is required."
+      "summary": "Detected impact areas: build-metadata, documentation. Verification is required."
     },
     "verificationPlan": {
       "shouldRun": true,
       "runPhase": "now",
-      "summary": "Detected impact areas: models, build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
+      "summary": "Detected impact areas: build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
       "steps": [
         {
           "id": "check",
           "title": "Unified package check",
           "required": true,
-          "rationale": "Validate the generated package with the unified publish helper. Triggered by: models, build-metadata, documentation.",
+          "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
           "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
           "command": "node",
           "args": [
@@ -296,7 +282,7 @@
           "id": "build",
           "title": "Unified package build",
           "required": true,
-          "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: models, build-metadata, documentation.",
+          "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
           "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
           "command": "node",
           "args": [

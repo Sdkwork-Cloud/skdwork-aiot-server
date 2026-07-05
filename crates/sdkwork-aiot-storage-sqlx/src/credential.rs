@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use sdkwork_aiot_storage::AiotStorageAssociation;
+use sdkwork_aiot_storage::{AiotOffsetListResult, AiotStorageAssociation, OffsetListPageParams};
 use sqlx::Row;
 
 use sdkwork_utils_rust::is_blank;
@@ -314,50 +314,80 @@ impl SqliteSqlxCredentialRepository {
         &self,
         association: &AiotStorageAssociation,
         device_id: &str,
-    ) -> Vec<SqliteDeviceCredentialRecord> {
+        params: OffsetListPageParams,
+    ) -> Result<AiotOffsetListResult<SqliteDeviceCredentialRecord>, SqliteCredentialRepositoryError>
+    {
         let association = association.clone();
         let device_id = device_id.to_string();
+        let limit = params.page_size.max(1);
+        let offset = params.offset.max(0);
         self.db
             .run_owned(|pool| async move {
                 let dialect = pool.dialect();
-                let sql = adapt_sqlite_placeholders(
+                let count_sql = adapt_sqlite_placeholders(
+                    dialect,
+                    "SELECT COUNT(1) FROM iot_device_credential
+                 WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3",
+                );
+                let list_sql = adapt_sqlite_placeholders(
                     dialect,
                     "SELECT uuid, tenant_id, organization_id, device_id, credential_type, status,
                         expires_at, created_at, updated_at
                  FROM iot_device_credential
                  WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3
-                 ORDER BY id ASC",
+                 ORDER BY id ASC
+                 LIMIT ?4 OFFSET ?5",
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let rows = sqlx::query(&sql)
+                        let total: i64 = sqlx::query_scalar(&count_sql)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
+                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(limit)
+                            .bind(offset)
                             .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        Ok::<Vec<SqliteDeviceCredentialRecord>, sqlx::Error>(
-                            rows.iter()
+                        Ok(AiotOffsetListResult {
+                            items: rows
+                                .iter()
                                 .filter_map(|row| row_to_credential_record(row).ok())
                                 .collect(),
-                        )
+                            total,
+                        })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let rows = sqlx::query(&sql)
+                        let total: i64 = sqlx::query_scalar(&count_sql)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
+                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        let rows = sqlx::query(&list_sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&device_id)
+                            .bind(limit)
+                            .bind(offset)
                             .fetch_all(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        Ok::<Vec<SqliteDeviceCredentialRecord>, sqlx::Error>(
-                            rows.iter()
+                        Ok(AiotOffsetListResult {
+                            items: rows
+                                .iter()
                                 .filter_map(|row| row_to_credential_record_postgres(row).ok())
                                 .collect(),
-                        )
+                            total,
+                        })
                     }
                 }
             })
-            .unwrap_or_default()
+            .map_err(|_: sqlx::Error| SqliteCredentialRepositoryError::PersistenceFailure)
     }
 
     pub fn get_credential(

@@ -165,20 +165,20 @@ fn apis_authority_inputs_exist_and_sdk_assemblies_reference_them() {
         );
     }
 
-    for (assembly_path, authority_path) in [
+    for (manifest_path, authority_path) in [
         (
-            "sdks/sdkwork-aiot-app-sdk/.sdkwork-assembly.json",
+            "sdks/sdkwork-aiot-app-sdk/sdk-manifest.json",
             "../../apis/app-api/iot/sdkwork-aiot-app-api.openapi.json",
         ),
         (
-            "sdks/sdkwork-aiot-backend-sdk/.sdkwork-assembly.json",
+            "sdks/sdkwork-aiot-backend-sdk/sdk-manifest.json",
             "../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json",
         ),
     ] {
-        let assembly = fs::read_to_string(root.join(assembly_path)).expect(assembly_path);
+        let manifest = fs::read_to_string(root.join(manifest_path)).expect(manifest_path);
         assert!(
-            assembly.contains(authority_path),
-            "{assembly_path} must reference {authority_path}"
+            manifest.contains(authority_path),
+            "{manifest_path} must reference {authority_path}"
         );
     }
 }
@@ -219,14 +219,15 @@ fn github_packaging_workflow_declares_sdkwork_drive() {
 #[test]
 fn pc_core_integrates_drive_uploader_for_firmware_uploads() {
     let root = workspace_root();
-    let firmware_upload = fs::read_to_string(
-        root.join("apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core/src/services/firmwareUploadService.ts"),
-    )
+    let firmware_upload = fs::read_to_string(root.join(
+        "apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core/src/services/firmwareUploadService.ts",
+    ))
     .expect("firmware upload service");
-    let drive_client = fs::read_to_string(
-        root.join("apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core/src/sdk/driveAppSdkClient.ts"),
-    )
-    .expect("drive app sdk client");
+    let drive_client =
+        fs::read_to_string(root.join(
+            "apps/sdkwork-aiot-pc/packages/sdkwork-aiot-pc-core/src/sdk/driveAppSdkClient.ts",
+        ))
+        .expect("drive app sdk client");
 
     assert!(drive_client.contains("createDriveAppClient"));
     assert!(firmware_upload.contains("uploadArchive"));
@@ -237,9 +238,10 @@ fn pc_core_integrates_drive_uploader_for_firmware_uploads() {
 #[test]
 fn firmware_ota_catalog_resolves_drive_backed_media_resources() {
     let root = workspace_root();
-    let catalog_source =
-        fs::read_to_string(root.join("crates/sdkwork-aiot-storage-sqlx/src/firmware_ota_catalog.rs"))
-            .expect("firmware ota catalog");
+    let catalog_source = fs::read_to_string(
+        root.join("crates/sdkwork-aiot-storage-sqlx/src/firmware_ota_catalog.rs"),
+    )
+    .expect("firmware ota catalog");
     assert!(catalog_source.contains("drive_node_id_from_media_resource"));
     assert!(catalog_source.contains("/drive/nodes/"));
 }
@@ -881,11 +883,11 @@ fn sdk_families_have_openapi_sources_and_generation_manifests() {
             "{}.sdkgen.json",
             family_root.file_name().unwrap().to_string_lossy()
         ));
-        let assembly = family_root.join(".sdkwork-assembly.json");
+        let sdk_manifest = family_root.join("sdk-manifest.json");
 
         let openapi_text = fs::read_to_string(&openapi).expect("openapi authority");
         let sdkgen_text = fs::read_to_string(&sdkgen).expect("sdkgen manifest");
-        let assembly_text = fs::read_to_string(&assembly).expect("sdk assembly");
+        let manifest_text = fs::read_to_string(&sdk_manifest).expect("sdk manifest");
 
         assert!(openapi_text.contains(r#""openapi": "3.1.2""#));
         assert!(openapi_text.contains(openapi_prefix));
@@ -938,9 +940,12 @@ fn sdk_families_have_openapi_sources_and_generation_manifests() {
         assert!(sdkgen_text.contains(package_name));
         assert!(sdkgen_text.contains(sdkgen_prefix));
         assert!(sdkgen_text.contains("../../apis/"));
-        assert!(assembly_text.contains(package_name));
-        assert!(assembly_text.contains(r#""generatedProtocols": ["http"]"#));
-        assert!(assembly_text.contains("../../apis/"));
+        assert!(manifest_text.contains(package_name));
+        assert!(
+            manifest_text.contains("generatedProtocols") && manifest_text.contains("\"http\""),
+            "{family} sdk-manifest.json must declare HTTP generated protocol"
+        );
+        assert!(manifest_text.contains("../../apis/"));
     }
 }
 

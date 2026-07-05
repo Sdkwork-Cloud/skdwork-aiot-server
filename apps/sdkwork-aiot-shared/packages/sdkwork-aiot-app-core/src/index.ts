@@ -6,12 +6,18 @@ export {
 } from './agent/agent-service';
 export {
   createAiotCommandService,
-  createLocalAssistantReply,
   pollCommandResult,
   type AiotCommandService,
   type CreateAiotCommandServiceOptions,
   type ExecuteDeviceCommandInput,
 } from './command/command-service';
+export {
+  listDevicePage,
+  loadAllDevicePages,
+  readDeviceId,
+  type ListDevicePageParams,
+  type ListDevicePageResult,
+} from './device/device-pagination';
 export type {
   AiotAgentToolCall,
   AiotConversationMessage,

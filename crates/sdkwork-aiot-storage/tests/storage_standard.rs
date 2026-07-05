@@ -9,8 +9,8 @@ use sdkwork_aiot_storage::{
     AiotStorageWriteKind, AiotStorageWriteReceipt, AiotTable, AiotTwinPropertyUpsertCommand,
     InMemoryAiotCommandRepository, InMemoryAiotDeviceRepository,
     InMemoryAiotDeviceSessionRepository, InMemoryAiotDeviceTwinRepository,
-    InMemoryAiotEventRepository, InMemoryProtocolIngestUnitOfWork, TableProfile,
-    IOT_DATABASE_PREFIX, IOT_TABLES,
+    InMemoryAiotEventRepository, InMemoryProtocolIngestUnitOfWork, OffsetListPageParams,
+    TableProfile, IOT_DATABASE_PREFIX, IOT_TABLES,
 };
 
 #[test]
@@ -111,9 +111,11 @@ fn in_memory_device_repository_supports_scoped_crud_lifecycle() {
     assert_eq!(created.product_id, "1001");
     assert_eq!(created.status, "active");
 
-    let listed = repo.list_devices(&association);
-    assert_eq!(listed.len(), 1);
-    assert_eq!(listed[0].device_id, "device-001");
+    let listed = repo
+        .list_devices(&association, OffsetListPageParams::parse(None, None))
+        .expect("list devices");
+    assert_eq!(listed.items.len(), 1);
+    assert_eq!(listed.items[0].device_id, "device-001");
 
     let retrieved = repo
         .get_device(&association, "device-001")
@@ -174,8 +176,20 @@ fn in_memory_device_repository_rejects_duplicate_and_cross_scope_operations() {
     ))
     .expect("create cross-scope device");
 
-    assert_eq!(repo.list_devices(&assoc_a).len(), 1);
-    assert_eq!(repo.list_devices(&assoc_b).len(), 1);
+    assert_eq!(
+        repo.list_devices(&assoc_a, OffsetListPageParams::parse(None, None))
+            .expect("list a")
+            .items
+            .len(),
+        1
+    );
+    assert_eq!(
+        repo.list_devices(&assoc_b, OffsetListPageParams::parse(None, None))
+            .expect("list b")
+            .items
+            .len(),
+        1
+    );
     assert_eq!(
         repo.get_device(&assoc_b, "shared-device")
             .unwrap()
@@ -248,15 +262,23 @@ fn in_memory_command_repository_supports_create_and_scoped_list() {
     .expect("create command in other tenant");
 
     let list_a = repo
-        .list_commands(&assoc_a, "device-001")
+        .list_commands(
+            &assoc_a,
+            "device-001",
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list commands in tenant a");
     let list_b = repo
-        .list_commands(&assoc_b, "device-001")
+        .list_commands(
+            &assoc_b,
+            "device-001",
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list commands in tenant b");
-    assert_eq!(list_a.len(), 1);
-    assert_eq!(list_b.len(), 1);
+    assert_eq!(list_a.items.len(), 1);
+    assert_eq!(list_b.items.len(), 1);
     assert_eq!(
-        list_a[0].request_media_resource_id.as_deref(),
+        list_a.items[0].request_media_resource_id.as_deref(),
         Some("media-res-001")
     );
 }
@@ -286,10 +308,14 @@ fn in_memory_command_repository_supports_cancel_command() {
     assert_eq!(cancelled.status, "cancelled");
 
     let listed = repo
-        .list_commands(&association, "device-cancel-001")
+        .list_commands(
+            &association,
+            "device-cancel-001",
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list commands");
-    assert_eq!(listed.len(), 1);
-    assert_eq!(listed[0].status, "cancelled");
+    assert_eq!(listed.items.len(), 1);
+    assert_eq!(listed.items[0].status, "cancelled");
 
     let missing = repo
         .cancel_command(&association, "device-cancel-001", "cmd-missing")
@@ -359,14 +385,20 @@ fn in_memory_event_repository_supports_record_and_scoped_list() {
     ))
     .expect("record other device event");
 
-    let all = repo.list_events(&assoc, None).expect("list all events");
+    let all = repo
+        .list_events(&assoc, None, OffsetListPageParams::parse(None, None))
+        .expect("list all events");
     let scoped = repo
-        .list_events(&assoc, Some("device-001"))
+        .list_events(
+            &assoc,
+            Some("device-001"),
+            OffsetListPageParams::parse(None, None),
+        )
         .expect("list device events");
-    assert_eq!(all.len(), 2);
-    assert_eq!(scoped.len(), 1);
-    assert_eq!(scoped[0].device_id, "device-001");
-    assert_eq!(scoped[0].protocol_id, "xiaozhi.websocket");
+    assert_eq!(all.items.len(), 2);
+    assert_eq!(scoped.items.len(), 1);
+    assert_eq!(scoped.items[0].device_id, "device-001");
+    assert_eq!(scoped.items[0].protocol_id, "xiaozhi.websocket");
 }
 
 #[test]

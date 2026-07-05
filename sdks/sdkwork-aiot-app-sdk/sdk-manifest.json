@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "sdkFamily": "sdkwork-aiot-app-sdk",
+  "sdkName": "sdkwork-aiot-app-sdk",
+  "packageName": "@sdkwork/aiot-app-sdk",
+  "transportPackageName": "sdkwork-aiot-app-sdk-generated-typescript",
+  "typescript": {
+    "composedRoot": "sdkwork-aiot-app-sdk-typescript",
+    "composedEntry": "sdkwork-aiot-app-sdk-typescript/src/index.ts",
+    "transportRoot": "sdkwork-aiot-app-sdk-typescript/generated/server-openapi",
+    "transportEntry": "sdkwork-aiot-app-sdk-typescript/generated/server-openapi/src/index.ts"
+  },
+  "workspace": "sdkwork-aiot-app-sdk",
+  "title": "SDKWork AIoT App API SDK",
+  "apiVersion": "0.1.0",
+  "authoritySpec": "../../apis/app-api/iot/sdkwork-aiot-app-api.openapi.json",
+  "generationInputSpec": "../../apis/app-api/iot/sdkwork-aiot-app-api.openapi.json",
+  "sdkOwner": "sdkwork-aiot",
+  "apiAuthority": "sdkwork-aiot-app-api",
+  "discoverySurface": {
+    "sdkTarget": "app",
+    "apiPrefix": "/app/v3/api",
+    "generatedProtocols": [
+      "http"
+    ],
+    "manualTransports": []
+  },
+  "sdkDependencies": [],
+  "languages": [
+    {
+      "language": "typescript",
+      "workspace": "sdkwork-aiot-app-sdk-typescript",
+      "generationState": "reserved",
+      "releaseState": "not_published",
+      "version": "0.1.0",
+      "description": "SDKWork AIoT app API generated transport SDK",
+      "consumerSurface": {
+        "primaryClient": "SdkworkAiotAppClient",
+        "apiPrefix": "/app/v3/api"
+      },
+      "consumerPackageName": "@sdkwork/aiot-app-sdk",
+      "transportPackageName": "sdkwork-aiot-app-sdk-generated-typescript"
+    }
+  ]
+}

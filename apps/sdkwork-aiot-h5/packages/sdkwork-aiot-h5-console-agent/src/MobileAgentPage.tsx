@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { createAiotAgentService, getAiotH5AppSdkClient } from '@sdkwork/aiot-h5-core';
+import {
+  createAiotAgentService,
+  getAiotH5AppSdkClient,
+  listDevicePage,
+  readDeviceId,
+} from '@sdkwork/aiot-h5-core';
 import type { AiotAgentService } from '@sdkwork/aiot-app-core';
 
 export function MobileAgentPage() {
   const agentServiceRef = useRef<AiotAgentService | null>(null);
+  const [devices, setDevices] = useState<Array<{ deviceId: string; displayName: string }>>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Array<{ id: string; role: string; content: string }>>([]);
   const [draft, setDraft] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -11,20 +18,44 @@ export function MobileAgentPage() {
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (agentServiceRef.current) {
+    void listDevicePage(getAiotH5AppSdkClient(), { page: 1, page_size: 200 })
+      .then((page) => {
+        setDevices(
+          page.items.map((device) => ({
+            deviceId: readDeviceId(device),
+            displayName: String(device.displayName ?? readDeviceId(device)),
+          })),
+        );
+      })
+      .catch((error) => {
+        setLastError(error instanceof Error ? error.message : '设备列表加载失败');
+      });
+  }, []);
+
+  const ensureSession = (deviceId: string) => {
+    if (!agentServiceRef.current) {
+      agentServiceRef.current = createAiotAgentService({ aiotClient: getAiotH5AppSdkClient() });
+    }
+    const agentService = agentServiceRef.current;
+    const session = agentService.createSession(deviceId, '移动端智能体');
+    setSessionId(session.id);
+    setMessages(agentService.getMessages(session.id));
+    return session;
+  };
+
+  const handleSend = async () => {
+    if (!draft.trim() || isSending) {
       return;
     }
 
-    const agentService = createAiotAgentService({ aiotClient: getAiotH5AppSdkClient() });
-    const session = agentService.createSession('mobile-default-device', '移动端智能体');
-    agentServiceRef.current = agentService;
-    setSessionId(session.id);
-    setMessages(agentService.getMessages(session.id));
-  }, []);
+    if (!selectedDeviceId) {
+      setLastError('请先选择设备');
+      return;
+    }
 
-  const handleSend = async () => {
+    const session = sessionId ? { id: sessionId } : ensureSession(selectedDeviceId);
     const agentService = agentServiceRef.current;
-    if (!draft.trim() || !sessionId || !agentService || isSending) {
+    if (!agentService) {
       return;
     }
 
@@ -32,11 +63,11 @@ export function MobileAgentPage() {
     setLastError(null);
     try {
       await agentService.sendMessage({
-        deviceId: 'mobile-default-device',
-        sessionId,
+        deviceId: selectedDeviceId,
+        sessionId: session.id,
         text: draft.trim(),
       });
-      setMessages(agentService.getMessages(sessionId));
+      setMessages(agentService.getMessages(session.id));
       setDraft('');
     } catch (error) {
       setLastError(error instanceof Error ? error.message : '智能体消息发送失败');
@@ -49,6 +80,26 @@ export function MobileAgentPage() {
     <div className="flex h-full flex-col p-4">
       <h1 className="text-xl font-semibold">智能体</h1>
       {lastError ? <p className="mt-2 text-sm text-red-600">{lastError}</p> : null}
+      <div className="mt-3 space-y-2">
+        {devices.map((device) => (
+          <button
+            className={`w-full rounded-2xl border px-3 py-2 text-left text-sm ${
+              selectedDeviceId === device.deviceId
+                ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                : 'border-zinc-200 text-zinc-700'
+            }`}
+            key={device.deviceId}
+            onClick={() => {
+              setSelectedDeviceId(device.deviceId);
+              setSessionId(null);
+            }}
+            type="button"
+          >
+            {device.displayName}
+          </button>
+        ))}
+        {devices.length === 0 ? <p className="text-sm text-zinc-500">暂无可用设备</p> : null}
+      </div>
       <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
         {messages.map((message) => (
           <div

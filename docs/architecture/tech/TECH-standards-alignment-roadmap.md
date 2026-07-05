@@ -17,6 +17,7 @@ This TECH shard tracks the same phased alignment program as ADR 004. Read the AD
 | `sdkwork-drive` (PC firmware upload via Drive Uploader) | Done (Phase Y) |
 | OTA Drive `MediaResource` URL resolution | Done (Phase Y+) |
 | `sdkwork-discovery` | Deferred until RPC services exist |
+| Pagination store alignment + CI governance (Phase Z) | Done |
 
 ## Intentional transport exception
 
@@ -27,5 +28,8 @@ Device gateway ingress (`sdkwork-aiot-cloud-gateway`) remains on the minimal tra
 Run the commands listed in ADR 004, including:
 
 - `pnpm check:drive-standard`
+- `pnpm check:api-envelope`
+- `pnpm check:pagination`
+- `pnpm check:app-sdk-consumer-imports`
 - `pnpm check`
 - `cargo test -p sdkwork-aiot-architecture`

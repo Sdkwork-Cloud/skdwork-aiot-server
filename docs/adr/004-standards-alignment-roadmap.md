@@ -63,6 +63,7 @@ The AIoT server aligns on API contracts, SDK workspaces, topology, security post
 | W | Production topology + MCP deny-by-default | Complete `cloud/standalone.split-services.production` env profiles, deploy manifest profile IDs, Postgres cloud persistence keys, `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT` | Done |
 | X | API security + SDK generation parity | OpenAPI `AuthToken`/`AccessToken`, `sync-openapi-web-context.mjs`, workspace `tools/run-sdkgen.mjs`, sdkwork-v3 envelope unwrap in generated TypeScript SDKs, CORS allow-list cleanup | Done |
 | Y | Drive Uploader integration | `sdkwork-drive` workflow dependency, `@sdkwork/drive-app-sdk` PC firmware upload via `client.uploader.uploadArchive`, backend artifact registration with Drive-backed `MediaResource` (`source: drive`), `check:drive-standard` contract gate | Done |
+| Z | Pagination + governance CI closure | Store-level `list_*_page` for admin entities and credentials; `sdk-manifest.json` replaces `.sdkwork-assembly.json`; `pnpm check` runs api-envelope, pagination, and app-sdk-consumer-import gates; gateway WS command delivery worker for `audio.playback/speak` | Done |
 
 ## Consequences
 
@@ -72,6 +73,9 @@ The AIoT server aligns on API contracts, SDK workspaces, topology, security post
 
 ## Verification
 
+- `pnpm check:api-envelope`
+- `pnpm check:pagination`
+- `pnpm check:app-sdk-consumer-imports`
 - `pnpm check:drive-standard`
 - `pnpm check`
 - `pnpm verify`

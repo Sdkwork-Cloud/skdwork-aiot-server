@@ -10,6 +10,7 @@ import {
   readNumber,
   readRecord,
   readString,
+  listDevicePage,
 } from "@sdkwork/aiot-app-core";
 import {
   createEmptySdkworkDeviceCatalog,
@@ -92,6 +93,14 @@ function readPeripherals(value: unknown): SdkworkDevicePeripheral[] {
   });
 }
 
+function readOptionalPostureScore(metadata: Record<string, unknown>): number | null {
+  if (!('postureScore' in metadata) || metadata.postureScore === null || metadata.postureScore === undefined) {
+    return null;
+  }
+  const score = readNumber(metadata.postureScore, Number.NaN);
+  return Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : null;
+}
+
 function readBatteryPercent(value: unknown): number | null {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -119,7 +128,7 @@ function mapAiotDeviceToManagedDevice(device: AiotDevice): SdkworkManagedDevice 
     online,
     osName: readString(metadata.osName, readString(metadata.os, readString(metadata.platform, device.chipFamily ?? ""))),
     peripherals: readPeripherals(metadata.peripherals),
-    postureScore: readNumber(metadata.postureScore, online ? 90 : 30),
+    postureScore: readOptionalPostureScore(metadata),
     route: `/devices/${deviceId}`,
   };
 }
@@ -129,10 +138,8 @@ async function loadSdkDevices(options: CreateSdkworkDeviceServiceOptions): Promi
     return undefined;
   }
 
-  const page = await options.aiotClient.iot.devices.list();
-  return Array.isArray(page.items)
-    ? page.items.map((item) => mapAiotDeviceToManagedDevice(item as AiotDevice))
-    : [];
+  const page = await listDevicePage(options.aiotClient, { page: 1, page_size: 200 });
+  return page.items.map((item) => mapAiotDeviceToManagedDevice(item as AiotDevice));
 }
 
 export function createSdkworkDeviceService(

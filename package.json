@@ -16,7 +16,7 @@
     "test": "node --test tests/aiot-workspace-standard.test.mjs && node --test scripts/dev/*.test.mjs && cargo test -p sdkwork-aiot-architecture && cargo test -p sdkwork-iot-platform-service",
     "test:rust": "cargo test --workspace",
     "test:workspace-standard": "node --test tests/aiot-workspace-standard.test.mjs",
-    "check": "pnpm run check:app-composition && pnpm test:workspace-standard && pnpm test:device-database && pnpm test:postgres-migration-parity && pnpm test:production-topology && pnpm test:deploy-manifest && pnpm test:release-preflight && pnpm check:pnpm-script-standard && pnpm check:agent-workflow-standard && pnpm check:docs-standard && pnpm check:docs-index && pnpm check:iam-module-manifest && pnpm check:app-manifest && pnpm check:production-topology && pnpm check:deploy-manifest && pnpm check:drive-standard && pnpm db:validate && pnpm api:check && pnpm sdk:check && pnpm test:topology-validate && pnpm test:topology-baggage && cargo fmt -- --check && cargo clippy --workspace --tests -- -D warnings",
+    "check": "pnpm run check:app-composition && pnpm test:workspace-standard && pnpm test:device-database && pnpm test:postgres-migration-parity && pnpm test:production-topology && pnpm test:deploy-manifest && pnpm test:release-preflight && pnpm check:pnpm-script-standard && pnpm check:agent-workflow-standard && pnpm check:docs-standard && pnpm check:docs-index && pnpm check:iam-module-manifest && pnpm check:app-manifest && pnpm check:production-topology && pnpm check:deploy-manifest && pnpm check:drive-standard && pnpm check:api-envelope && pnpm check:pagination && pnpm check:app-sdk-consumer-imports && pnpm db:validate && pnpm api:check && pnpm sdk:check && pnpm test:topology-validate && pnpm test:topology-baggage && cargo fmt -- --check && cargo clippy --workspace --tests -- -D warnings",
     "check:pnpm-script-standard": "node ../sdkwork-specs/tools/check-pnpm-script-standard.mjs --root . --application-code-prefix aiot",
     "check:agent-workflow-standard": "node ../sdkwork-specs/tools/check-agent-workflow-standard.mjs --root .",
     "verify": "pnpm check && cargo test --workspace && pnpm run check:app-composition",
@@ -76,10 +76,20 @@
     "check:docs-index": "node scripts/dev/validate-docs-index.mjs",
     "check:docs-standard": "node ../sdkwork-specs/tools/check-repository-docs-standard.mjs --root . --profile application",
     "check:drive-standard": "node --test scripts/dev/drive-standard-contract.test.mjs",
+    "check:api-envelope": "node ../sdkwork-specs/tools/check-api-response-envelope.mjs --workspace .",
+    "check:pagination": "node ../sdkwork-specs/tools/check-pagination.mjs --workspace .",
+    "check:app-sdk-consumer-imports": "node ../sdkwork-specs/tools/check-app-sdk-consumer-imports.mjs --workspace .",
     "release:package": "node scripts/release-package.mjs",
     "gateway:package:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs bundle --root .",
     "gateway:validate:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs validate --root .",
     "test:contract:database": "node ../sdkwork-specs/tools/check-database-framework-standard.mjs --root .",
     "check:app-composition": "node ../sdkwork-specs/tools/verify-repo.mjs --root ."
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
   }
 }

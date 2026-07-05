@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use sdkwork_aiot_storage::AiotStorageAssociation;
+use sdkwork_aiot_storage::{
+    paginate_vec, AiotOffsetListResult, AiotStorageAssociation, OffsetListPageParams,
+};
 use sdkwork_aiot_storage_sqlx::SqlitePersistedEntityRepository;
 use sdkwork_iot_device_service::{CapabilityDefinition, CapabilityKind};
 
@@ -25,6 +27,29 @@ const ENTITY_FIRMWARE_ROLLOUT: &str = "firmware_rollout";
 use crate::firmware_rollout_planner::{
     firmware_deployment_payload_json, rollout_force_from_policy, ENTITY_FIRMWARE_DEPLOYMENT,
 };
+
+fn map_persisted_entity_page<T, F>(
+    page: Result<
+        AiotOffsetListResult<sdkwork_aiot_storage_sqlx::SqlitePersistedEntityRecord>,
+        sdkwork_aiot_storage_sqlx::SqlitePersistedEntityError,
+    >,
+    parse: F,
+) -> AiotOffsetListResult<T>
+where
+    F: Fn(&str) -> Option<T>,
+{
+    match page {
+        Ok(page) => AiotOffsetListResult {
+            items: page
+                .items
+                .into_iter()
+                .filter_map(|entity| parse(&entity.payload_json))
+                .collect(),
+            total: page.total,
+        },
+        Err(_) => AiotOffsetListResult::empty(),
+    }
+}
 
 #[derive(Clone)]
 pub struct AiotCatalogRepositoryHandle {
@@ -108,6 +133,20 @@ impl AiotCatalogRepositoryHandle {
                 .collect();
         }
         self.memory.list_products(association)
+    }
+
+    pub fn list_products_page(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> AiotOffsetListResult<AiotProductRecord> {
+        if let Some(store) = &self.store {
+            return map_persisted_entity_page(
+                store.list_entities_page(association, ENTITY_PRODUCT, params),
+                parse_product_record,
+            );
+        }
+        paginate_vec(self.memory.list_products(association), params)
     }
 
     pub fn update_product(
@@ -232,6 +271,20 @@ impl AiotCatalogRepositoryHandle {
                 .collect();
         }
         self.memory.list_hardware_profiles(association)
+    }
+
+    pub fn list_hardware_profiles_page(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> AiotOffsetListResult<AiotHardwareProfileRecord> {
+        if let Some(store) = &self.store {
+            return map_persisted_entity_page(
+                store.list_entities_page(association, ENTITY_HARDWARE_PROFILE, params),
+                parse_hardware_profile_record,
+            );
+        }
+        paginate_vec(self.memory.list_hardware_profiles(association), params)
     }
 
     pub fn update_hardware_profile(
@@ -359,6 +412,20 @@ impl AiotCatalogRepositoryHandle {
                 .collect();
         }
         self.memory.list_protocol_profiles(association)
+    }
+
+    pub fn list_protocol_profiles_page(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> AiotOffsetListResult<AiotProtocolProfileRecord> {
+        if let Some(store) = &self.store {
+            return map_persisted_entity_page(
+                store.list_entities_page(association, ENTITY_PROTOCOL_PROFILE, params),
+                parse_protocol_profile_record,
+            );
+        }
+        paginate_vec(self.memory.list_protocol_profiles(association), params)
     }
 
     pub fn update_protocol_profile(
@@ -490,6 +557,20 @@ impl AiotCatalogRepositoryHandle {
         self.memory.list_capability_models(association)
     }
 
+    pub fn list_capability_models_page(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> AiotOffsetListResult<AiotCapabilityModelRecord> {
+        if let Some(store) = &self.store {
+            return map_persisted_entity_page(
+                store.list_entities_page(association, ENTITY_CAPABILITY_MODEL, params),
+                parse_capability_model_record,
+            );
+        }
+        paginate_vec(self.memory.list_capability_models(association), params)
+    }
+
     pub fn update_capability_model(
         &self,
         association: AiotStorageAssociation,
@@ -605,6 +686,20 @@ impl AiotFirmwareRepositoryHandle {
         self.memory.list_artifacts(association)
     }
 
+    pub fn list_artifacts_page(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> AiotOffsetListResult<AiotFirmwareArtifactRecord> {
+        if let Some(store) = &self.store {
+            return map_persisted_entity_page(
+                store.list_entities_page(association, ENTITY_FIRMWARE_ARTIFACT, params),
+                parse_firmware_artifact,
+            );
+        }
+        paginate_vec(self.memory.list_artifacts(association), params)
+    }
+
     pub fn get_artifact(
         &self,
         association: &AiotStorageAssociation,
@@ -713,6 +808,20 @@ impl AiotFirmwareRepositoryHandle {
                 .collect();
         }
         self.memory.list_rollouts(association)
+    }
+
+    pub fn list_rollouts_page(
+        &self,
+        association: &AiotStorageAssociation,
+        params: OffsetListPageParams,
+    ) -> AiotOffsetListResult<AiotFirmwareRolloutRecord> {
+        if let Some(store) = &self.store {
+            return map_persisted_entity_page(
+                store.list_entities_page(association, ENTITY_FIRMWARE_ROLLOUT, params),
+                parse_firmware_rollout,
+            );
+        }
+        paginate_vec(self.memory.list_rollouts(association), params)
     }
 
     pub fn get_rollout(

@@ -1,7 +1,8 @@
 {
-  "name": "@sdkwork/aiot-backend-sdk",
-  "version": "0.1.6",
+  "name": "sdkwork-aiot-backend-sdk-generated-typescript",
+  "version": "0.1.8",
   "private": true,
+  "sdkworkRole": "transport",
   "description": "Generator-owned TypeScript transport SDK for sdkwork-aiot-backend-sdk.",
   "author": "SDKWork Team",
   "license": "MIT",

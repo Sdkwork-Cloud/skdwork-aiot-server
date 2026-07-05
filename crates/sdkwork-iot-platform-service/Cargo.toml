@@ -18,6 +18,10 @@ sdkwork-aiot-storage-sqlx.workspace = true
 sdkwork-database-config.workspace = true
 sdkwork-aiot-transport.workspace = true
 sdkwork-utils-rust.workspace = true
+sdkwork-aiot-intelligence-bridge = { workspace = true, optional = true }
+
+[features]
+intelligence-kernel = ["dep:sdkwork-aiot-intelligence-bridge"]
 
 [dev-dependencies]
 sdkwork-aiot-storage-sqlx.workspace = true
