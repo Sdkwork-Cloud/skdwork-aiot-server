@@ -1,81 +1,50 @@
-import { getAiotAppSdkClient } from '@sdkwork/aiot-pc-core';
 import {
+  createAiotAgentService,
+  createAiotVoiceDialogueService,
   createAiotVoiceService,
-  type AiotVoiceDevice,
+  type AiotAgentService,
+  type AiotVoiceDialogueService,
   type AiotVoiceService,
 } from '@sdkwork/aiot-app-core';
 
+import {
+  createAiotAgentsDialoguePort,
+  createAiotVoiceDialoguePort,
+  getAiotAppSdkClient,
+} from '@sdkwork/aiot-pc-core';
+
+export type {
+  AiotVoiceDialogueCatalog,
+} from '@sdkwork/aiot-app-core';
+
 export interface CreateSdkworkVoiceServiceOptions {
+  agentService?: AiotAgentService;
   voiceService?: AiotVoiceService;
 }
 
-export interface SdkworkVoiceCatalog {
-  devices: AiotVoiceDevice[];
-  isListening: boolean;
-  selectedDeviceId: string | null;
-  transcript: string;
-}
-
-export interface SdkworkVoiceServicePort {
-  getCatalog(): Promise<SdkworkVoiceCatalog>;
-  selectDevice(deviceId: string | null): void;
-  speakSelected(text: string): Promise<void>;
-  startListening(onTranscript: (text: string) => void): Promise<void>;
-  stopListening(): void;
-}
+export type SdkworkVoiceCatalog = Awaited<ReturnType<AiotVoiceDialogueService['getCatalog']>>;
+export type SdkworkVoiceServicePort = AiotVoiceDialogueService;
 
 export function createSdkworkVoiceService(
   options: CreateSdkworkVoiceServiceOptions = {},
 ): SdkworkVoiceServicePort {
-  const voiceService = options.voiceService ?? createAiotVoiceService({
+  const agentsDialoguePort = createAiotAgentsDialoguePort();
+  const voiceDialoguePort = createAiotVoiceDialoguePort();
+  const agentService = options.agentService ?? createAiotAgentService({
+    agentsDialoguePort,
     aiotClient: getAiotAppSdkClient(),
   });
+  const voiceService = options.voiceService ?? createAiotVoiceService({
+    aiotClient: getAiotAppSdkClient(),
+    voiceDialoguePort,
+  });
 
-  let selectedDeviceId: string | null = null;
-  let transcript = '';
-
-  return {
-    async getCatalog() {
-      const devices = await voiceService.listVoiceDevices();
-      if (!selectedDeviceId && devices[0]) {
-        selectedDeviceId = devices[0].deviceId;
-      }
-
-      return {
-        devices,
-        isListening: voiceService.isListening(),
-        selectedDeviceId,
-        transcript,
-      };
-    },
-
-    selectDevice(deviceId) {
-      selectedDeviceId = deviceId;
-    },
-
-    async speakSelected(text) {
-      if (!selectedDeviceId) {
-        await voiceService.speakLocally(text);
-        return;
-      }
-
-      await voiceService.speakOnDevice(selectedDeviceId, text);
-    },
-
-    async startListening(onTranscript) {
-      transcript = '';
-      await voiceService.startListening((value, isFinal) => {
-        transcript = value;
-        if (isFinal) {
-          onTranscript(value);
-        }
-      });
-    },
-
-    stopListening() {
-      voiceService.stopListening();
-    },
-  };
+  return createAiotVoiceDialogueService({
+    agentService,
+    agentsDialoguePort,
+    voiceDialoguePort,
+    voiceService,
+  });
 }
 
 export const sdkworkVoiceService = createSdkworkVoiceService();

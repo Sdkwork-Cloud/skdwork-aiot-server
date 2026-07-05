@@ -4,7 +4,7 @@ import { SdkworkAgentPage } from '@sdkwork/aiot-pc-console-agent';
 import { SdkworkDevicePage } from '@sdkwork/aiot-pc-console-device';
 import { SdkworkIotPage } from '@sdkwork/aiot-pc-console-iot';
 import { SdkworkVoicePage } from '@sdkwork/aiot-pc-console-voice';
-import { initAiotAppSdkClient, initAiotBackendSdkClient, initDriveAppSdkClient } from '@sdkwork/aiot-pc-core';
+import { initAiotAppSdkClient, initAiotBackendSdkClient, initAgentsAppSdkClient, initDriveAppSdkClient, initVoiceAppSdkClient } from '@sdkwork/aiot-pc-core';
 
 type AiotRoute = '/devices' | '/iot' | '/voice' | '/agent';
 
@@ -35,6 +35,8 @@ export function App() {
     initAiotAppSdkClient();
     initDriveAppSdkClient();
     initAiotBackendSdkClient();
+    initAgentsAppSdkClient();
+    initVoiceAppSdkClient();
   }, []);
 
   const handleNavigate = (targetRoute: string) => {

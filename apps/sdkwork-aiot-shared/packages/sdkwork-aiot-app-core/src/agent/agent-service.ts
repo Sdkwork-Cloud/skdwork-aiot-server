@@ -5,6 +5,7 @@ import {
   pollCommandResult,
   type AiotCommandService,
 } from '../command/command-service';
+import type { AiotAgentsDialoguePort } from '../ports/dialogue-ports';
 import type {
   AiotAgentToolCall,
   AiotConversationMessage,
@@ -13,6 +14,7 @@ import type {
 import { createMessageId, createSessionId, nowIso, readRecord, readString } from '../utils/session';
 
 export interface CreateAiotAgentServiceOptions {
+  agentsDialoguePort?: AiotAgentsDialoguePort;
   aiotClient: SdkworkAiotAppClient;
   commandService?: AiotCommandService;
 }
@@ -41,24 +43,59 @@ export function createAiotAgentService(
   options: CreateAiotAgentServiceOptions,
 ): AiotAgentService {
   const commandService = options.commandService ?? createAiotCommandService(options);
+  const agentsDialoguePort = options.agentsDialoguePort;
   const sessions = new Map<string, AiotConversationSession>();
   const messages = new Map<string, AiotConversationMessage[]>();
   const toolCalls = new Map<string, AiotAgentToolCall[]>();
 
+  function ensureSession(deviceId: string, sessionId: string, title?: string): AiotConversationSession {
+    const existing = sessions.get(sessionId);
+    if (existing) {
+      return existing;
+    }
+
+    const session: AiotConversationSession = {
+      createdAt: nowIso(),
+      deviceId,
+      id: sessionId,
+      title: title?.trim() || 'AIoT 智能体会话',
+      updatedAt: nowIso(),
+    };
+
+    sessions.set(session.id, session);
+    messages.set(session.id, []);
+    toolCalls.set(session.id, []);
+    return session;
+  }
+
+  async function sendViaAgentsPort(
+    session: AiotConversationSession,
+    text: string,
+  ): Promise<string> {
+    if (!agentsDialoguePort?.configured) {
+      throw new Error('sdkwork-agents dialogue port is not configured.');
+    }
+
+    const agentId = session.agentsAgentId ?? agentsDialoguePort.resolveAgentId(session.deviceId);
+    let remoteSessionId = session.agentsSessionId;
+    if (!remoteSessionId) {
+      remoteSessionId = await agentsDialoguePort.createRemoteSession(agentId, session.title);
+      session.agentsAgentId = agentId;
+      session.agentsSessionId = remoteSessionId;
+      session.updatedAt = nowIso();
+      sessions.set(session.id, session);
+    }
+
+    return agentsDialoguePort.sendChat({
+      agentId,
+      remoteSessionId,
+      text,
+    });
+  }
+
   return {
     createSession(deviceId, title) {
-      const session: AiotConversationSession = {
-        createdAt: nowIso(),
-        deviceId,
-        id: createSessionId('conv'),
-        title: title?.trim() || 'AIoT 智能体会话',
-        updatedAt: nowIso(),
-      };
-
-      sessions.set(session.id, session);
-      messages.set(session.id, []);
-      toolCalls.set(session.id, []);
-      return session;
+      return ensureSession(deviceId, createSessionId('conv'), title);
     },
 
     getMessages(sessionId) {
@@ -75,9 +112,7 @@ export function createAiotAgentService(
 
     async sendMessage(input) {
       const sessionId = input.sessionId ?? createSessionId('conv');
-      if (!sessions.has(sessionId)) {
-        this.createSession(input.deviceId);
-      }
+      ensureSession(input.deviceId, sessionId);
 
       const userMessage: AiotConversationMessage = {
         content: input.text.trim(),
@@ -103,41 +138,48 @@ export function createAiotAgentService(
       sessionMessages.push(pendingAssistant);
 
       try {
-        const command = await commandService.executeCommand({
-          capabilityName: 'assistant',
-          commandName: 'chat',
-          deviceId: input.deviceId,
-          payload: {
-            history: sessionMessages
-              .filter((message) => message.status === 'completed')
-              .map((message) => ({ content: message.content, role: message.role })),
-            lang: 'zh-CN',
-            text: input.text.trim(),
-          },
-          sessionId,
-        });
+        const session = sessions.get(sessionId);
+        if (!session) {
+          throw new Error('Conversation session not found.');
+        }
 
-        const completed = await pollCommandResult(options.aiotClient, input.deviceId, command.commandId);
-        const replyText = extractAssistantText(completed?.result?.resultPayload);
-        if (!replyText) {
-          const missingReplyError = new Error(
-            '设备未返回 assistant.chat 回复，请确认设备在线且已启用智能体能力。',
-          );
-          pendingAssistant.content = missingReplyError.message;
-          pendingAssistant.status = 'failed';
-          pendingAssistant.createdAt = nowIso();
-          throw missingReplyError;
+        let replyText: string | null = null;
+        if (agentsDialoguePort?.configured) {
+          replyText = await sendViaAgentsPort(session, input.text.trim());
+        } else {
+          const command = await commandService.executeCommand({
+            capabilityName: 'assistant',
+            commandName: 'chat',
+            deviceId: input.deviceId,
+            payload: {
+              history: sessionMessages
+                .filter((message) => message.status === 'completed')
+                .map((message) => ({ content: message.content, role: message.role })),
+              lang: 'zh-CN',
+              text: input.text.trim(),
+            },
+            sessionId,
+          });
+
+          const completed = await pollCommandResult(options.aiotClient, input.deviceId, command.commandId);
+          replyText = extractAssistantText(completed?.result?.resultPayload);
+          if (!replyText) {
+            const missingReplyError = new Error(
+              '设备未返回 assistant.chat 回复，请确认设备在线且已启用智能体能力。',
+            );
+            pendingAssistant.content = missingReplyError.message;
+            pendingAssistant.status = 'failed';
+            pendingAssistant.createdAt = nowIso();
+            throw missingReplyError;
+          }
         }
 
         pendingAssistant.content = replyText;
         pendingAssistant.status = 'completed';
         pendingAssistant.createdAt = nowIso();
 
-        const session = sessions.get(sessionId);
-        if (session) {
-          session.updatedAt = nowIso();
-          sessions.set(sessionId, session);
-        }
+        session.updatedAt = nowIso();
+        sessions.set(sessionId, session);
 
         return pendingAssistant;
       } catch (error) {

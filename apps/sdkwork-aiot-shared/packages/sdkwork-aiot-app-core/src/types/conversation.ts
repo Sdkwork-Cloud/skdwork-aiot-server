@@ -13,6 +13,8 @@ export interface AiotConversationMessage {
 }
 
 export interface AiotConversationSession {
+  agentsAgentId?: string;
+  agentsSessionId?: string;
   createdAt: string;
   deviceId: string;
   id: string;

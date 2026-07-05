@@ -28,11 +28,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@sdkwork/agents-app-sdk": "workspace:*",
     "@sdkwork/aiot-app-core": "workspace:*",
     "@sdkwork/aiot-app-sdk": "workspace:*",
     "@sdkwork/aiot-backend-sdk": "workspace:*",
     "@sdkwork/core-pc-react": "workspace:*",
     "@sdkwork/drive-app-sdk": "workspace:*",
-    "@sdkwork/utils": "workspace:*"
+    "@sdkwork/utils": "workspace:*",
+    "@sdkwork/voice-app-sdk": "workspace:*"
   }
 }

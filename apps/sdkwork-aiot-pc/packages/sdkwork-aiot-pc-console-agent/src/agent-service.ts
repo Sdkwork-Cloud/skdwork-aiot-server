@@ -5,9 +5,11 @@ import {
   type AiotConversationMessage,
   type AiotConversationSession,
 } from '@sdkwork/aiot-app-core';
+import { createAiotAgentsDialoguePort } from '@sdkwork/aiot-pc-core';
 
 export interface SdkworkAgentCatalog {
   activeSession: AiotConversationSession | null;
+  agentsConfigured: boolean;
   messages: AiotConversationMessage[];
   sessions: AiotConversationSession[];
 }
@@ -26,7 +28,9 @@ export interface SdkworkAgentServicePort {
 export function createSdkworkAgentService(
   options: CreateSdkworkAgentServiceOptions = {},
 ): SdkworkAgentServicePort {
+  const agentsDialoguePort = createAiotAgentsDialoguePort();
   const agentService = options.agentService ?? createAiotAgentService({
+    agentsDialoguePort,
     aiotClient: getAiotAppSdkClient(),
   });
 
@@ -48,6 +52,7 @@ export function createSdkworkAgentService(
 
       return {
         activeSession,
+        agentsConfigured: agentsDialoguePort.configured,
         messages: activeSession ? agentService.getMessages(activeSession.id) : [],
         sessions,
       };

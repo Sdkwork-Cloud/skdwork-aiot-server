@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => {
       '@sdkwork/aiot-app-sdk': path.resolve(__dirname, '../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/src/index.ts'),
       '@sdkwork/aiot-backend-sdk': path.resolve(__dirname, '../../sdks/sdkwork-aiot-backend-sdk/sdkwork-aiot-backend-sdk-typescript/src/index.ts'),
       '@sdkwork/drive-app-sdk': path.resolve(__dirname, '../../../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript/src/index.ts'),
+      '@sdkwork/agents-app-sdk': path.resolve(__dirname, '../../../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript/src/index.ts'),
+      '@sdkwork/voice-app-sdk': path.resolve(__dirname, '../../../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript/src/index.ts'),
       '@sdkwork/core-pc-react': path.resolve(__dirname, '../../../sdkwork-core/sdkwork-core-pc-react/src/index.ts'),
       '@sdkwork/ui-pc-react': path.resolve(__dirname, '../../../sdkwork-ui/sdkwork-ui-pc-react/src/index.ts'),
     },

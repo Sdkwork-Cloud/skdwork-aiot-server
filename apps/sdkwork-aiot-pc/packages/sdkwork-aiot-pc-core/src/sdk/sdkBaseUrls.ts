@@ -9,12 +9,16 @@ import {
   DEFAULT_LOCAL_EDGE_DEVICE_INGRESS_HTTP_URL,
   DEFAULT_LOCAL_EDGE_DEVICE_INGRESS_WEBSOCKET_URL,
   DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL,
+  DEFAULT_LOCAL_AGENTS_APP_HTTP_URL,
+  DEFAULT_LOCAL_VOICE_APP_HTTP_URL,
   VITE_SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_URL,
   VITE_SDKWORK_AIOT_APPLICATION_APP_HTTP_URL,
   VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_HTTP_URL,
   VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_WEBSOCKET_URL,
   VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL,
   VITE_SDKWORK_DRIVE_APP_API_BASE_URL,
+  VITE_SDKWORK_AGENTS_APP_API_BASE_URL,
+  VITE_SDKWORK_VOICE_APP_API_BASE_URL,
 } from './topologyEnvKeys';
 
 const SDKWORK_APP_API_PREFIX = '/app/v3/api';
@@ -170,6 +174,46 @@ export function resolveDriveAppApiBaseUrl(): string {
     resolveSameOriginHttpBaseUrl(),
     DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL,
   ]) ?? DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL;
+  return normalizeHttpSdkBaseUrl(value);
+}
+
+export function isAgentsAppSdkConfigured(): boolean {
+  return Boolean(
+    readSdkBaseUrlEnvValue(VITE_SDKWORK_AGENTS_APP_API_BASE_URL)
+    || readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL)
+    || isSdkRuntimeDev(),
+  );
+}
+
+export function resolveAgentsAppApiBaseUrl(): string {
+  const value = readFirstNonBlank([
+    readSdkBaseUrlEnvValue(VITE_SDKWORK_AGENTS_APP_API_BASE_URL),
+    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL),
+    resolveLocalDevPlatformApiGatewayBaseUrl(),
+    isSdkRuntimeDev() ? DEFAULT_LOCAL_AGENTS_APP_HTTP_URL : undefined,
+    resolveSameOriginHttpBaseUrl(),
+    DEFAULT_LOCAL_AGENTS_APP_HTTP_URL,
+  ]) ?? DEFAULT_LOCAL_AGENTS_APP_HTTP_URL;
+  return normalizeHttpSdkBaseUrl(value);
+}
+
+export function isVoiceAppSdkConfigured(): boolean {
+  return Boolean(
+    readSdkBaseUrlEnvValue(VITE_SDKWORK_VOICE_APP_API_BASE_URL)
+    || readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL)
+    || isSdkRuntimeDev(),
+  );
+}
+
+export function resolveVoiceAppApiBaseUrl(): string {
+  const value = readFirstNonBlank([
+    readSdkBaseUrlEnvValue(VITE_SDKWORK_VOICE_APP_API_BASE_URL),
+    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL),
+    resolveLocalDevPlatformApiGatewayBaseUrl(),
+    isSdkRuntimeDev() ? DEFAULT_LOCAL_VOICE_APP_HTTP_URL : undefined,
+    resolveSameOriginHttpBaseUrl(),
+    DEFAULT_LOCAL_VOICE_APP_HTTP_URL,
+  ]) ?? DEFAULT_LOCAL_VOICE_APP_HTTP_URL;
   return normalizeHttpSdkBaseUrl(value);
 }
 

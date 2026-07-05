@@ -4,6 +4,7 @@ import {
   createAiotCommandService,
   type AiotCommandService,
 } from '../command/command-service';
+import type { AiotVoiceDialoguePort } from '../ports/dialogue-ports';
 import { loadAllDevicePages } from '../device/device-pagination';
 import type { AiotVoiceDevice } from '../types/conversation';
 import { readRecord, readString } from '../utils/session';
@@ -13,6 +14,7 @@ export interface CreateAiotVoiceServiceOptions {
   commandService?: AiotCommandService;
   speechRecognition?: SpeechRecognitionLike | null;
   speechSynthesis?: SpeechSynthesis | null;
+  voiceDialoguePort?: AiotVoiceDialoguePort;
 }
 
 export interface SpeechRecognitionLike {
@@ -27,10 +29,12 @@ export interface SpeechRecognitionLike {
 }
 
 export interface AiotVoiceService {
+  isCloudVoiceConfigured(): boolean;
   isListening(): boolean;
   listVoiceDevices(): Promise<AiotVoiceDevice[]>;
   speakOnDevice(deviceId: string, text: string, sessionId?: string): Promise<void>;
   speakLocally(text: string, lang?: string): Promise<void>;
+  speakViaCloud(text: string, options?: { model?: string; voice?: string }): Promise<void>;
   startListening(onResult: (text: string, isFinal: boolean) => void): Promise<void>;
   stopListening(): void;
 }
@@ -66,10 +70,24 @@ function resolveBrowserSpeechRecognition(): SpeechRecognitionLike | null {
   return candidate ? new candidate() : null;
 }
 
+async function playAudioUrl(url: string): Promise<void> {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const audio = new Audio(url);
+    audio.onended = () => resolve();
+    audio.onerror = () => reject(new Error('Failed to play synthesized audio.'));
+    void audio.play().catch(reject);
+  });
+}
+
 export function createAiotVoiceService(
   options: CreateAiotVoiceServiceOptions,
 ): AiotVoiceService {
   const commandService = options.commandService ?? createAiotCommandService(options);
+  const voiceDialoguePort = options.voiceDialoguePort;
   const speechRecognition = options.speechRecognition ?? resolveBrowserSpeechRecognition();
   const speechSynthesis = options.speechSynthesis
     ?? (typeof window !== 'undefined' ? window.speechSynthesis : null);
@@ -78,6 +96,10 @@ export function createAiotVoiceService(
   let activeRecognition: SpeechRecognitionLike | null = null;
 
   return {
+    isCloudVoiceConfigured() {
+      return Boolean(voiceDialoguePort?.configured);
+    },
+
     isListening() {
       return listening;
     },
@@ -105,6 +127,20 @@ export function createAiotVoiceService(
         utterance.onerror = () => resolve();
         speechSynthesis.speak(utterance);
       });
+    },
+
+    async speakViaCloud(text, synthesisOptions) {
+      if (!voiceDialoguePort?.configured) {
+        throw new Error('sdkwork-voice dialogue port is not configured.');
+      }
+
+      const result = await voiceDialoguePort.synthesize(text, synthesisOptions);
+      if (result.audioUrl) {
+        await playAudioUrl(result.audioUrl);
+        return;
+      }
+
+      await this.speakLocally(text);
     },
 
     async startListening(onResult) {
