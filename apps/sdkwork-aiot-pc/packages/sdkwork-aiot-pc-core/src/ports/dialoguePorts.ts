@@ -4,6 +4,7 @@ import {
   type AiotAgentsDialoguePort,
   type AiotVoiceDialoguePort,
 } from '@sdkwork/aiot-app-core';
+import type { MediaKind, MediaSource } from '@sdkwork/voice-app-sdk';
 
 import {
   getAgentsAppSdkClient,
@@ -34,7 +35,18 @@ export function createAiotVoiceDialoguePort(): AiotVoiceDialoguePort {
       return client().voice.speech.create(input);
     },
     createTranscription(input) {
-      return client().voice.transcriptions.create(input);
+      return client().voice.transcriptions.create({
+        file: {
+          fileName: input.file.fileName,
+          kind: input.file.kind as MediaKind,
+          mimeType: input.file.mimeType,
+          source: input.file.source as MediaSource,
+          url: input.file.url,
+        },
+        language: input.language,
+        model: input.model,
+        responseFormat: input.responseFormat as 'json',
+      });
     },
     listAudioAssets(input) {
       return client().voice.audioAssets.list(input);

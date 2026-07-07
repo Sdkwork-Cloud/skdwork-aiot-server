@@ -12,6 +12,8 @@ use crate::persisted_entity::{SqlitePersistedEntityError, SqlitePersistedEntityR
 
 pub const ENTITY_FIRMWARE_DEPLOYMENT: &str = "firmware_deployment";
 pub const ENTITY_FIRMWARE_ARTIFACT: &str = "firmware_artifact";
+pub const MAX_OTA_DEPLOYMENT_SCAN: i64 = 200;
+pub const DEFAULT_ROLLOUT_DEVICE_BATCH: i64 = 200;
 
 const DEPLOYMENT_STATE_PENDING: &str = "pending";
 const DEPLOYMENT_STATE_OFFERED: &str = "offered";
@@ -55,11 +57,8 @@ impl FirmwareOtaCatalog {
         }
 
         let deployment = self
-            .list_entities_global(ENTITY_FIRMWARE_DEPLOYMENT)
+            .list_deployments_for_device(device_id, DEPLOYMENT_STATE_PENDING)
             .into_iter()
-            .filter_map(|row| parse_deployment_row(&row))
-            .filter(|deployment| deployment.device_id == device_id)
-            .filter(|deployment| deployment.deployment_state == DEPLOYMENT_STATE_PENDING)
             .max_by(|left, right| left.deployment_id.cmp(&right.deployment_id))?;
 
         let artifact = self
@@ -116,11 +115,8 @@ impl FirmwareOtaCatalog {
         }
 
         let deployment = self
-            .list_entities_global(ENTITY_FIRMWARE_DEPLOYMENT)
+            .list_deployments_for_device(device_id, DEPLOYMENT_STATE_OFFERED)
             .into_iter()
-            .filter_map(|row| parse_deployment_row(&row))
-            .filter(|deployment| deployment.device_id == device_id)
-            .filter(|deployment| deployment.deployment_state == DEPLOYMENT_STATE_OFFERED)
             .max_by(|left, right| left.deployment_id.cmp(&right.deployment_id))
             .ok_or(SqlitePersistedEntityError::NotFound)?;
 
@@ -194,47 +190,181 @@ impl FirmwareOtaCatalog {
         )
     }
 
-    fn list_entities_global(&self, entity_kind: &str) -> Vec<ScopedEntityRow> {
+    fn list_deployments_for_device(
+        &self,
+        device_id: &str,
+        deployment_state: &str,
+    ) -> Vec<ParsedDeployment> {
         self.store
             .blocking_pool()
             .run_owned(|pool| async move {
                 let dialect = pool.dialect();
-                let sql = adapt_sqlite_placeholders(
+                let device_scope_sql = adapt_sqlite_placeholders(
                     dialect,
-                    "SELECT payload_json
-                     FROM iot_admin_entity
-                     WHERE entity_kind = ?1 AND status = 1",
+                    "SELECT tenant_id, organization_id
+                     FROM iot_device
+                     WHERE device_id = ?1
+                     LIMIT 1",
                 );
-                let entity_kind = entity_kind.to_string();
-                match pool.engine() {
+                let device_id = device_id.to_string();
+                let deployment_state = deployment_state.to_string();
+                let device_scope: Option<(i64, i64)> = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let rows = sqlx::query(&sql)
-                            .bind(&entity_kind)
-                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                        let row = sqlx::query(&device_scope_sql)
+                            .bind(&device_id)
+                            .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        Ok::<Vec<ScopedEntityRow>, sqlx::Error>(
-                            rows.into_iter()
-                                .filter_map(|row| {
-                                    Some(ScopedEntityRow {
-                                        payload_json: row.try_get("payload_json").ok()?,
-                                    })
-                                })
-                                .collect(),
-                        )
+                        row.map(|row| {
+                            (
+                                row.try_get::<i64, _>("tenant_id").expect("tenant_id"),
+                                row.try_get::<i64, _>("organization_id")
+                                    .expect("organization_id"),
+                            )
+                        })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let rows = sqlx::query(&sql)
-                            .bind(&entity_kind)
-                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                        let row = sqlx::query(&device_scope_sql)
+                            .bind(&device_id)
+                            .fetch_optional(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        Ok(rows
-                            .into_iter()
-                            .filter_map(|row| {
-                                Some(ScopedEntityRow {
-                                    payload_json: row.try_get("payload_json").ok()?,
-                                })
+                        row.map(|row| {
+                            (
+                                row.try_get::<i64, _>("tenant_id").expect("tenant_id"),
+                                row.try_get::<i64, _>("organization_id")
+                                    .expect("organization_id"),
+                            )
+                        })
+                    }
+                };
+
+                let entity_kind = ENTITY_FIRMWARE_DEPLOYMENT.to_string();
+                let limit = MAX_OTA_DEPLOYMENT_SCAN;
+
+                fn map_deployment_rows(
+                    rows: Vec<sqlx::sqlite::SqliteRow>,
+                ) -> Vec<ParsedDeployment> {
+                    rows.into_iter()
+                        .filter_map(|row| {
+                            Some(ScopedEntityRow {
+                                payload_json: row.try_get("payload_json").ok()?,
                             })
-                            .collect())
+                        })
+                        .filter_map(|row| parse_deployment_row(&row))
+                        .collect()
+                }
+
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        if let Some((tenant_id, organization_id)) = device_scope {
+                            let list_sql = adapt_sqlite_placeholders(
+                                dialect,
+                                "SELECT payload_json
+                                 FROM iot_admin_entity
+                                 WHERE tenant_id = ?1
+                                   AND organization_id = ?2
+                                   AND entity_kind = ?3
+                                   AND status = 1
+                                   AND json_extract(payload_json, '$.deviceId') = ?4
+                                   AND json_extract(payload_json, '$.deploymentState') = ?5
+                                 ORDER BY entity_key DESC
+                                 LIMIT ?6",
+                            );
+                            let rows = sqlx::query(&list_sql)
+                                .bind(tenant_id)
+                                .bind(organization_id)
+                                .bind(&entity_kind)
+                                .bind(&device_id)
+                                .bind(&deployment_state)
+                                .bind(limit)
+                                .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                                .await?;
+                            Ok::<Vec<ParsedDeployment>, sqlx::Error>(map_deployment_rows(rows))
+                        } else {
+                            let list_sql = adapt_sqlite_placeholders(
+                                dialect,
+                                "SELECT payload_json
+                                 FROM iot_admin_entity
+                                 WHERE entity_kind = ?1
+                                   AND status = 1
+                                   AND json_extract(payload_json, '$.deviceId') = ?2
+                                   AND json_extract(payload_json, '$.deploymentState') = ?3
+                                 ORDER BY entity_key DESC
+                                 LIMIT ?4",
+                            );
+                            let rows = sqlx::query(&list_sql)
+                                .bind(&entity_kind)
+                                .bind(&device_id)
+                                .bind(&deployment_state)
+                                .bind(limit)
+                                .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                                .await?;
+                            Ok::<Vec<ParsedDeployment>, sqlx::Error>(map_deployment_rows(rows))
+                        }
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        if let Some((tenant_id, organization_id)) = device_scope {
+                            let list_sql = adapt_sqlite_placeholders(
+                                dialect,
+                                "SELECT payload_json
+                                 FROM iot_admin_entity
+                                 WHERE tenant_id = ?1
+                                   AND organization_id = ?2
+                                   AND entity_kind = ?3
+                                   AND status = 1
+                                   AND payload_json::jsonb ->> 'deviceId' = ?4
+                                   AND payload_json::jsonb ->> 'deploymentState' = ?5
+                                 ORDER BY entity_key DESC
+                                 LIMIT ?6",
+                            );
+                            let rows = sqlx::query(&list_sql)
+                                .bind(tenant_id)
+                                .bind(organization_id)
+                                .bind(&entity_kind)
+                                .bind(&device_id)
+                                .bind(&deployment_state)
+                                .bind(limit)
+                                .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                                .await?;
+                            Ok::<Vec<ParsedDeployment>, sqlx::Error>(
+                                rows.into_iter()
+                                    .filter_map(|row| {
+                                        Some(ScopedEntityRow {
+                                            payload_json: row.try_get("payload_json").ok()?,
+                                        })
+                                    })
+                                    .filter_map(|row| parse_deployment_row(&row))
+                                    .collect(),
+                            )
+                        } else {
+                            let list_sql = adapt_sqlite_placeholders(
+                                dialect,
+                                "SELECT payload_json
+                                 FROM iot_admin_entity
+                                 WHERE entity_kind = ?1
+                                   AND status = 1
+                                   AND payload_json::jsonb ->> 'deviceId' = ?2
+                                   AND payload_json::jsonb ->> 'deploymentState' = ?3
+                                 ORDER BY entity_key DESC
+                                 LIMIT ?4",
+                            );
+                            let rows = sqlx::query(&list_sql)
+                                .bind(&entity_kind)
+                                .bind(&device_id)
+                                .bind(&deployment_state)
+                                .bind(limit)
+                                .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                                .await?;
+                            Ok::<Vec<ParsedDeployment>, sqlx::Error>(
+                                rows.into_iter()
+                                    .filter_map(|row| {
+                                        Some(ScopedEntityRow {
+                                            payload_json: row.try_get("payload_json").ok()?,
+                                        })
+                                    })
+                                    .filter_map(|row| parse_deployment_row(&row))
+                                    .collect(),
+                            )
+                        }
                     }
                 }
             })
@@ -247,9 +377,7 @@ struct ParsedDeployment {
     deployment_id: String,
     tenant_id: i64,
     organization_id: i64,
-    device_id: String,
     artifact_id: String,
-    deployment_state: String,
     force: u32,
 }
 
@@ -266,13 +394,7 @@ fn parse_deployment_row(row: &ScopedEntityRow) -> Option<ParsedDeployment> {
         deployment_id: value.get("deploymentId")?.as_str()?.to_string(),
         tenant_id: value.get("tenantId")?.as_i64()?,
         organization_id: value.get("organizationId")?.as_i64()?,
-        device_id: value.get("deviceId")?.as_str()?.to_string(),
         artifact_id: value.get("artifactId")?.as_str()?.to_string(),
-        deployment_state: value
-            .get("deploymentState")
-            .and_then(Value::as_str)
-            .unwrap_or(DEPLOYMENT_STATE_PENDING)
-            .to_string(),
         force: value
             .get("force")
             .and_then(Value::as_u64)

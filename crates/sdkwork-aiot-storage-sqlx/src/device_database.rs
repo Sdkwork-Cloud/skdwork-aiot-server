@@ -78,4 +78,68 @@ mod device_database_tests {
             AiotDeviceDatabase::from_pool(BlockingDevicePool::Sqlite(sqlite)).expect("database");
         assert!(database.device_repository().expect("repo").storage_ready());
     }
+
+    /// Run with `SDKWORK_AIOT_POSTGRES_TEST_URL=postgres://... cargo test -p sdkwork-aiot-storage-sqlx postgres_device_database_round_trip -- --ignored`
+    #[test]
+    #[ignore = "requires SDKWORK_AIOT_POSTGRES_TEST_URL"]
+    fn postgres_device_database_round_trip() {
+        use sdkwork_aiot_storage::{
+            AiotCommandCreateCommand, AiotCommandRepository, AiotDeviceCreateCommand,
+            AiotDeviceRepository, AiotStorageAssociation, OffsetListPageParams,
+        };
+
+        let url = std::env::var("SDKWORK_AIOT_POSTGRES_TEST_URL")
+            .expect("SDKWORK_AIOT_POSTGRES_TEST_URL must be set");
+        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_URL", &url);
+        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_ENGINE", "postgres");
+        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_MODE", "pool");
+        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_TABLE_PREFIX", "iot_");
+        std::env::remove_var("SDKWORK_AIOT_DEVICE_DB_PATH");
+
+        let database = open_aiot_device_database_from_env().expect("postgres database");
+        assert_eq!(database.engine(), crate::DeviceDatabaseEngine::Postgres);
+        let device_repo = database.device_repository().expect("device repo");
+        assert!(device_repo.storage_ready());
+        assert!(database.credential_repository().is_ok());
+
+        let association = AiotStorageAssociation::tenant_org(900_001, 0);
+        let device = device_repo
+            .create_device(AiotDeviceCreateCommand::new(
+                association.clone(),
+                "pg-roundtrip-device",
+                "Postgres Roundtrip",
+                "product-001",
+            ))
+            .expect("create device");
+        let listed = device_repo
+            .list_devices(
+                &association,
+                OffsetListPageParams::parse(Some(1), Some(20)),
+            )
+            .expect("list devices");
+        assert!(listed
+            .items
+            .iter()
+            .any(|item| item.device_id == device.device_id));
+
+        let command = device_repo
+            .create_command(
+                AiotCommandCreateCommand::new(
+                    association.clone(),
+                    device.device_id.clone(),
+                    "system.ping",
+                    "ping",
+                )
+                .with_idempotency_key("pg-roundtrip-idem")
+                .with_request_payload_json(r#"{"text":"pg"}"#.to_string()),
+            )
+            .expect("create command");
+        assert_eq!(
+            device_repo
+                .get_command(&association, &device.device_id, &command.command_id)
+                .expect("get command")
+                .map(|record| record.command_id),
+            Some(command.command_id)
+        );
+    }
 }

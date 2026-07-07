@@ -3,10 +3,22 @@
 mod api_response;
 mod pagination;
 
+pub use api_response::{
+    aiot_wire_code_to_result, problem_detail_from_request, problem_detail_from_wire_code,
+    problem_detail_response, resolve_trace_id,
+};
+
 use api_response::{
-    json_collection_response, standard_command_acceptance_response, standard_resource_response,
+    domain_not_found_response, json_collection_response, standard_command_acceptance_response,
+    standard_resource_response,
 };
 use pagination::{page_params_from_request, PageQuery};
+
+fn require_page_params(request: &HttpRequest) -> Result<PageQuery, HttpResponse> {
+    page_params_from_request(request).map_err(|code| {
+        problem_detail_response(&resolve_trace_id(request), code, code.title())
+    })
+}
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -32,13 +44,13 @@ use sdkwork_aiot_service_host::{
     standard_aiot_runtime, AiotRuntime, RuntimeBuildError, RuntimeMode,
 };
 use sdkwork_aiot_storage::{
-    paginate_vec, AiotCommandCreateCommand, AiotCommandRecord, AiotCommandRepository,
-    AiotCommandRepositoryError, AiotDeviceCreateCommand, AiotDeviceEventRecord, AiotDeviceRecord,
-    AiotDeviceRepository, AiotDeviceRepositoryError, AiotDeviceSessionRecord,
-    AiotDeviceSessionRepository, AiotDeviceTwinRepository, AiotDeviceTwinRepositoryError,
-    AiotDeviceTwinSnapshot, AiotDeviceUpdateCommand, AiotEventRepository, AiotEventRepositoryError,
-    AiotOffsetListResult, AiotStorageAssociation, AiotTwinPropertyUpsertCommand,
-    InMemoryAiotCommandRepository, InMemoryAiotDeviceRepository,
+    paginate_bounded_catalog, paginate_vec, AiotCommandCreateCommand, AiotCommandRecord,
+    AiotCommandRepository, AiotCommandRepositoryError, AiotDeviceCreateCommand,
+    AiotDeviceEventRecord, AiotDeviceRecord, AiotDeviceRepository, AiotDeviceRepositoryError,
+    AiotDeviceSessionRecord, AiotDeviceSessionRepository, AiotDeviceTwinRepository,
+    AiotDeviceTwinRepositoryError, AiotDeviceTwinSnapshot, AiotDeviceUpdateCommand,
+    AiotEventRepository, AiotEventRepositoryError, AiotOffsetListResult, AiotStorageAssociation,
+    AiotTwinPropertyUpsertCommand, InMemoryAiotCommandRepository, InMemoryAiotDeviceRepository,
     InMemoryAiotDeviceSessionRepository, InMemoryAiotDeviceTwinRepository,
     InMemoryAiotEventRepository, OffsetListPageParams,
 };
@@ -295,7 +307,8 @@ pub fn dev_mode_enabled() -> bool {
 
 const PRODUCTION_MIN_SECRET_LENGTH: usize = 32;
 
-/// Refuses to start when production environment enables dev-mode auth bypass or weak secrets.
+/// Refuses to start when production environment enables dev-mode auth bypass, weak secrets,
+/// or ephemeral in-memory device persistence.
 pub fn assert_production_environment_safety() {
     if std::env::var("SDKWORK_AIOT_ENVIRONMENT").as_deref() != Ok("production") {
         return;
@@ -304,6 +317,13 @@ pub fn assert_production_environment_safety() {
     if dev_mode_enabled() {
         eprintln!(
             "FATAL: SDKWORK_AIOT_DEV_MODE=1 is forbidden when SDKWORK_AIOT_ENVIRONMENT=production"
+        );
+        std::process::exit(1);
+    }
+
+    if !sdkwork_aiot_storage_sqlx::device_database_config_is_durable_from_env() {
+        eprintln!(
+            "FATAL: production requires durable device persistence via SDKWORK_AIOT_DEVICE_DB_PATH or SDKWORK_AIOT_DEVICE_DATABASE_* env keys"
         );
         std::process::exit(1);
     }
@@ -323,15 +343,63 @@ pub fn assert_production_environment_safety() {
         );
         std::process::exit(1);
     }
+
+    if trust_proxy_headers_enabled() {
+        eprintln!(
+            "INFO: production proxy-header trust requires x-sdkwork-proxy-auth matching SDKWORK_AIOT_INTERNAL_TOKEN on every request with X-Sdkwork context headers"
+        );
+    }
 }
 
 fn trust_proxy_headers_enabled() -> bool {
     std::env::var("SDKWORK_AIOT_TRUST_PROXY_HEADERS").as_deref() == Ok("1")
 }
 
+fn production_environment_enabled() -> bool {
+    std::env::var("SDKWORK_AIOT_ENVIRONMENT").as_deref() == Ok("production")
+}
+
+fn proxy_header_context_authorized(request: &HttpRequest) -> Result<(), HttpResponse> {
+    if !production_environment_enabled() {
+        return Ok(());
+    }
+
+    let expected = std::env::var("SDKWORK_AIOT_INTERNAL_TOKEN")
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    if expected.len() < PRODUCTION_MIN_SECRET_LENGTH {
+        return Err(problem_response(
+            HttpStatus::Forbidden,
+            "api.auth.missing_dual_token",
+            "Proxy context requires configured internal token in production",
+        ));
+    }
+
+    let provided = request
+        .header("x-sdkwork-proxy-auth")
+        .or_else(|| request.header("x-sdkwork-internal-proxy-auth"))
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+
+    if provided.is_some_and(|value| secure_compare(value, expected.as_str())) {
+        return Ok(());
+    }
+
+    Err(problem_response(
+        HttpStatus::Unauthorized,
+        "api.auth.missing_dual_token",
+        "Trusted proxy authentication is required for context headers in production",
+    ))
+}
+
 fn resolve_protected_context_from_proxy_headers(
     request: &HttpRequest,
 ) -> Result<AiotRequestContext, HttpResponse> {
+    if let Err(response) = proxy_header_context_authorized(request) {
+        return Err(response);
+    }
+
     let tenant_id = required_header(request, "x-sdkwork-tenant-id").map_err(|_| {
         problem_response(
             HttpStatus::Forbidden,
@@ -832,6 +900,13 @@ pub fn standard_api_route_contracts() -> Vec<AiotApiRouteContract> {
         AiotApiRouteContract {
             surface: AiotApiSurface::App,
             method: "GET",
+            path: "/app/v3/api/iot/devices/{deviceId}/commands/{commandId}",
+            operation_id: "devices.commands.retrieve",
+            required_permission: IOT_PERMISSION_COMMANDS_READ,
+        },
+        AiotApiRouteContract {
+            surface: AiotApiSurface::App,
+            method: "GET",
             path: "/app/v3/api/iot/devices/{deviceId}/twin",
             operation_id: "devices.twin.retrieve",
             required_permission: IOT_PERMISSION_TWINS_READ,
@@ -1072,6 +1147,13 @@ pub fn standard_api_route_contracts() -> Vec<AiotApiRouteContract> {
             method: "GET",
             path: "/backend/v3/api/iot/devices/{deviceId}/commands",
             operation_id: "devices.commands.list",
+            required_permission: IOT_PERMISSION_COMMANDS_READ,
+        },
+        AiotApiRouteContract {
+            surface: AiotApiSurface::Admin,
+            method: "GET",
+            path: "/backend/v3/api/iot/devices/{deviceId}/commands/{commandId}",
+            operation_id: "devices.commands.retrieve",
             required_permission: IOT_PERMISSION_COMMANDS_READ,
         },
         AiotApiRouteContract {
@@ -1858,6 +1940,19 @@ impl AiotApiServer {
             .map_err(command_repository_error_to_response)
     }
 
+    fn get_command(
+        &self,
+        context: &AiotRequestContext,
+        device_id: &str,
+        command_id: &str,
+    ) -> Result<AiotCommandRecord, HttpResponse> {
+        let association = request_context_to_storage_association(context)?;
+        self.command_repository
+            .get_command(&association, device_id, command_id)
+            .map_err(command_repository_error_to_response)?
+            .ok_or_else(|| command_not_found_response(command_id))
+    }
+
     fn list_device_sessions(
         &self,
         context: &AiotRequestContext,
@@ -1928,7 +2023,7 @@ impl AiotApiServer {
             })
             .collect::<Vec<_>>();
 
-        Ok(paginate_vec(capabilities, params))
+        Ok(paginate_bounded_catalog(capabilities, params))
     }
 
     fn list_events(
@@ -2223,12 +2318,20 @@ impl AiotApiServer {
 
     fn maybe_process_assistant_chat_kernel(
         &self,
-        #[cfg_attr(not(feature = "intelligence-kernel"), allow(unused_variables))]
         association: &AiotStorageAssociation,
         command: &AiotCommandRecord,
     ) -> Result<(), HttpResponse> {
         if command.capability_name != "assistant" || command.command_name != "chat" {
             return Ok(());
+        }
+
+        #[cfg(not(feature = "intelligence-kernel"))]
+        {
+            return Err(problem_response(
+                HttpStatus::InternalServerError,
+                "api.intelligence.kernel_unavailable",
+                "Intelligence kernel integration is not enabled in this server build",
+            ));
         }
 
         #[cfg(feature = "intelligence-kernel")]
@@ -2286,7 +2389,7 @@ impl AiotApiServer {
                 .ensure_session(&session_map, xiaozhi_session_id, &agent_id)
                 .map_err(|error| {
                     problem_response(
-                        HttpStatus::BadGateway,
+                        HttpStatus::InternalServerError,
                         "api.intelligence.kernel_session_failed",
                         &error,
                     )
@@ -2295,7 +2398,7 @@ impl AiotApiServer {
                 .send_user_message(&kernel_session_id, &user_text)
                 .map_err(|error| {
                     problem_response(
-                        HttpStatus::BadGateway,
+                        HttpStatus::InternalServerError,
                         "api.intelligence.kernel_message_failed",
                         &error,
                     )
@@ -2503,9 +2606,12 @@ pub fn handle_resolved_api_request(
 
     match (server.surface, route.operation_id) {
         (AiotApiSurface::Admin, "protocolAdapters.list") => {
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             let items = protocol_adapter_item_json(server.runtime());
-            let page = paginate_vec(items, page_params);
+            let page = paginate_bounded_catalog(items, page_params);
             json_collection_response(request, &page.items.join(","), page_params, page.total)
         }
         (AiotApiSurface::Admin, "runtime.capacity.retrieve") => {
@@ -2519,7 +2625,10 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_products(context, page_params) {
                 Ok(page) => standard_product_collection_response(
                     request,
@@ -2601,7 +2710,10 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_hardware_profiles(context, page_params) {
                 Ok(page) => standard_hardware_profile_collection_response(
                     request,
@@ -2691,7 +2803,10 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_protocol_profiles(context, page_params) {
                 Ok(page) => standard_protocol_profile_collection_response(
                     request,
@@ -2781,7 +2896,10 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_capability_models(context, page_params) {
                 Ok(page) => standard_capability_model_collection_response(
                     request,
@@ -2819,7 +2937,10 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_devices(context, page_params) {
                 Ok(page) => standard_device_collection_response(
                     request,
@@ -2839,7 +2960,10 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_device_sessions(context, device_id, page_params) {
                 Ok(page) => standard_device_session_collection_response(
                     request,
@@ -2874,7 +2998,10 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_device_capabilities(context, device_id, page_params) {
                 Ok(page) => standard_device_capability_collection_response(
                     request,
@@ -2894,7 +3021,10 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_commands(context, device_id, page_params) {
                 Ok(page) => standard_command_collection_response(
                     request,
@@ -2902,6 +3032,21 @@ pub fn handle_resolved_api_request(
                     page_params,
                     page.total,
                 ),
+                Err(problem) => problem,
+            }
+        }
+        (AiotApiSurface::Admin, "devices.commands.retrieve") => {
+            let Some(context) = request_context else {
+                return problem_response(
+                    HttpStatus::Forbidden,
+                    "api.context.missing",
+                    "Resolved appbase context is required",
+                );
+            };
+            let device_id = device_id.as_deref().unwrap_or("unknown-device");
+            let command_id = command_id.as_deref().unwrap_or("unknown-command");
+            match server.get_command(context, device_id, command_id) {
+                Ok(command) => standard_command_response(request, HttpStatus::Ok, &command),
                 Err(problem) => problem,
             }
         }
@@ -2933,7 +3078,10 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_events(context, None, page_params) {
                 Ok(page) => standard_event_collection_response(
                     request,
@@ -2953,7 +3101,10 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_events(context, Some(device_id), page_params) {
                 Ok(page) => standard_event_collection_response(
                     request,
@@ -3092,7 +3243,10 @@ pub fn handle_resolved_api_request(
                 );
             };
             let device_id = device_id.as_deref().unwrap_or("unknown-device");
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_device_credentials(context, device_id, page_params) {
                 Ok(page) => standard_device_credential_collection_response(
                     request,
@@ -3209,6 +3363,21 @@ pub fn handle_resolved_api_request(
                 Err(problem) => problem,
             }
         }
+        (AiotApiSurface::App, "devices.commands.retrieve") => {
+            let Some(context) = request_context else {
+                return problem_response(
+                    HttpStatus::Forbidden,
+                    "api.context.missing",
+                    "Resolved appbase context is required",
+                );
+            };
+            let device_id = device_id.as_deref().unwrap_or("unknown-device");
+            let command_id = command_id.as_deref().unwrap_or("unknown-command");
+            match server.get_command(context, device_id, command_id) {
+                Ok(command) => standard_command_response(request, HttpStatus::Ok, &command),
+                Err(problem) => problem,
+            }
+        }
         (AiotApiSurface::Admin, "firmwareArtifacts.list") => {
             let Some(context) = request_context else {
                 return problem_response(
@@ -3217,7 +3386,10 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_firmware_artifacts(context, page_params) {
                 Ok(page) => standard_firmware_artifact_collection_response(
                     request,
@@ -3301,7 +3473,10 @@ pub fn handle_resolved_api_request(
                     "Resolved appbase context is required",
                 );
             };
-            let page_params = page_params_from_request(request);
+            let page_params = match require_page_params(request) {
+                Ok(params) => params,
+                Err(response) => return response,
+            };
             match server.list_firmware_rollouts(context, page_params) {
                 Ok(page) => standard_firmware_rollout_collection_response(
                     request,
@@ -6054,6 +6229,14 @@ fn standard_command_collection_response(
     json_collection_response(request, &items, page_query, total)
 }
 
+fn standard_command_response(
+    request: &HttpRequest,
+    status: HttpStatus,
+    command: &AiotCommandRecord,
+) -> HttpResponse {
+    standard_resource_response(request, status, command_resource_json(command))
+}
+
 fn command_resource_json(command: &AiotCommandRecord) -> String {
     let result_json = command
         .result
@@ -6429,93 +6612,56 @@ fn json_map_with_json_values(values: &BTreeMap<String, String>) -> String {
 }
 
 fn device_not_found_response(device_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.device.not_found","deviceId":"{}"}}"#,
-            json_escape(device_id)
-        ))
+    domain_not_found_response("Device", device_id, None)
 }
 
 fn product_not_found_response(product_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.product.not_found","productId":"{}"}}"#,
-            json_escape(product_id)
-        ))
+    domain_not_found_response("Product", product_id, None)
 }
 
 fn hardware_profile_not_found_response(hardware_profile_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.hardware_profile.not_found","hardwareProfileId":"{}"}}"#,
-            json_escape(hardware_profile_id)
-        ))
+    domain_not_found_response("Hardware profile", hardware_profile_id, None)
 }
 
 fn protocol_profile_not_found_response(protocol_profile_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.protocol_profile.not_found","protocolProfileId":"{}"}}"#,
-            json_escape(protocol_profile_id)
-        ))
+    domain_not_found_response("Protocol profile", protocol_profile_id, None)
 }
 
 fn capability_model_not_found_response(capability_model_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Capability model not found","status":404,"code":"api.capability_model.not_found","capabilityModelId":"{}"}}"#,
-            json_escape(capability_model_id)
-        ))
+    domain_not_found_response("Capability model", capability_model_id, None)
 }
 
 fn credential_not_found_response(credential_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.device.credential.not_found","credentialId":"{}"}}"#,
-            json_escape(credential_id)
-        ))
+    domain_not_found_response("Credential", credential_id, None)
 }
 
 fn device_session_not_found_response(session_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.device.session.not_found","sessionId":"{}"}}"#,
-            json_escape(session_id)
-        ))
+    domain_not_found_response("Device session", session_id, None)
 }
 
 fn command_not_found_response(command_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.command.not_found","commandId":"{}"}}"#,
-            json_escape(command_id)
-        ))
+    domain_not_found_response("Command", command_id, None)
 }
 
 fn firmware_artifact_not_found_response(artifact_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.firmware.artifact.not_found","artifactId":"{}"}}"#,
-            json_escape(artifact_id)
-        ))
+    domain_not_found_response("Firmware artifact", artifact_id, None)
 }
 
 fn firmware_rollout_not_found_response(rollout_id: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::NotFound)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"Not Found","status":404,"code":"api.firmware.rollout.not_found","rolloutId":"{}"}}"#,
-            json_escape(rollout_id)
-        ))
+    domain_not_found_response("Firmware rollout", rollout_id, None)
+}
+
+fn problem_response(status: HttpStatus, code: &str, title: &str) -> HttpResponse {
+    let _ = status;
+    problem_detail_from_wire_code(None, code, title)
+}
+
+fn permission_denied_response(required_permission: &str) -> HttpResponse {
+    problem_detail_from_wire_code(
+        None,
+        "api.permission.denied",
+        format!("Permission denied: {required_permission}"),
+    )
 }
 
 pub(crate) fn apply_media_object_blob_id(
@@ -6595,30 +6741,6 @@ fn route_kind_name(kind: sdkwork_aiot_service_host::AiotProtocolRouteKind) -> &'
     }
 }
 
-fn problem_response(status: HttpStatus, code: &str, title: &str) -> HttpResponse {
-    apply_security_headers(
-        HttpResponse::new(status)
-            .with_header("content-type", "application/problem+json")
-            .with_body(format!(
-                r#"{{"type":"about:blank","title":"{}","status":{},"code":"{}"}}"#,
-                title,
-                status.code(),
-                code
-            )),
-    )
-}
-
-fn permission_denied_response(required_permission: &str) -> HttpResponse {
-    apply_security_headers(
-        HttpResponse::new(HttpStatus::Forbidden)
-            .with_header("content-type", "application/problem+json")
-            .with_body(format!(
-                r#"{{"type":"about:blank","title":"Permission denied","status":403,"code":"api.permission.denied","requiredPermission":"{}"}}"#,
-                json_escape(required_permission)
-            )),
-    )
-}
-
 fn parse_http_request(bytes: &[u8]) -> Result<HttpRequest, AiotApiError> {
     let header_len = bytes
         .windows(4)
@@ -6638,7 +6760,13 @@ fn parse_http_request(bytes: &[u8]) -> Result<HttpRequest, AiotApiError> {
     let path = parts
         .next()
         .ok_or_else(|| AiotApiError::new("api.http.missing_path"))?;
-    let mut request = HttpRequest::new(method, path);
+    let (path_only, query) = path.split_once('?').unwrap_or((path, ""));
+    let mut request = HttpRequest::new(method, path_only);
+    request.raw_path = path.to_string();
+    for pair in query.split('&').filter(|pair| !pair.is_empty()) {
+        let (name, value) = pair.split_once('=').unwrap_or((pair, ""));
+        request = request.with_query_param(name, value);
+    }
 
     for line in lines {
         if line.is_empty() {

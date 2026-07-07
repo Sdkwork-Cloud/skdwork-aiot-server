@@ -3,13 +3,13 @@
   "generator": "@sdkwork/sdk-generator",
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.11",
+    "version": "0.1.14",
     "language": "typescript",
     "sdkType": "app",
     "protocol": "http",
     "packageName": "@sdkwork/aiot-app-sdk"
   },
-  "changeFingerprint": "baf16d9c9c2b08a723394c1af24c4ea5e3e4ded9346bf3e062e93367ddc89a5c",
+  "changeFingerprint": "82649a9df2ac375b3488281e9fd0efea8421a0f2da332adcf3cdd606beadca3d",
   "changes": {
     "createdGeneratedFiles": [],
     "updatedGeneratedFiles": [
@@ -58,7 +58,6 @@
       "src/types/media-source.ts",
       "src/types/page-info.ts",
       "src/types/problem-detail.ts",
-      "src/types/problem-details.ts",
       "src/types/sdk-work-api-response.ts",
       "src/types/sdk-work-command-data.ts",
       "src/types/sdk-work-command-response.ts",

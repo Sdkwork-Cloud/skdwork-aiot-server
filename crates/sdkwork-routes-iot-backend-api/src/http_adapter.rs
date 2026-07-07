@@ -3,9 +3,10 @@ use axum::{
     http::{Request, Response, StatusCode},
 };
 use http_body_util::BodyExt;
-use sdkwork_aiot_transport::{HttpRequest, HttpResponse, HttpStatus};
+use sdkwork_aiot_transport::{HttpRequest, HttpResponse};
 use sdkwork_iot_platform_service::{
-    handle_resolved_api_request, resolve_api_request_from_web_context,
+    handle_resolved_api_request, problem_detail_from_wire_code,
+    resolve_api_request_from_web_context,
 };
 use sdkwork_web_core::WebRequestContext;
 
@@ -97,9 +98,5 @@ pub async fn dispatch_with_web_context(
 }
 
 fn internal_problem(code: &str, title: &str) -> HttpResponse {
-    HttpResponse::new(HttpStatus::InternalServerError)
-        .with_header("content-type", "application/problem+json")
-        .with_body(format!(
-            r#"{{"type":"about:blank","title":"{title}","status":500,"code":"{code}"}}"#
-        ))
+    problem_detail_from_wire_code(None, code, title)
 }

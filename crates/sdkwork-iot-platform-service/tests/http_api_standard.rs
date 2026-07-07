@@ -8,6 +8,7 @@ use sdkwork_iot_platform_service::{
     standard_admin_api_server, standard_api_route_contracts, standard_app_api_server,
     AiotApiRequestContext, AiotApiSurface, AiotResolvedApiRequest,
 };
+use sdkwork_utils_rust::SdkWorkResultCode;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -141,7 +142,8 @@ fn protected_api_routes_require_sdkwork_dual_token_and_resolved_appbase_context(
     .expect("missing tokens problem");
     assert!(missing_tokens.starts_with("HTTP/1.1 401"));
     assert!(missing_tokens.contains("application/problem+json"));
-    assert!(missing_tokens.contains("api.auth.missing_dual_token"));
+    assert!(missing_tokens.contains("\"code\":40101"));
+    assert!(missing_tokens.contains("\"traceId\""));
 
     let missing_context = handle_api_request_bytes(
         &admin,
@@ -158,7 +160,7 @@ fn protected_api_routes_require_sdkwork_dual_token_and_resolved_appbase_context(
     )
     .expect("invalid context problem");
     assert!(invalid_context.starts_with("HTTP/1.1 400"));
-    assert!(invalid_context.contains("api.context.invalid_tenant_id"));
+    assert_problem_contains_code(&invalid_context, SdkWorkResultCode::ValidationError);
 }
 
 #[test]
@@ -198,7 +200,7 @@ fn protected_api_handler_rejects_unresolved_public_context_before_dispatch() {
     let response = handle_resolved_api_request(&admin, &unresolved);
 
     assert_eq!(response.status, HttpStatus::Forbidden);
-    assert!(response.body.contains("api.context.missing"));
+    assert_problem_contains_code(&response.body, SdkWorkResultCode::PermissionRequired);
 }
 
 #[test]
@@ -262,7 +264,7 @@ fn protected_api_routes_require_resolved_permission_scope_from_appbase_context()
     )
     .expect("missing permission problem");
     assert!(missing_permission.starts_with("HTTP/1.1 403"));
-    assert!(missing_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(&missing_permission, SdkWorkResultCode::PermissionRequired);
     assert!(missing_permission.contains("iot.protocolAdapters.read"));
 
     let allowed = handle_api_request_bytes(
@@ -291,7 +293,7 @@ fn templated_api_route_contracts_match_concrete_paths_before_dispatch() {
     .expect("templated route permission problem");
 
     assert!(missing_permission.starts_with("HTTP/1.1 403"));
-    assert!(missing_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(&missing_permission, SdkWorkResultCode::PermissionRequired);
     assert!(missing_permission.contains("iot.commands.execute"));
 }
 
@@ -318,7 +320,7 @@ fn declared_backend_collection_routes_return_structured_catalog_payloads() {
         );
         assert!(response.contains(r#""code":0"#), "{path} missing code");
         assert!(
-            !response.contains("api.route.unsupported"),
+            !response.contains(r#""code":40501"#),
             "{path} must not fall through to unsupported route"
         );
 
@@ -406,12 +408,12 @@ fn capability_model_retrieve_route_returns_standard_model_payload() {
     .expect("capability model not found");
     assert!(not_found_response.starts_with("HTTP/1.1 404"));
     let not_found_body =
-        assert_problem_json_fields(&not_found_response, 404, "api.capability_model.not_found");
+        assert_problem_json_fields(&not_found_response, 404, SdkWorkResultCode::NotFound);
     assert_eq!(
         not_found_body
             .get("title")
             .and_then(serde_json::Value::as_str),
-        Some("Capability model not found")
+        Some("Not found")
     );
 }
 
@@ -482,7 +484,7 @@ fn backend_device_sessions_and_capabilities_routes_are_device_scoped_and_typed()
     )
     .expect("backend devices.sessions.list wrong scope");
     assert!(sessions_wrong_scope.starts_with("HTTP/1.1 404"));
-    assert!(sessions_wrong_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&sessions_wrong_scope, SdkWorkResultCode::NotFound);
 
     let capabilities_wrong_scope = handle_api_request_bytes(
         &admin,
@@ -490,7 +492,7 @@ fn backend_device_sessions_and_capabilities_routes_are_device_scoped_and_typed()
     )
     .expect("backend devices.capabilities.list wrong scope");
     assert!(capabilities_wrong_scope.starts_with("HTTP/1.1 404"));
-    assert!(capabilities_wrong_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&capabilities_wrong_scope, SdkWorkResultCode::NotFound);
 }
 
 #[test]
@@ -538,7 +540,10 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     )
     .expect("disconnect wrong permission");
     assert!(disconnect_wrong_permission.starts_with("HTTP/1.1 403"));
-    assert!(disconnect_wrong_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &disconnect_wrong_permission,
+        SdkWorkResultCode::PermissionRequired,
+    );
 
     let disconnect = handle_api_request_bytes(
         &admin,
@@ -570,7 +575,7 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     )
     .expect("disconnect session again");
     assert!(disconnect_again.starts_with("HTTP/1.1 404"));
-    assert!(disconnect_again.contains("api.device.session.not_found"));
+    assert_problem_contains_code(&disconnect_again, SdkWorkResultCode::NotFound);
 
     let disconnect_wrong_scope = handle_api_request_bytes(
         &admin,
@@ -581,7 +586,7 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     )
     .expect("disconnect session wrong scope");
     assert!(disconnect_wrong_scope.starts_with("HTTP/1.1 404"));
-    assert!(disconnect_wrong_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&disconnect_wrong_scope, SdkWorkResultCode::NotFound);
 
     let create_command = handle_api_request_bytes(
         &app,
@@ -603,7 +608,10 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     )
     .expect("cancel wrong permission");
     assert!(cancel_wrong_permission.starts_with("HTTP/1.1 403"));
-    assert!(cancel_wrong_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &cancel_wrong_permission,
+        SdkWorkResultCode::PermissionRequired,
+    );
 
     let cancel = handle_api_request_bytes(
         &admin,
@@ -651,7 +659,7 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     )
     .expect("cancel missing command");
     assert!(cancel_missing_command.starts_with("HTTP/1.1 404"));
-    assert!(cancel_missing_command.contains("api.command.not_found"));
+    assert_problem_contains_code(&cancel_missing_command, SdkWorkResultCode::NotFound);
 
     let cancel_wrong_scope = handle_api_request_bytes(
         &admin,
@@ -662,7 +670,7 @@ fn backend_device_session_disconnect_and_command_cancel_routes_are_scoped_and_ef
     )
     .expect("cancel command wrong scope");
     assert!(cancel_wrong_scope.starts_with("HTTP/1.1 404"));
-    assert!(cancel_wrong_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&cancel_wrong_scope, SdkWorkResultCode::NotFound);
 }
 
 #[test]
@@ -800,7 +808,7 @@ fn command_create_rejects_invalid_json_body() {
 
     assert!(response.starts_with("HTTP/1.1 400"));
     assert!(response.contains("application/problem+json"));
-    assert!(response.contains("api.request.invalid_json"));
+    assert_problem_contains_code(&response, SdkWorkResultCode::ValidationError);
 }
 
 #[test]
@@ -813,7 +821,7 @@ fn command_create_requires_non_empty_body_and_required_fields() {
     .expect("missing command body response");
 
     assert!(missing_body.starts_with("HTTP/1.1 400"));
-    assert!(missing_body.contains("api.request.body.required"));
+    assert_problem_contains_code(&missing_body, SdkWorkResultCode::MissingRequiredField);
 
     let missing_payload = handle_api_request_bytes(
         &app,
@@ -821,7 +829,7 @@ fn command_create_requires_non_empty_body_and_required_fields() {
     )
     .expect("missing payload response");
     assert!(missing_payload.starts_with("HTTP/1.1 400"));
-    assert!(missing_payload.contains("api.request.invalid_field"));
+    assert_problem_contains_code(&missing_payload, SdkWorkResultCode::ValidationError);
     assert!(missing_payload.contains("Field payload is required"));
 }
 
@@ -1174,7 +1182,7 @@ fn admin_and_app_end_to_end_flow_enforces_minimum_permissions_per_step() {
     )
     .expect("devices.create denied");
     assert!(create_denied.starts_with("HTTP/1.1 403"));
-    assert!(create_denied.contains("api.permission.denied"));
+    assert_problem_contains_code(&create_denied, SdkWorkResultCode::PermissionRequired);
     assert!(create_denied.contains("iot.devices.write"));
 
     let create_allowed = handle_api_request_bytes(
@@ -1190,7 +1198,7 @@ fn admin_and_app_end_to_end_flow_enforces_minimum_permissions_per_step() {
     )
     .expect("devices.retrieve denied");
     assert!(retrieve_denied.starts_with("HTTP/1.1 403"));
-    assert!(retrieve_denied.contains("api.permission.denied"));
+    assert_problem_contains_code(&retrieve_denied, SdkWorkResultCode::PermissionRequired);
     assert!(retrieve_denied.contains("iot.devices.read"));
 
     let retrieve_allowed = handle_api_request_bytes(
@@ -1206,7 +1214,10 @@ fn admin_and_app_end_to_end_flow_enforces_minimum_permissions_per_step() {
     )
     .expect("devices.commands.create denied");
     assert!(command_create_denied.starts_with("HTTP/1.1 403"));
-    assert!(command_create_denied.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &command_create_denied,
+        SdkWorkResultCode::PermissionRequired,
+    );
     assert!(command_create_denied.contains("iot.commands.execute"));
 
     let command_create_allowed = handle_api_request_bytes(
@@ -1222,7 +1233,7 @@ fn admin_and_app_end_to_end_flow_enforces_minimum_permissions_per_step() {
     )
     .expect("devices.commands.list denied");
     assert!(command_list_denied.starts_with("HTTP/1.1 403"));
-    assert!(command_list_denied.contains("api.permission.denied"));
+    assert_problem_contains_code(&command_list_denied, SdkWorkResultCode::PermissionRequired);
     assert!(command_list_denied.contains("iot.commands.read"));
 
     let command_list_allowed = handle_api_request_bytes(
@@ -1250,7 +1261,7 @@ fn admin_and_app_end_to_end_flow_enforces_minimum_permissions_per_step() {
     )
     .expect("devices.events.list denied");
     assert!(app_events_denied.starts_with("HTTP/1.1 403"));
-    assert!(app_events_denied.contains("api.permission.denied"));
+    assert_problem_contains_code(&app_events_denied, SdkWorkResultCode::PermissionRequired);
     assert!(app_events_denied.contains("iot.devices.read"));
 
     let app_events_allowed = handle_api_request_bytes(
@@ -1278,7 +1289,7 @@ fn admin_and_app_end_to_end_flow_enforces_minimum_permissions_per_step() {
     )
     .expect("devices.twin.retrieve denied");
     assert!(app_twin_denied.starts_with("HTTP/1.1 403"));
-    assert!(app_twin_denied.contains("api.permission.denied"));
+    assert_problem_contains_code(&app_twin_denied, SdkWorkResultCode::PermissionRequired);
     assert!(app_twin_denied.contains("iot.twins.read"));
 
     let app_twin_allowed = handle_api_request_bytes(
@@ -1654,7 +1665,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     )
     .expect("create credential wrong scope");
     assert!(credential_wrong_scope.starts_with("HTTP/1.1 404"));
-    assert!(credential_wrong_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&credential_wrong_scope, SdkWorkResultCode::NotFound);
 
     let credential_list_wrong_scope = handle_api_request_bytes(
         &admin,
@@ -1662,7 +1673,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     )
     .expect("list credential wrong scope");
     assert!(credential_list_wrong_scope.starts_with("HTTP/1.1 404"));
-    assert!(credential_list_wrong_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&credential_list_wrong_scope, SdkWorkResultCode::NotFound);
 
     let credential_delete_org_a = handle_api_request_bytes(
         &admin,
@@ -1726,7 +1737,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     )
     .expect("delete missing credential");
     assert!(missing_credential_delete.starts_with("HTTP/1.1 404"));
-    assert!(missing_credential_delete.contains("api.device.credential.not_found"));
+    assert_problem_contains_code(&missing_credential_delete, SdkWorkResultCode::NotFound);
 
     let missing_credential_retrieve = handle_api_request_bytes(
         &admin,
@@ -1734,7 +1745,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     )
     .expect("retrieve missing credential");
     assert!(missing_credential_retrieve.starts_with("HTTP/1.1 404"));
-    assert!(missing_credential_retrieve.contains("api.device.credential.not_found"));
+    assert_problem_contains_code(&missing_credential_retrieve, SdkWorkResultCode::NotFound);
 
     let delete_org_a = handle_api_request_bytes(
         &admin,
@@ -1749,7 +1760,7 @@ fn backend_device_crud_and_credentials_are_scoped_by_tenant_and_organization() {
     )
     .expect("retrieve deleted device org A");
     assert!(retrieve_deleted_org_a.starts_with("HTTP/1.1 404"));
-    assert!(retrieve_deleted_org_a.contains("api.device.not_found"));
+    assert_problem_contains_code(&retrieve_deleted_org_a, SdkWorkResultCode::NotFound);
 
     let retrieve_org_b_after_a_delete = handle_api_request_bytes(
         &admin,
@@ -1812,7 +1823,10 @@ fn backend_device_twin_update_is_scoped_and_validated() {
     )
     .expect("update twin with read permission");
     assert!(update_twin_wrong_permission.starts_with("HTTP/1.1 403"));
-    assert!(update_twin_wrong_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &update_twin_wrong_permission,
+        SdkWorkResultCode::PermissionRequired,
+    );
 
     let update_twin_invalid_json = handle_api_request_bytes(
         &admin,
@@ -1820,7 +1834,10 @@ fn backend_device_twin_update_is_scoped_and_validated() {
     )
     .expect("update twin invalid json");
     assert!(update_twin_invalid_json.starts_with("HTTP/1.1 400"));
-    assert!(update_twin_invalid_json.contains("api.request.invalid_json"));
+    assert_problem_contains_code(
+        &update_twin_invalid_json,
+        SdkWorkResultCode::ValidationError,
+    );
 
     let update_twin_invalid_field = handle_api_request_bytes(
         &admin,
@@ -1828,7 +1845,10 @@ fn backend_device_twin_update_is_scoped_and_validated() {
     )
     .expect("update twin invalid desired shape");
     assert!(update_twin_invalid_field.starts_with("HTTP/1.1 400"));
-    assert!(update_twin_invalid_field.contains("api.request.invalid_field"));
+    assert_problem_contains_code(
+        &update_twin_invalid_field,
+        SdkWorkResultCode::ValidationError,
+    );
 
     let retrieve_twin_org_a = handle_api_request_bytes(
         &admin,
@@ -1861,7 +1881,7 @@ fn backend_device_twin_update_is_scoped_and_validated() {
     )
     .expect("update twin wrong scope");
     assert!(update_twin_wrong_scope.starts_with("HTTP/1.1 404"));
-    assert!(update_twin_wrong_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&update_twin_wrong_scope, SdkWorkResultCode::NotFound);
 }
 
 #[test]
@@ -1874,7 +1894,7 @@ fn declared_backend_device_detail_routes_are_mounted_with_expected_status_codes(
     )
     .expect("backend devices.retrieve before create");
     assert!(missing_before_create.starts_with("HTTP/1.1 404"));
-    assert!(missing_before_create.contains("api.device.not_found"));
+    assert_problem_contains_code(&missing_before_create, SdkWorkResultCode::NotFound);
 
     let create = handle_api_request_bytes(
         &admin,
@@ -1929,7 +1949,7 @@ fn declared_backend_device_detail_routes_are_mounted_with_expected_status_codes(
     )
     .expect("backend devices.retrieve after delete");
     assert!(missing_after_delete.starts_with("HTTP/1.1 404"));
-    assert!(missing_after_delete.contains("api.device.not_found"));
+    assert_problem_contains_code(&missing_after_delete, SdkWorkResultCode::NotFound);
 }
 
 #[test]
@@ -1942,7 +1962,7 @@ fn backend_device_create_validates_required_fields_and_duplicate_ids() {
     )
     .expect("backend devices.create missing required");
     assert!(missing_required.starts_with("HTTP/1.1 400"));
-    assert!(missing_required.contains("api.request.invalid_field"));
+    assert_problem_contains_code(&missing_required, SdkWorkResultCode::ValidationError);
 
     let first_create = handle_api_request_bytes(
         &admin,
@@ -1957,7 +1977,7 @@ fn backend_device_create_validates_required_fields_and_duplicate_ids() {
     )
     .expect("backend devices.create duplicate");
     assert!(duplicate_create.starts_with("HTTP/1.1 409"));
-    assert!(duplicate_create.contains("api.device.duplicate_device_id"));
+    assert_problem_contains_code(&duplicate_create, SdkWorkResultCode::Conflict);
 }
 
 #[test]
@@ -1971,7 +1991,7 @@ fn backend_device_create_rejects_non_numeric_product_id() {
     .expect("backend devices.create invalid product id");
 
     assert!(invalid_product.starts_with("HTTP/1.1 400"));
-    assert!(invalid_product.contains("api.request.invalid_field"));
+    assert_problem_contains_code(&invalid_product, SdkWorkResultCode::ValidationError);
     assert!(invalid_product.contains("Field productId must be an int64 string"));
 }
 
@@ -1998,7 +2018,7 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("duplicate create semantics");
     assert!(duplicate_create.starts_with("HTTP/1.1 409"));
-    assert!(duplicate_create.contains("api.device.duplicate_device_id"));
+    assert_problem_contains_code(&duplicate_create, SdkWorkResultCode::Conflict);
 
     let update_invalid_json = handle_api_request_bytes(
         &admin,
@@ -2006,7 +2026,7 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("update invalid json semantics");
     assert!(update_invalid_json.starts_with("HTTP/1.1 400"));
-    assert!(update_invalid_json.contains("api.request.invalid_json"));
+    assert_problem_contains_code(&update_invalid_json, SdkWorkResultCode::ValidationError);
 
     let update_wrong_permission = handle_api_request_bytes(
         &admin,
@@ -2014,7 +2034,10 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("update wrong permission semantics");
     assert!(update_wrong_permission.starts_with("HTTP/1.1 403"));
-    assert!(update_wrong_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &update_wrong_permission,
+        SdkWorkResultCode::PermissionRequired,
+    );
     assert!(update_wrong_permission.contains("iot.devices.write"));
 
     let update_missing_scope = handle_api_request_bytes(
@@ -2023,7 +2046,7 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("update missing scope semantics");
     assert!(update_missing_scope.starts_with("HTTP/1.1 404"));
-    assert!(update_missing_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&update_missing_scope, SdkWorkResultCode::NotFound);
 
     let delete_wrong_permission = handle_api_request_bytes(
         &admin,
@@ -2031,7 +2054,10 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("delete wrong permission semantics");
     assert!(delete_wrong_permission.starts_with("HTTP/1.1 403"));
-    assert!(delete_wrong_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &delete_wrong_permission,
+        SdkWorkResultCode::PermissionRequired,
+    );
     assert!(delete_wrong_permission.contains("iot.devices.delete"));
 
     let delete_missing_scope = handle_api_request_bytes(
@@ -2040,7 +2066,7 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("delete missing scope semantics");
     assert!(delete_missing_scope.starts_with("HTTP/1.1 404"));
-    assert!(delete_missing_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&delete_missing_scope, SdkWorkResultCode::NotFound);
 
     let credential_invalid_json = handle_api_request_bytes(
         &admin,
@@ -2048,7 +2074,7 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("credentials invalid json semantics");
     assert!(credential_invalid_json.starts_with("HTTP/1.1 400"));
-    assert!(credential_invalid_json.contains("api.request.invalid_json"));
+    assert_problem_contains_code(&credential_invalid_json, SdkWorkResultCode::ValidationError);
 
     let credential_wrong_permission = handle_api_request_bytes(
         &admin,
@@ -2056,7 +2082,10 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("credentials wrong permission semantics");
     assert!(credential_wrong_permission.starts_with("HTTP/1.1 403"));
-    assert!(credential_wrong_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &credential_wrong_permission,
+        SdkWorkResultCode::PermissionRequired,
+    );
     assert!(credential_wrong_permission.contains("iot.devices.write"));
 
     let credential_missing_scope = handle_api_request_bytes(
@@ -2065,7 +2094,7 @@ fn backend_device_mutation_routes_enforce_standard_error_code_semantics() {
     )
     .expect("credentials missing scope semantics");
     assert!(credential_missing_scope.starts_with("HTTP/1.1 404"));
-    assert!(credential_missing_scope.contains("api.device.not_found"));
+    assert_problem_contains_code(&credential_missing_scope, SdkWorkResultCode::NotFound);
 }
 
 #[test]
@@ -2078,14 +2107,21 @@ fn problem_json_errors_expose_standard_fields_across_core_failure_paths() {
     )
     .expect("missing auth problem");
     assert!(missing_auth.starts_with("HTTP/1.1 401"));
-    let missing_auth_problem =
-        assert_problem_json_fields(&missing_auth, 401, "api.auth.missing_dual_token");
+    let missing_auth_problem = assert_problem_json_fields(
+        &missing_auth,
+        401,
+        SdkWorkResultCode::AuthenticationRequired,
+    );
     assert_eq!(
         missing_auth_problem
             .get("title")
             .and_then(serde_json::Value::as_str),
-        Some("SDKWork dual token is required")
+        Some("Authentication required")
     );
+    assert!(missing_auth_problem
+        .get("detail")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|detail| detail.contains("SDKWork dual token")));
 
     let invalid_context = handle_api_request_bytes(
         &admin,
@@ -2093,7 +2129,7 @@ fn problem_json_errors_expose_standard_fields_across_core_failure_paths() {
     )
     .expect("invalid context problem");
     assert!(invalid_context.starts_with("HTTP/1.1 400"));
-    assert_problem_json_fields(&invalid_context, 400, "api.context.invalid_tenant_id");
+    assert_problem_json_fields(&invalid_context, 400, SdkWorkResultCode::ValidationError);
 
     let permission_denied = handle_api_request_bytes(
         &admin,
@@ -2101,14 +2137,15 @@ fn problem_json_errors_expose_standard_fields_across_core_failure_paths() {
     )
     .expect("permission denied problem");
     assert!(permission_denied.starts_with("HTTP/1.1 403"));
-    let permission_denied_problem =
-        assert_problem_json_fields(&permission_denied, 403, "api.permission.denied");
-    assert_eq!(
-        permission_denied_problem
-            .get("requiredPermission")
-            .and_then(serde_json::Value::as_str),
-        Some("iot.protocolAdapters.read")
+    let permission_denied_problem = assert_problem_json_fields(
+        &permission_denied,
+        403,
+        SdkWorkResultCode::PermissionRequired,
     );
+    assert!(permission_denied_problem
+        .get("detail")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|detail| detail.contains("iot.protocolAdapters.read")));
 
     let device_not_found = handle_api_request_bytes(
         &admin,
@@ -2117,13 +2154,11 @@ fn problem_json_errors_expose_standard_fields_across_core_failure_paths() {
     .expect("device not found problem");
     assert!(device_not_found.starts_with("HTTP/1.1 404"));
     let device_not_found_problem =
-        assert_problem_json_fields(&device_not_found, 404, "api.device.not_found");
-    assert_eq!(
-        device_not_found_problem
-            .get("deviceId")
-            .and_then(serde_json::Value::as_str),
-        Some("problem-json-missing")
-    );
+        assert_problem_json_fields(&device_not_found, 404, SdkWorkResultCode::NotFound);
+    assert!(device_not_found_problem
+        .get("detail")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|detail| detail.contains("problem-json-missing")));
 
     let create_first = handle_api_request_bytes(
         &admin,
@@ -2138,7 +2173,7 @@ fn problem_json_errors_expose_standard_fields_across_core_failure_paths() {
     )
     .expect("duplicate create problem");
     assert!(duplicate_create.starts_with("HTTP/1.1 409"));
-    assert_problem_json_fields(&duplicate_create, 409, "api.device.duplicate_device_id");
+    assert_problem_json_fields(&duplicate_create, 409, SdkWorkResultCode::Conflict);
 }
 
 #[test]
@@ -2151,14 +2186,21 @@ fn app_api_problem_json_errors_expose_standard_fields_across_core_failure_paths(
     )
     .expect("app missing auth problem");
     assert!(missing_auth.starts_with("HTTP/1.1 401"));
-    let missing_auth_problem =
-        assert_problem_json_fields(&missing_auth, 401, "api.auth.missing_dual_token");
+    let missing_auth_problem = assert_problem_json_fields(
+        &missing_auth,
+        401,
+        SdkWorkResultCode::AuthenticationRequired,
+    );
     assert_eq!(
         missing_auth_problem
             .get("title")
             .and_then(serde_json::Value::as_str),
-        Some("SDKWork dual token is required")
+        Some("Authentication required")
     );
+    assert!(missing_auth_problem
+        .get("detail")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|detail| detail.contains("SDKWork dual token")));
 
     let missing_context = handle_api_request_bytes(
         &app,
@@ -2166,7 +2208,7 @@ fn app_api_problem_json_errors_expose_standard_fields_across_core_failure_paths(
     )
     .expect("app missing context problem");
     assert!(missing_context.starts_with("HTTP/1.1 403"));
-    assert_problem_json_fields(&missing_context, 403, "api.context.missing");
+    assert_problem_json_fields(&missing_context, 403, SdkWorkResultCode::PermissionRequired);
 
     let permission_denied = handle_api_request_bytes(
         &app,
@@ -2174,14 +2216,15 @@ fn app_api_problem_json_errors_expose_standard_fields_across_core_failure_paths(
     )
     .expect("app permission denied problem");
     assert!(permission_denied.starts_with("HTTP/1.1 403"));
-    let permission_denied_problem =
-        assert_problem_json_fields(&permission_denied, 403, "api.permission.denied");
-    assert_eq!(
-        permission_denied_problem
-            .get("requiredPermission")
-            .and_then(serde_json::Value::as_str),
-        Some("iot.devices.read")
+    let permission_denied_problem = assert_problem_json_fields(
+        &permission_denied,
+        403,
+        SdkWorkResultCode::PermissionRequired,
     );
+    assert!(permission_denied_problem
+        .get("detail")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|detail| detail.contains("iot.devices.read")));
 
     let invalid_json = handle_api_request_bytes(
         &app,
@@ -2189,7 +2232,7 @@ fn app_api_problem_json_errors_expose_standard_fields_across_core_failure_paths(
     )
     .expect("app invalid json problem");
     assert!(invalid_json.starts_with("HTTP/1.1 400"));
-    assert_problem_json_fields(&invalid_json, 400, "api.request.invalid_json");
+    assert_problem_json_fields(&invalid_json, 400, SdkWorkResultCode::ValidationError);
 
     let missing_field = handle_api_request_bytes(
         &app,
@@ -2197,7 +2240,7 @@ fn app_api_problem_json_errors_expose_standard_fields_across_core_failure_paths(
     )
     .expect("app invalid field problem");
     assert!(missing_field.starts_with("HTTP/1.1 400"));
-    assert_problem_json_fields(&missing_field, 400, "api.request.invalid_field");
+    assert_problem_json_fields(&missing_field, 400, SdkWorkResultCode::ValidationError);
 
     let not_found = handle_api_request_bytes(
         &app,
@@ -2205,13 +2248,12 @@ fn app_api_problem_json_errors_expose_standard_fields_across_core_failure_paths(
     )
     .expect("app not found problem");
     assert!(not_found.starts_with("HTTP/1.1 404"));
-    let not_found_problem = assert_problem_json_fields(&not_found, 404, "api.device.not_found");
-    assert_eq!(
-        not_found_problem
-            .get("deviceId")
-            .and_then(serde_json::Value::as_str),
-        Some("app-problem-missing-001")
-    );
+    let not_found_problem =
+        assert_problem_json_fields(&not_found, 404, SdkWorkResultCode::NotFound);
+    assert!(not_found_problem
+        .get("detail")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|detail| detail.contains("app-problem-missing-001")));
 }
 
 #[test]
@@ -2224,7 +2266,7 @@ fn backend_device_credentials_create_validates_request_and_requires_existing_dev
     )
     .expect("backend devices.credentials.create missing device");
     assert!(missing_device.starts_with("HTTP/1.1 404"));
-    assert!(missing_device.contains("api.device.not_found"));
+    assert_problem_contains_code(&missing_device, SdkWorkResultCode::NotFound);
 
     let create_device = handle_api_request_bytes(
         &admin,
@@ -2239,7 +2281,7 @@ fn backend_device_credentials_create_validates_request_and_requires_existing_dev
     )
     .expect("backend devices.credentials.create missing body");
     assert!(missing_body.starts_with("HTTP/1.1 400"));
-    assert!(missing_body.contains("api.request.body.required"));
+    assert_problem_contains_code(&missing_body, SdkWorkResultCode::MissingRequiredField);
 
     let invalid_type = handle_api_request_bytes(
         &admin,
@@ -2247,7 +2289,7 @@ fn backend_device_credentials_create_validates_request_and_requires_existing_dev
     )
     .expect("backend devices.credentials.create invalid type");
     assert!(invalid_type.starts_with("HTTP/1.1 400"));
-    assert!(invalid_type.contains("api.request.invalid_field"));
+    assert_problem_contains_code(&invalid_type, SdkWorkResultCode::ValidationError);
     assert!(invalid_type.contains("Field credentialType must be one of"));
 
     let created = handle_api_request_bytes(
@@ -2365,7 +2407,7 @@ fn backend_device_create_maps_storage_failure_to_500_problem() {
 
     assert!(response.starts_with("HTTP/1.1 500"));
     assert!(response.contains("application/problem+json"));
-    assert!(response.contains("api.storage.write_failed"));
+    assert_problem_contains_code(&response, SdkWorkResultCode::InternalError);
 }
 
 #[test]
@@ -2441,7 +2483,7 @@ fn backend_firmware_artifact_crud_routes_are_complete_and_scoped() {
     )
     .expect("backend firmwareArtifacts.retrieve cross scope");
     assert!(cross_scope.starts_with("HTTP/1.1 404"));
-    assert!(cross_scope.contains("api.firmware.artifact.not_found"));
+    assert_problem_contains_code(&cross_scope, SdkWorkResultCode::NotFound);
 
     let delete = handle_api_request_bytes(
         &admin,
@@ -2508,7 +2550,7 @@ fn backend_firmware_rollout_crud_routes_are_complete_and_scoped() {
     )
     .expect("backend firmwareRollouts.retrieve cross scope");
     assert!(cross_scope.starts_with("HTTP/1.1 404"));
-    assert!(cross_scope.contains("api.firmware.rollout.not_found"));
+    assert_problem_contains_code(&cross_scope, SdkWorkResultCode::NotFound);
 
     let delete = handle_api_request_bytes(
         &admin,
@@ -2543,7 +2585,10 @@ fn backend_firmware_mutation_error_semantics_are_stable() {
     .expect("backend firmwareArtifacts.create wrong permission");
     assert!(artifact_wrong_permission.starts_with("HTTP/1.1 403"));
     assert!(artifact_wrong_permission.contains("application/problem+json"));
-    assert!(artifact_wrong_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &artifact_wrong_permission,
+        SdkWorkResultCode::PermissionRequired,
+    );
 
     let artifact_invalid_json = handle_api_request_bytes(
         &admin,
@@ -2552,7 +2597,7 @@ fn backend_firmware_mutation_error_semantics_are_stable() {
     .expect("backend firmwareArtifacts.create invalid json");
     assert!(artifact_invalid_json.starts_with("HTTP/1.1 400"));
     assert!(artifact_invalid_json.contains("application/problem+json"));
-    assert!(artifact_invalid_json.contains("api.request.invalid_json"));
+    assert_problem_contains_code(&artifact_invalid_json, SdkWorkResultCode::ValidationError);
 
     let artifact_invalid_field = handle_api_request_bytes(
         &admin,
@@ -2561,7 +2606,7 @@ fn backend_firmware_mutation_error_semantics_are_stable() {
     .expect("backend firmwareArtifacts.create invalid field");
     assert!(artifact_invalid_field.starts_with("HTTP/1.1 400"));
     assert!(artifact_invalid_field.contains("application/problem+json"));
-    assert!(artifact_invalid_field.contains("api.request.invalid_field"));
+    assert_problem_contains_code(&artifact_invalid_field, SdkWorkResultCode::ValidationError);
 
     let rollout_invalid_reference = handle_api_request_bytes(
         &admin,
@@ -2570,7 +2615,10 @@ fn backend_firmware_mutation_error_semantics_are_stable() {
     .expect("backend firmwareRollouts.create invalid reference");
     assert!(rollout_invalid_reference.starts_with("HTTP/1.1 400"));
     assert!(rollout_invalid_reference.contains("application/problem+json"));
-    assert!(rollout_invalid_reference.contains("api.firmware.artifact.invalid_reference"));
+    assert_problem_contains_code(
+        &rollout_invalid_reference,
+        SdkWorkResultCode::ValidationError,
+    );
 
     let rollout_wrong_permission = handle_api_request_bytes(
         &admin,
@@ -2579,7 +2627,10 @@ fn backend_firmware_mutation_error_semantics_are_stable() {
     .expect("backend firmwareRollouts.create wrong permission");
     assert!(rollout_wrong_permission.starts_with("HTTP/1.1 403"));
     assert!(rollout_wrong_permission.contains("application/problem+json"));
-    assert!(rollout_wrong_permission.contains("api.permission.denied"));
+    assert_problem_contains_code(
+        &rollout_wrong_permission,
+        SdkWorkResultCode::PermissionRequired,
+    );
 
     let rollout_invalid_json = handle_api_request_bytes(
         &admin,
@@ -2588,7 +2639,7 @@ fn backend_firmware_mutation_error_semantics_are_stable() {
     .expect("backend firmwareRollouts.create invalid json");
     assert!(rollout_invalid_json.starts_with("HTTP/1.1 400"));
     assert!(rollout_invalid_json.contains("application/problem+json"));
-    assert!(rollout_invalid_json.contains("api.request.invalid_json"));
+    assert_problem_contains_code(&rollout_invalid_json, SdkWorkResultCode::ValidationError);
 }
 
 #[test]
@@ -2638,7 +2689,7 @@ fn api_server_rejects_cross_surface_routes_with_problem_json() {
 
     assert!(response.starts_with("HTTP/1.1 404"));
     assert!(response.contains("application/problem+json"));
-    assert!(response.contains("api.route.unsupported"));
+    assert_problem_contains_code(&response, SdkWorkResultCode::NotFound);
 }
 
 #[test]
@@ -2972,11 +3023,13 @@ fn app_typescript_sdk_problem_details_contract_aligns_with_openapi_schema() {
     let openapi_text = std::fs::read_to_string(openapi_path).expect("read app openapi");
     let openapi_json: serde_json::Value =
         serde_json::from_str(&openapi_text).expect("parse app openapi json");
-    let schema = openapi_problem_details_schema(&openapi_json);
+    let schema = openapi_problem_detail_schema(&openapi_json);
     let required = schema_required_fields(schema);
     assert!(required.contains("type"));
     assert!(required.contains("title"));
     assert!(required.contains("status"));
+    assert!(required.contains("code"));
+    assert!(required.contains("traceId"));
 
     let ts_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
         "../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/generated/server-openapi/src/types/problem-detail.ts",
@@ -3002,11 +3055,13 @@ fn backend_typescript_sdk_problem_details_contract_aligns_with_openapi_schema() 
     let openapi_text = std::fs::read_to_string(openapi_path).expect("read backend openapi");
     let openapi_json: serde_json::Value =
         serde_json::from_str(&openapi_text).expect("parse backend openapi json");
-    let schema = openapi_problem_details_schema(&openapi_json);
+    let schema = openapi_problem_detail_schema(&openapi_json);
     let required = schema_required_fields(schema);
     assert!(required.contains("type"));
     assert!(required.contains("title"));
     assert!(required.contains("status"));
+    assert!(required.contains("code"));
+    assert!(required.contains("traceId"));
 
     let ts_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
         "../../sdks/sdkwork-aiot-backend-sdk/sdkwork-aiot-backend-sdk-typescript/generated/server-openapi/src/types/problem-detail.ts",
@@ -3048,7 +3103,7 @@ fn backend_typescript_sdk_exposes_firmware_crud_surface() {
 
     assert!(artifact_update.contains("export interface AiotFirmwareArtifactUpdateRequest"));
     assert!(rollout_update.contains("export interface AiotFirmwareRolloutUpdateRequest"));
-    assert!(rollout_response.contains("export interface AiotFirmwareRolloutResponse"));
+    assert!(rollout_response.contains("export type AiotFirmwareRolloutResponse"));
     assert!(artifact.contains("export interface AiotFirmwareArtifact"));
 
     assert!(iot_api.contains("class IotFirmwareArtifactsApi"));
@@ -3215,44 +3270,47 @@ fn typescript_problem_code_catalogs_cover_observed_runtime_problem_codes() {
     ));
 
     let app_ts_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
-        "../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/generated/server-openapi/src/types/problem-details.ts",
+        "../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/generated/server-openapi/src/types/problem-detail.ts",
     );
-    let app_ts = std::fs::read_to_string(app_ts_path).expect("read app generated problem-details");
+    let app_ts = std::fs::read_to_string(app_ts_path).expect("read app generated problem-detail");
     assert!(
-        app_ts.contains("export interface ProblemDetails"),
-        "app generated TS SDK must export ProblemDetails interface"
+        app_ts.contains("export interface ProblemDetail"),
+        "app generated TS SDK must export ProblemDetail interface"
     );
     assert!(
-        app_ts.contains("code?: string;"),
-        "app generated TS SDK must model ProblemDetails.code for runtime problem codes"
+        app_ts.contains("code: SdkWorkPlatformErrorCode;"),
+        "app generated TS SDK must model ProblemDetail.code as numeric platform error code"
     );
     let backend_ts_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
-        "../../sdks/sdkwork-aiot-backend-sdk/sdkwork-aiot-backend-sdk-typescript/generated/server-openapi/src/types/problem-details.ts",
+        "../../sdks/sdkwork-aiot-backend-sdk/sdkwork-aiot-backend-sdk-typescript/generated/server-openapi/src/types/problem-detail.ts",
     );
     let backend_ts =
-        std::fs::read_to_string(backend_ts_path).expect("read backend generated problem-details");
+        std::fs::read_to_string(backend_ts_path).expect("read backend generated problem-detail");
     assert!(
-        backend_ts.contains("export interface ProblemDetails"),
-        "backend generated TS SDK must export ProblemDetails interface"
+        backend_ts.contains("export interface ProblemDetail"),
+        "backend generated TS SDK must export ProblemDetail interface"
     );
     assert!(
-        backend_ts.contains("code?: string;"),
-        "backend generated TS SDK must model ProblemDetails.code for runtime problem codes"
+        backend_ts.contains("code: SdkWorkPlatformErrorCode;"),
+        "backend generated TS SDK must model ProblemDetail.code as numeric platform error code"
     );
     for code in observed_app.into_iter().chain(observed_backend.into_iter()) {
+        let numeric = code
+            .parse::<i32>()
+            .unwrap_or_else(|_| panic!("runtime problem code {code} must be numeric"));
         assert!(
-            code.starts_with("api."),
-            "runtime problem code {code} must use the api.* namespace"
+            numeric >= 40_001,
+            "runtime problem code {numeric} must use platform numeric ranges"
         );
     }
 }
 
-fn openapi_problem_details_schema(openapi_json: &serde_json::Value) -> &serde_json::Value {
+fn openapi_problem_detail_schema(openapi_json: &serde_json::Value) -> &serde_json::Value {
     openapi_json
         .get("components")
         .and_then(|value| value.get("schemas"))
-        .and_then(|value| value.get("ProblemDetails"))
-        .unwrap_or_else(|| panic!("OpenAPI must define components.schemas.ProblemDetails"))
+        .and_then(|value| value.get("ProblemDetail"))
+        .unwrap_or_else(|| panic!("OpenAPI must define components.schemas.ProblemDetail"))
 }
 
 fn schema_required_fields(schema: &serde_json::Value) -> std::collections::BTreeSet<String> {
@@ -3474,20 +3532,24 @@ fn assert_json_string_value(value: &serde_json::Value, key: &str) {
     );
 }
 
+fn assert_problem_contains_code(response: &str, result_code: SdkWorkResultCode) {
+    assert!(
+        response.contains(&format!(r#""code":{}"#, result_code.as_i32())),
+        "expected problem code {} in response: {response}",
+        result_code.as_i32()
+    );
+}
+
 fn assert_problem_json_fields(
     response: &str,
     expected_status: i64,
-    expected_code: &str,
+    expected_code: SdkWorkResultCode,
 ) -> serde_json::Value {
     assert!(
         response.contains("application/problem+json"),
         "expected problem+json response, got {response}"
     );
     let body = response_body_json(response);
-    assert_eq!(
-        body.get("type").and_then(serde_json::Value::as_str),
-        Some("about:blank")
-    );
     assert!(
         body.get("title")
             .and_then(serde_json::Value::as_str)
@@ -3499,8 +3561,14 @@ fn assert_problem_json_fields(
         Some(expected_status)
     );
     assert_eq!(
-        body.get("code").and_then(serde_json::Value::as_str),
-        Some(expected_code)
+        body.get("code").and_then(serde_json::Value::as_i64),
+        Some(expected_code.as_i32() as i64)
+    );
+    assert!(
+        body.get("traceId")
+            .and_then(serde_json::Value::as_str)
+            .is_some(),
+        "expected traceId in problem response, got {body}"
     );
     body
 }
@@ -3640,6 +3708,20 @@ fn sqlite_catalog_and_firmware_handles_persist_across_reopen() {
     assert!(list_artifacts.contains(r#""artifactKey":"fw-sqlite""#));
 
     let _ = std::fs::remove_file(temp_path);
+}
+
+#[test]
+fn list_routes_reject_page_size_above_max_with_invalid_parameter() {
+    let server = standard_app_api_server().expect("app api server");
+    let response = handle_api_request_bytes(
+        &server,
+        b"GET /app/v3/api/iot/devices?page_size=201 HTTP/1.1\r\nHost: local\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.read\r\n\r\n",
+    )
+    .expect("devices.list invalid page_size");
+
+    assert!(response.starts_with("HTTP/1.1 400"));
+    assert!(response.contains(r#""code":40003"#));
+    assert!(response.contains("application/problem+json"));
 }
 
 #[test]

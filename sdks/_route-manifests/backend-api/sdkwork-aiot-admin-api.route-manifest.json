@@ -1105,6 +1105,39 @@
       "auth": {
         "dataScope": "organization",
         "mode": "dual-token",
+        "permission": "iot.commands.read",
+        "required": true,
+        "tenantScope": "tenant"
+      },
+      "handler": {
+        "module": "sdkwork_iot_platform_service",
+        "name": "devices.commands.retrieve"
+      },
+      "method": "GET",
+      "operationId": "devices.commands.retrieve",
+      "ownership": {
+        "apiAuthority": "sdkwork-aiot-backend-api",
+        "owner": "sdkwork-aiot"
+      },
+      "path": "/backend/v3/api/iot/devices/{deviceId}/commands/{commandId}",
+      "requestContext": "WebRequestContext",
+      "schemas": {
+        "problem": "ProblemDetail",
+        "request": null,
+        "response": null
+      },
+      "source": {
+        "file": "crates/sdkwork-iot-platform-service/src/lib.rs"
+      },
+      "tags": [
+        "iot.devices"
+      ]
+    },
+    {
+      "apiSurface": "backend-api",
+      "auth": {
+        "dataScope": "organization",
+        "mode": "dual-token",
         "permission": "iot.commands.cancel",
         "required": true,
         "tenantScope": "tenant"

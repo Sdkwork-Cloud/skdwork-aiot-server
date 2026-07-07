@@ -1,7 +1,5 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
-
 use sdkwork_aiot_storage::{
     AiotCommandCreateCommand, AiotCommandDeliveryEnqueueCommand, AiotCommandDeliveryRecord,
     AiotCommandDeliveryRepository, AiotCommandDeliveryRepositoryError, AiotCommandRecord,
@@ -19,6 +17,8 @@ use sqlx::Row;
 
 use crate::blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine, DeviceDbTransaction};
 use crate::dialect_sql::adapt_sqlite_placeholders;
+use crate::row_decode::{read_postgres_optional_timestamp, read_sqlite_optional_timestamp};
+use crate::row_id_allocator::allocate_row_id;
 use crate::schema::ensure_device_schema;
 use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
 use crate::{
@@ -26,7 +26,9 @@ use crate::{
     is_valid_int64_string, SqlDeviceRepositoryPlanner, SqlDialect, SqlStatementBatch,
 };
 
-type CommandIdempotencyCache = HashMap<(i64, i64, String), String>;
+/// Upper bound for twin property rows loaded per snapshot request (OOM guard).
+pub const MAX_DEVICE_TWIN_PROPERTIES: i64 = 500;
+
 type TwinPropertyState = (i64, Option<String>, i64, Option<String>, i64);
 
 enum SqliteRepoTxError {
@@ -119,7 +121,6 @@ impl SqliteRepoTxError {
 pub struct SqliteSqlxDeviceRepository {
     db: BlockingDevicePool,
     planner: SqlDeviceRepositoryPlanner,
-    command_idempotency_cache: Arc<Mutex<CommandIdempotencyCache>>,
 }
 
 impl SqliteSqlxDeviceRepository {
@@ -133,7 +134,6 @@ impl SqliteSqlxDeviceRepository {
         Ok(Self {
             db,
             planner: SqlDeviceRepositoryPlanner::with_dialect(dialect),
-            command_idempotency_cache: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
@@ -242,6 +242,56 @@ impl SqliteSqlxDeviceRepository {
             })
             .map_err(map_command_sql_error)
     }
+
+    fn lookup_command_by_idempotency_key(
+        &self,
+        association: &AiotStorageAssociation,
+        idempotency_key: &str,
+    ) -> Result<Option<AiotCommandRecord>, AiotCommandRepositoryError> {
+        let association = association.clone();
+        let idempotency_key = idempotency_key.to_string();
+        self.db
+            .run_owned(|pool| async move {
+                let sql = pool.adapt_sql(
+                    "SELECT id, command_id, device_id, session_id, capability_name, command_name, request_payload, request_media_resource_id, request_object_blob_id, request_media_resource_snapshot, status, timeout_at, ack_at, result_at, trace_id, created_at FROM iot_command WHERE tenant_id = ?1 AND organization_id = ?2 AND idempotency_key = ?3 LIMIT 1",
+                );
+                let mut command = match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let row = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&idempotency_key)
+                            .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        row.as_ref()
+                            .map(|row| row_to_command_record(row, &association))
+                            .transpose()?
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let row = sqlx::query(&sql)
+                            .bind(association.tenant_id)
+                            .bind(association.organization_id)
+                            .bind(&idempotency_key)
+                            .fetch_optional(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        row.as_ref()
+                            .map(|row| row_to_command_record_postgres(row, &association))
+                            .transpose()?
+                    }
+                };
+                if let Some(command) = command.as_mut() {
+                    command.result = command_result_for(
+                        &pool,
+                        association.tenant_id,
+                        association.organization_id,
+                        &command.command_id,
+                    )
+                    .await?;
+                }
+                Ok(command)
+            })
+            .map_err(map_command_sql_error)
+    }
 }
 
 impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
@@ -305,18 +355,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                         ));
                     }
 
-                    let max_id_sql =
-                        adapt_sqlite_placeholders(dialect, "SELECT COALESCE(MAX(id), 0) FROM iot_device");
-                    let max_id: i64 = match &mut tx {
-                        DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query_scalar(&max_id_sql).fetch_one(&mut **connection).await
-                        }
-                        DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query_scalar(&max_id_sql).fetch_one(&mut **connection).await
-                        }
-                    }
-                    .map_err(|_| SqliteRepoTxError::Device(AiotDeviceRepositoryError::PersistenceFailure))?;
-                    let next_id = max_id + 1;
+                    let next_id = allocate_row_id(&mut tx, dialect, "iot_device").await?;
 
                     let record = AiotDeviceRecord {
                         id: next_id.to_string(),
@@ -456,6 +495,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
     ) -> Result<Vec<String>, AiotDeviceRepositoryError> {
         let association = association.clone();
         let product_id = product_id.map(str::to_string);
+        let limit = limit.unwrap_or(crate::firmware_ota_catalog::DEFAULT_ROLLOUT_DEVICE_BATCH);
         self.db
             .run_owned(|pool| async move {
                 let product_filter = product_id
@@ -469,14 +509,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                 if product_filter.is_some() {
                     sql.push_str(" AND product_id = ?3");
                 }
-                sql.push_str(" ORDER BY id ASC");
-                if limit.is_some() {
-                    sql.push_str(if product_filter.is_some() {
-                        " LIMIT ?4"
-                    } else {
-                        " LIMIT ?3"
-                    });
-                }
+                sql.push_str(" ORDER BY id ASC LIMIT ?");
                 let sql = pool.adapt_sql(&sql);
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
@@ -486,9 +519,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                         if let Some(product_id) = product_filter {
                             query = query.bind(product_id);
                         }
-                        if let Some(limit) = limit {
-                            query = query.bind(limit.max(1));
-                        }
+                        query = query.bind(limit.max(1));
                         query
                             .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                             .await
@@ -500,9 +531,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                         if let Some(product_id) = product_filter {
                             query = query.bind(product_id);
                         }
-                        if let Some(limit) = limit {
-                            query = query.bind(limit.max(1));
-                        }
+                        query = query.bind(limit.max(1));
                         query
                             .fetch_all(pool.postgres_pool().expect("postgres pool"))
                             .await
@@ -554,30 +583,24 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
 }
 
 impl AiotCommandRepository for SqliteSqlxDeviceRepository {
+    fn get_command(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        command_id: &str,
+    ) -> Result<Option<AiotCommandRecord>, AiotCommandRepositoryError> {
+        self.get_command_by_id(association, device_id, command_id)
+    }
+
     fn create_command(
         &self,
         command: AiotCommandCreateCommand,
     ) -> Result<AiotCommandRecord, AiotCommandRepositoryError> {
         if let Some(idempotency_key) = command.idempotency_key.as_deref() {
-            let cache_key = (
-                command.association.tenant_id,
-                command.association.organization_id,
-                idempotency_key.to_string(),
-            );
-            if let Some(existing_command_id) = self
-                .command_idempotency_cache
-                .lock()
-                .expect("sqlite command idempotency cache poisoned")
-                .get(&cache_key)
-                .cloned()
+            if let Some(existing) =
+                self.lookup_command_by_idempotency_key(&command.association, idempotency_key)?
             {
-                if let Some(existing) = self.get_command_by_id(
-                    &command.association,
-                    &command.device_id,
-                    &existing_command_id,
-                )? {
-                    return Ok(existing);
-                }
+                return Ok(existing);
             }
         }
 
@@ -585,7 +608,6 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
         let status_code = command_status_code(&command.status);
         let created_at = default_timestamp().to_string();
         let trace_id = command.trace_id.clone();
-        let idempotency_key = command.idempotency_key.clone();
         let association = command.association.clone();
         let device_id = command.device_id.clone();
         let session_id = command.session_id.clone();
@@ -597,24 +619,21 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
         let timeout_at = command.timeout_at.clone();
         let status = command.status.clone();
 
-        let (next_id, command_id) = self.db.with_device_transaction(|mut tx, dialect| {
+        let idempotency_key = command.idempotency_key.clone();
+        let association_for_lookup = command.association.clone();
+
+        let tx_result = self.db.with_device_transaction(|mut tx, dialect| {
             let command = command;
             Box::pin(async move {
                 let created_at = default_timestamp().to_string();
-                let max_id_sql =
-                    adapt_sqlite_placeholders(dialect, "SELECT COALESCE(MAX(id), 0) FROM iot_command");
-                let next_id: i64 = match &mut tx {
-                    DeviceDbTransaction::Sqlite(connection) => {
-                        sqlx::query_scalar(&max_id_sql).fetch_one(&mut **connection).await
-                    }
-                    DeviceDbTransaction::Postgres(connection) => {
-                        sqlx::query_scalar(&max_id_sql).fetch_one(&mut **connection).await
-                    }
-                }
-                .map_err(|_| SqliteRepoTxError::Command(AiotCommandRepositoryError::PersistenceFailure))?;
+                let row_id = allocate_row_id(&mut tx, dialect, "iot_command")
+                    .await
+                    .map_err(|_| {
+                        SqliteRepoTxError::Command(AiotCommandRepositoryError::PersistenceFailure)
+                    })?;
 
                 let command_id = command.command_id.unwrap_or_else(|| {
-                    format!("cmd-{}-{:04}", command.device_id, next_id + 1)
+                    format!("cmd-{}-{:04}", command.device_id, row_id)
                 });
 
                 let duplicate_sql = adapt_sqlite_placeholders(
@@ -651,8 +670,8 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                 match &mut tx {
                     DeviceDbTransaction::Sqlite(connection) => {
                         sqlx::query(&insert_sql)
-                            .bind(next_id + 1)
-                            .bind(format!("cmd-uuid-{}", next_id + 1))
+                            .bind(row_id)
+                            .bind(format!("cmd-uuid-{}", row_id))
                             .bind(command.association.tenant_id)
                             .bind(command.association.organization_id)
                             .bind(command.association.data_scope as i64)
@@ -678,8 +697,8 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                     }
                     DeviceDbTransaction::Postgres(connection) => {
                         sqlx::query(&insert_sql)
-                            .bind(next_id + 1)
-                            .bind(format!("cmd-uuid-{}", next_id + 1))
+                            .bind(row_id)
+                            .bind(format!("cmd-uuid-{}", row_id))
                             .bind(command.association.tenant_id)
                             .bind(command.association.organization_id)
                             .bind(command.association.data_scope as i64)
@@ -719,28 +738,28 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                 )
                 .await?;
 
-                Ok((next_id, command_id))
+                Ok((row_id, command_id))
             })
         })
-        .map_err(SqliteRepoTxError::into_command)?;
+        .map_err(SqliteRepoTxError::into_command);
 
-        let command_id_for_cache = command_id.clone();
-        if let Some(idempotency_key) = idempotency_key {
-            self.command_idempotency_cache
-                .lock()
-                .expect("sqlite command idempotency cache poisoned")
-                .insert(
-                    (
-                        association.tenant_id,
-                        association.organization_id,
-                        idempotency_key,
-                    ),
-                    command_id_for_cache,
-                );
-        }
+        let (row_id, command_id) = match tx_result {
+            Ok(values) => values,
+            Err(AiotCommandRepositoryError::PersistenceFailure) if idempotency_key.is_some() => {
+                if let Some(ref key) = idempotency_key {
+                    if let Some(existing) =
+                        self.lookup_command_by_idempotency_key(&association_for_lookup, key)?
+                    {
+                        return Ok(existing);
+                    }
+                }
+                return Err(AiotCommandRepositoryError::PersistenceFailure);
+            }
+            Err(error) => return Err(error),
+        };
 
         Ok(AiotCommandRecord {
-            id: (next_id + 1).to_string(),
+            id: row_id.to_string(),
             tenant_id: association.tenant_id,
             organization_id: association.organization_id,
             command_id,
@@ -1212,15 +1231,20 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                         "SELECT status FROM iot_device_session WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 AND session_id = ?4 LIMIT 1",
                     );
                     match &mut tx {
-                        DeviceDbTransaction::Sqlite(connection) => {
-                            let existing_status = sqlx::query(&select_sql)
-                                .bind(association.tenant_id)
-                                .bind(association.organization_id)
-                                .bind(&device_id)
-                                .bind(&session_id)
-                                .fetch_optional(&mut **connection)
-                                .await?
-                                .and_then(|row| row.try_get::<i64, _>("status").ok());
+                        DeviceDbTransaction::Sqlite(_) => {
+                            let existing_status = {
+                                let DeviceDbTransaction::Sqlite(connection) = &mut tx else {
+                                    unreachable!("sqlite disconnect_session select")
+                                };
+                                sqlx::query(&select_sql)
+                                    .bind(association.tenant_id)
+                                    .bind(association.organization_id)
+                                    .bind(&device_id)
+                                    .bind(&session_id)
+                                    .fetch_optional(&mut **connection)
+                                    .await?
+                                    .and_then(|row| row.try_get::<i64, _>("status").ok())
+                            };
                             match existing_status {
                                 Some(status) if status == disconnected_status => Ok(false),
                                 Some(_) => {
@@ -1228,6 +1252,9 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                         dialect,
                                         "UPDATE iot_device_session SET status = ?1, disconnected_at = ?2, updated_at = ?2 WHERE tenant_id = ?3 AND organization_id = ?4 AND device_id = ?5 AND session_id = ?6",
                                     );
+                                    let DeviceDbTransaction::Sqlite(connection) = &mut tx else {
+                                        unreachable!("sqlite disconnect_session update")
+                                    };
                                     sqlx::query(&update_sql)
                                         .bind(disconnected_status)
                                         .bind(&now)
@@ -1240,21 +1267,20 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                     Ok(true)
                                 }
                                 None => {
-                                    let max_id_sql = adapt_sqlite_placeholders(
-                                        dialect,
-                                        "SELECT COALESCE(MAX(id), 0) FROM iot_device_session",
-                                    );
-                                    let next_id: i64 = sqlx::query_scalar(&max_id_sql)
-                                        .fetch_one(&mut **connection)
-                                        .await?;
+                                    let row_id =
+                                        allocate_row_id(&mut tx, dialect, "iot_device_session")
+                                            .await?;
                                     let session_uuid = format!("session-{session_id}");
                                     let connection_id = format!("connection-{session_id}");
                                     let insert_sql = adapt_sqlite_placeholders(
                                         dialect,
                                         "INSERT INTO iot_device_session (id, uuid, tenant_id, organization_id, data_scope, device_id, session_id, connection_id, protocol_id, adapter_id, node_id, status, connected_at, last_seen_at, disconnected_at, created_at, updated_at, version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'xiaozhi.websocket', 'xiaozhi', NULL, ?9, ?10, ?10, ?10, ?10, ?10, 0)",
                                     );
+                                    let DeviceDbTransaction::Sqlite(connection) = &mut tx else {
+                                        unreachable!("sqlite disconnect_session insert")
+                                    };
                                     sqlx::query(&insert_sql)
-                                        .bind(next_id + 1)
+                                        .bind(row_id)
                                         .bind(&session_uuid)
                                         .bind(association.tenant_id)
                                         .bind(association.organization_id)
@@ -1270,15 +1296,20 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                 }
                             }
                         }
-                        DeviceDbTransaction::Postgres(connection) => {
-                            let existing_status = sqlx::query(&select_sql)
-                                .bind(association.tenant_id)
-                                .bind(association.organization_id)
-                                .bind(&device_id)
-                                .bind(&session_id)
-                                .fetch_optional(&mut **connection)
-                                .await?
-                                .and_then(|row| row.try_get::<i64, _>("status").ok());
+                        DeviceDbTransaction::Postgres(_) => {
+                            let existing_status = {
+                                let DeviceDbTransaction::Postgres(connection) = &mut tx else {
+                                    unreachable!("postgres disconnect_session select")
+                                };
+                                sqlx::query(&select_sql)
+                                    .bind(association.tenant_id)
+                                    .bind(association.organization_id)
+                                    .bind(&device_id)
+                                    .bind(&session_id)
+                                    .fetch_optional(&mut **connection)
+                                    .await?
+                                    .and_then(|row| row.try_get::<i64, _>("status").ok())
+                            };
                             match existing_status {
                                 Some(status) if status == disconnected_status => Ok(false),
                                 Some(_) => {
@@ -1286,6 +1317,9 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                         dialect,
                                         "UPDATE iot_device_session SET status = ?1, disconnected_at = ?2, updated_at = ?2 WHERE tenant_id = ?3 AND organization_id = ?4 AND device_id = ?5 AND session_id = ?6",
                                     );
+                                    let DeviceDbTransaction::Postgres(connection) = &mut tx else {
+                                        unreachable!("postgres disconnect_session update")
+                                    };
                                     sqlx::query(&update_sql)
                                         .bind(disconnected_status)
                                         .bind(&now)
@@ -1298,21 +1332,20 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                     Ok(true)
                                 }
                                 None => {
-                                    let max_id_sql = adapt_sqlite_placeholders(
-                                        dialect,
-                                        "SELECT COALESCE(MAX(id), 0) FROM iot_device_session",
-                                    );
-                                    let next_id: i64 = sqlx::query_scalar(&max_id_sql)
-                                        .fetch_one(&mut **connection)
-                                        .await?;
+                                    let row_id =
+                                        allocate_row_id(&mut tx, dialect, "iot_device_session")
+                                            .await?;
                                     let session_uuid = format!("session-{session_id}");
                                     let connection_id = format!("connection-{session_id}");
                                     let insert_sql = adapt_sqlite_placeholders(
                                         dialect,
                                         "INSERT INTO iot_device_session (id, uuid, tenant_id, organization_id, data_scope, device_id, session_id, connection_id, protocol_id, adapter_id, node_id, status, connected_at, last_seen_at, disconnected_at, created_at, updated_at, version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'xiaozhi.websocket', 'xiaozhi', NULL, ?9, ?10, ?10, ?10, ?10, ?10, 0)",
                                     );
+                                    let DeviceDbTransaction::Postgres(connection) = &mut tx else {
+                                        unreachable!("postgres disconnect_session insert")
+                                    };
                                     sqlx::query(&insert_sql)
-                                        .bind(next_id + 1)
+                                        .bind(row_id)
                                         .bind(&session_uuid)
                                         .bind(association.tenant_id)
                                         .bind(association.organization_id)
@@ -1426,27 +1459,19 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
 
         let media_json = media_snapshot.clone();
         let occurred_at_value = occurred_at.clone();
-        let (next_id, event_id) = self.db.with_device_transaction(|mut tx, dialect| {
+        let (row_id, event_id) = self.db.with_device_transaction(|mut tx, dialect| {
             let command = command;
             let event_payload_json = event_payload_json;
             let media_snapshot = media_snapshot;
             let occurred_at = occurred_at;
             Box::pin(async move {
-                let max_id_sql =
-                    adapt_sqlite_placeholders(dialect, "SELECT COALESCE(MAX(id), 0) FROM iot_device_event");
-                let next_id: i64 = match &mut tx {
-                    DeviceDbTransaction::Sqlite(connection) => {
-                        sqlx::query_scalar(&max_id_sql).fetch_one(&mut **connection).await
-                    }
-                    DeviceDbTransaction::Postgres(connection) => {
-                        sqlx::query_scalar(&max_id_sql).fetch_one(&mut **connection).await
-                    }
-                }
-                .map_err(|_| SqliteRepoTxError::Event(AiotEventRepositoryError::PersistenceFailure))?;
+                let row_id = allocate_row_id(&mut tx, dialect, "iot_device_event")
+                    .await
+                    .map_err(|_| SqliteRepoTxError::Event(AiotEventRepositoryError::PersistenceFailure))?;
 
                 let event_id = command
                     .event_id
-                    .unwrap_or_else(|| format!("evt-{}-{:04}", command.device_id, next_id + 1));
+                    .unwrap_or_else(|| format!("evt-{}-{:04}", command.device_id, row_id));
 
                 let insert_sql = adapt_sqlite_placeholders(
                     dialect,
@@ -1455,7 +1480,7 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                 match &mut tx {
                     DeviceDbTransaction::Sqlite(connection) => {
                         sqlx::query(&insert_sql)
-                            .bind(next_id + 1)
+                            .bind(row_id)
                             .bind(&event_id)
                             .bind(command.association.tenant_id)
                             .bind(command.association.organization_id)
@@ -1473,7 +1498,7 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                     }
                     DeviceDbTransaction::Postgres(connection) => {
                         sqlx::query(&insert_sql)
-                            .bind(next_id + 1)
+                            .bind(row_id)
                             .bind(&event_id)
                             .bind(command.association.tenant_id)
                             .bind(command.association.organization_id)
@@ -1491,13 +1516,13 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                     }
                 }
 
-                Ok((next_id, event_id))
+                Ok((row_id, event_id))
             })
         })
         .map_err(SqliteRepoTxError::into_event)?;
 
         Ok(AiotDeviceEventRecord {
-            id: (next_id + 1).to_string(),
+            id: row_id.to_string(),
             tenant_id,
             organization_id,
             event_id,
@@ -1841,23 +1866,14 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                             }
                         }
                     } else {
-                        let max_id_sql = adapt_sqlite_placeholders(
-                            dialect,
-                            "SELECT COALESCE(MAX(id), 0) FROM iot_device_twin_property",
-                        );
-                        let next_property_id: i64 = match &mut tx {
-                            DeviceDbTransaction::Sqlite(connection) => {
-                                sqlx::query_scalar(&max_id_sql)
-                                    .fetch_one(&mut **connection)
-                                    .await
-                            }
-                            DeviceDbTransaction::Postgres(connection) => {
-                                sqlx::query_scalar(&max_id_sql)
-                                    .fetch_one(&mut **connection)
-                                    .await
-                            }
-                        }
-                        .map_err(|_| SqliteRepoTxError::Twin(AiotDeviceTwinRepositoryError::PersistenceFailure))?;
+                        let property_row_id =
+                            allocate_row_id(&mut tx, dialect, "iot_device_twin_property")
+                                .await
+                                .map_err(|_| {
+                                    SqliteRepoTxError::Twin(
+                                        AiotDeviceTwinRepositoryError::PersistenceFailure,
+                                    )
+                                })?;
                         let insert_sql = adapt_sqlite_placeholders(
                             dialect,
                             "INSERT INTO iot_device_twin_property (id, uuid, tenant_id, organization_id, data_scope, device_id, property_name, desired_value, desired_version, desired_updated_at, reported_value, reported_version, reported_updated_at, status, created_at, updated_at, version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 1, ?14, ?15, 0)",
@@ -1865,7 +1881,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                         match &mut tx {
                             DeviceDbTransaction::Sqlite(connection) => {
                                 sqlx::query(&insert_sql)
-                                    .bind(next_property_id + 1)
+                                    .bind(property_row_id)
                                     .bind(format!(
                                         "twin-prop-{}-{}",
                                         command.device_id, command.property_name
@@ -1904,7 +1920,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                             }
                             DeviceDbTransaction::Postgres(connection) => {
                                 sqlx::query(&insert_sql)
-                                    .bind(next_property_id + 1)
+                                    .bind(property_row_id)
                                     .bind(format!(
                                         "twin-prop-{}-{}",
                                         command.device_id, command.property_name
@@ -1975,7 +1991,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
             .db
             .run_owned(|pool| async move {
                 let sql = pool.adapt_sql(
-                    "SELECT property_name, desired_value, reported_value FROM iot_device_twin_property WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 ORDER BY id ASC",
+                    "SELECT property_name, desired_value, reported_value FROM iot_device_twin_property WHERE tenant_id = ?1 AND organization_id = ?2 AND device_id = ?3 ORDER BY id ASC LIMIT ?4",
                 );
                 let mut desired = BTreeMap::new();
                 let mut reported = BTreeMap::new();
@@ -1985,6 +2001,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                             .bind(association_for_properties.tenant_id)
                             .bind(association_for_properties.organization_id)
                             .bind(&device_id_for_properties)
+                            .bind(MAX_DEVICE_TWIN_PROPERTIES)
                             .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
                         for row in rows {
@@ -2004,6 +2021,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                             .bind(association_for_properties.tenant_id)
                             .bind(association_for_properties.organization_id)
                             .bind(&device_id_for_properties)
+                            .bind(MAX_DEVICE_TWIN_PROPERTIES)
                             .fetch_all(pool.postgres_pool().expect("postgres pool"))
                             .await?;
                         for row in rows {
@@ -2091,7 +2109,7 @@ fn row_to_device_record(row: &sqlx::sqlite::SqliteRow) -> Result<AiotDeviceRecor
     let chip_family: Option<String> = row.try_get("chip_family")?;
     let status: i64 = row.try_get("status")?;
     let metadata_json: Option<String> = row.try_get("metadata")?;
-    let last_seen_at: Option<String> = row.try_get("last_seen_at")?;
+    let last_seen_at = read_sqlite_optional_timestamp(row, "last_seen_at")?;
     Ok(AiotDeviceRecord {
         id: id.to_string(),
         tenant_id,
@@ -2120,7 +2138,7 @@ fn row_to_device_record_postgres(
     let chip_family: Option<String> = row.try_get("chip_family")?;
     let status: i64 = row.try_get("status")?;
     let metadata_json: Option<String> = row.try_get("metadata")?;
-    let last_seen_at: Option<String> = row.try_get("last_seen_at")?;
+    let last_seen_at = read_postgres_optional_timestamp(row, "last_seen_at")?;
     Ok(AiotDeviceRecord {
         id: id.to_string(),
         tenant_id,
@@ -2194,11 +2212,11 @@ fn row_to_command_record_postgres(
     let request_object_blob_id: Option<String> = row.try_get("request_object_blob_id")?;
     let request_media_json: Option<String> = row.try_get("request_media_resource_snapshot")?;
     let status_code: i64 = row.try_get("status")?;
-    let timeout_at: Option<String> = row.try_get("timeout_at")?;
-    let ack_at: Option<String> = row.try_get("ack_at")?;
-    let result_at: Option<String> = row.try_get("result_at")?;
+    let timeout_at = read_postgres_optional_timestamp(row, "timeout_at")?;
+    let ack_at = read_postgres_optional_timestamp(row, "ack_at")?;
+    let result_at = read_postgres_optional_timestamp(row, "result_at")?;
     let trace_id: Option<String> = row.try_get("trace_id")?;
-    let created_at: Option<String> = row.try_get("created_at")?;
+    let created_at = read_postgres_optional_timestamp(row, "created_at")?;
     Ok(AiotCommandRecord {
         id: id.to_string(),
         tenant_id: association.tenant_id,
@@ -2441,20 +2459,7 @@ async fn ensure_twin_root_row(
         return Ok(());
     }
 
-    let max_id_sql =
-        adapt_sqlite_placeholders(dialect, "SELECT COALESCE(MAX(id), 0) FROM iot_device_twin");
-    let next_twin_id: i64 = match tx {
-        DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query_scalar(&max_id_sql)
-                .fetch_one(&mut **connection)
-                .await?
-        }
-        DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query_scalar(&max_id_sql)
-                .fetch_one(&mut **connection)
-                .await?
-        }
-    };
+    let twin_row_id = allocate_row_id(tx, dialect, "iot_device_twin").await?;
     let insert_sql = adapt_sqlite_placeholders(
         dialect,
         "INSERT INTO iot_device_twin (id, uuid, tenant_id, organization_id, data_scope, device_id, desired_version, reported_version, status, created_at, updated_at, version) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 0, 1, ?7, ?8, 0)",
@@ -2462,7 +2467,7 @@ async fn ensure_twin_root_row(
     match tx {
         DeviceDbTransaction::Sqlite(connection) => {
             sqlx::query(&insert_sql)
-                .bind(next_twin_id + 1)
+                .bind(twin_row_id)
                 .bind(format!("twin-{device_id}"))
                 .bind(association.tenant_id)
                 .bind(association.organization_id)
@@ -2475,7 +2480,7 @@ async fn ensure_twin_root_row(
         }
         DeviceDbTransaction::Postgres(connection) => {
             sqlx::query(&insert_sql)
-                .bind(next_twin_id + 1)
+                .bind(twin_row_id)
                 .bind(format!("twin-{device_id}"))
                 .bind(association.tenant_id)
                 .bind(association.organization_id)
@@ -2567,23 +2572,7 @@ async fn insert_command_delivery_row(
     session_id: Option<&str>,
     created_at: &str,
 ) -> Result<(i64, String), sqlx::Error> {
-    let max_id_sql = adapt_sqlite_placeholders(
-        dialect,
-        "SELECT COALESCE(MAX(id), 0) FROM iot_command_delivery",
-    );
-    let next_id: i64 = match tx {
-        DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query_scalar(&max_id_sql)
-                .fetch_one(&mut **connection)
-                .await?
-        }
-        DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query_scalar(&max_id_sql)
-                .fetch_one(&mut **connection)
-                .await?
-        }
-    };
-    let delivery_id = next_id + 1;
+    let delivery_id = allocate_row_id(tx, dialect, "iot_command_delivery").await?;
     let delivery_uuid = format!("cmd-delivery-{delivery_id}");
     let insert_sql = adapt_sqlite_placeholders(
         dialect,
@@ -2636,21 +2625,7 @@ async fn insert_command_delivery_and_outbox(
     insert_command_delivery_row(tx, dialect, association, command_id, session_id, created_at)
         .await?;
 
-    let max_outbox_id_sql =
-        adapt_sqlite_placeholders(dialect, "SELECT COALESCE(MAX(id), 0) FROM iot_outbox_event");
-    let next_outbox_id: i64 = match tx {
-        DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query_scalar(&max_outbox_id_sql)
-                .fetch_one(&mut **connection)
-                .await?
-        }
-        DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query_scalar(&max_outbox_id_sql)
-                .fetch_one(&mut **connection)
-                .await?
-        }
-    };
-    let outbox_id = next_outbox_id + 1;
+    let outbox_id = allocate_row_id(tx, dialect, "iot_outbox_event").await?;
     let event_type = "iot.command.dispatchRequested";
     let aggregate_type = "device_command";
     let event_id = format!("{aggregate_type}:{command_id}:{event_type}");

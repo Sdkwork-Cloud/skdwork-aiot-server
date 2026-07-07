@@ -86,8 +86,17 @@ impl BlockingPostgresPool {
     ) -> Result<(), StoragePostgresError> {
         self.with_transaction(|tx| {
             Box::pin(async move {
+                let dialect = crate::SqlDialect::Postgres;
                 for statement in batch.statements {
-                    execute_sql_plan(&mut **tx, &statement).await?;
+                    let mut device_tx =
+                        crate::blocking_device_pool::DeviceDbTransaction::Postgres(tx);
+                    let statement = crate::row_id_allocator::prepend_allocated_row_id_bind(
+                        &mut device_tx,
+                        dialect,
+                        statement,
+                    )
+                    .await?;
+                    device_tx.execute_plan(&statement).await?;
                 }
                 Ok(())
             })

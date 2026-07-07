@@ -1,5 +1,5 @@
 import { coalesce, defaultIfBlank } from '@sdkwork/utils';
-import { isBlank, trim } from '@sdkwork/utils/string';
+import { isBlank, trim } from '@sdkwork/utils';
 
 type RuntimeImportMetaEnv = Record<string, string | boolean | undefined>;
 

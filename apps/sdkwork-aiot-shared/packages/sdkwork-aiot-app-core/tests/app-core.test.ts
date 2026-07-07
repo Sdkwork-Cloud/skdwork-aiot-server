@@ -4,7 +4,7 @@ import {
   createAiotAgentService,
   createAiotCommandService,
   createAiotVoiceDialogueService,
-  createLocalAssistantReply,
+  pollCommandResult,
 } from '../src';
 
 describe('aiot-app-core command service', () => {
@@ -40,6 +40,40 @@ describe('aiot-app-core command service', () => {
     );
     expect(command.commandId).toBe('cmd-1');
   });
+
+  it('polls command completion through devices.commands.retrieve', async () => {
+    const retrieve = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 'accepted' })
+      .mockResolvedValueOnce({
+        commandId: 'cmd-1',
+        deviceId: 'dev-1',
+        status: 'completed',
+        capabilityName: 'audio.playback',
+        commandName: 'speak',
+        createdAt: '2026-07-06T00:00:00.000Z',
+        requestPayload: {},
+        result: { resultPayload: { text: 'done' } },
+      });
+
+    const result = await pollCommandResult(
+      {
+        iot: {
+          devices: {
+            commands: {
+              retrieve,
+            },
+          },
+        },
+      } as never,
+      'dev-1',
+      'cmd-1',
+      { intervalMs: 0, maxAttempts: 3 },
+    );
+
+    expect(retrieve).toHaveBeenCalledWith('dev-1', 'cmd-1');
+    expect(result?.status).toBe('completed');
+  });
 });
 
 describe('aiot-app-core agent service', () => {
@@ -65,6 +99,51 @@ describe('aiot-app-core agent service', () => {
 
     expect(reply.content).toBe('agents reply');
     expect(reply.status).toBe('completed');
+  });
+
+  it('falls back to device assistant.chat when sdkwork-agents fails', async () => {
+    const create = vi.fn().mockResolvedValue({
+      accepted: true,
+      resourceId: 'cmd-fallback',
+      status: 'accepted',
+    });
+    const list = vi.fn().mockResolvedValue({
+      items: [{
+        payload: {
+          commandId: 'cmd-fallback',
+          result: { resultPayload: { text: 'device fallback reply' } },
+          status: 'completed',
+        },
+      }],
+      pageInfo: { page: 1, pageSize: 20, total: 1, hasMore: false },
+    });
+
+    const service = createAiotAgentService({
+      agentsDialoguePort: {
+        configured: true,
+        resolveAgentId: () => 'agent.aiot.assistant',
+        createRemoteSession: vi.fn().mockResolvedValue('remote-session-1'),
+        sendChat: vi.fn().mockRejectedValue(new Error('agents offline')),
+      },
+      aiotClient: {
+        iot: {
+          devices: {
+            commands: { create },
+            events: { list },
+          },
+        },
+      } as never,
+    });
+
+    const session = service.createSession('dev-1');
+    const reply = await service.sendMessage({
+      deviceId: 'dev-1',
+      sessionId: session.id,
+      text: '打开客厅灯',
+    });
+
+    expect(reply.content).toBe('device fallback reply');
+    expect(create).toHaveBeenCalled();
   });
 
   it('marks assistant messages failed when device returns no reply payload', async () => {
@@ -174,10 +253,47 @@ describe('aiot-app-core voice dialogue service', () => {
     expect(speakOnDevice).toHaveBeenCalledWith('dev-1', 'hello from agent', expect.any(String));
     expect(speakViaCloud).not.toHaveBeenCalled();
   });
-});
 
-describe('aiot-app-core local assistant reply', () => {
-  it('returns a helpful default for empty input', () => {
-    expect(createLocalAssistantReply('   ')).toContain('请告诉我');
+  it('invokes onDialogueComplete after auto-run listen turn', async () => {
+    const onDialogueComplete = vi.fn();
+    const agentService = {
+      createSession: vi.fn().mockReturnValue({ id: 'local-session' }),
+      getMessages: vi.fn().mockReturnValue([]),
+      getSessions: vi.fn().mockReturnValue([]),
+      getToolCalls: vi.fn().mockReturnValue([]),
+      sendMessage: vi.fn().mockResolvedValue({
+        content: 'auto reply',
+        createdAt: '2026-01-01T00:00:00Z',
+        id: 'assistant-1',
+        role: 'assistant',
+        sessionId: 'local-session',
+        status: 'completed',
+      }),
+    };
+
+    const voiceService = {
+      isCloudVoiceConfigured: () => false,
+      isListening: () => false,
+      listVoiceDevices: vi.fn().mockResolvedValue([]),
+      speakOnDevice: vi.fn(),
+      speakLocally: vi.fn().mockResolvedValue(undefined),
+      speakViaCloud: vi.fn(),
+      startListening: vi.fn(async (onResult) => {
+        await onResult('打开灯', true);
+      }),
+      stopListening: vi.fn(),
+    };
+
+    const dialogue = createAiotVoiceDialogueService({
+      agentService: agentService as never,
+      voiceService: voiceService as never,
+    });
+
+    await dialogue.startListening(vi.fn(), {
+      autoRunDialogue: true,
+      onDialogueComplete,
+    });
+
+    expect(onDialogueComplete).toHaveBeenCalledWith('auto reply');
   });
 });

@@ -9,6 +9,7 @@ use sdkwork_utils_rust::is_blank;
 use crate::blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine, DeviceDbTransaction};
 use crate::credential_hash::{hash_device_credential_secret, verify_device_credential_secret};
 use crate::dialect_sql::adapt_sqlite_placeholders;
+use crate::row_id_allocator::allocate_row_id;
 use crate::schema::ensure_device_schema;
 use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
 
@@ -91,7 +92,8 @@ impl SqliteSqlxCredentialRepository {
     }
 
     pub fn verify_bearer_token(&self, device_id: &str, token: &str) -> bool {
-        self.verify_bearer_token_scoped(None, None, device_id, token)
+        self.resolve_association_for_bearer_token(device_id, token)
+            .is_some()
     }
 
     /// Verifies a device bearer token. Tenant and organization scope are resolved from
@@ -179,6 +181,84 @@ impl SqliteSqlxCredentialRepository {
             .unwrap_or(false)
     }
 
+    /// Resolves tenant scope from the credential row that matches the bearer token.
+    pub fn resolve_association_for_bearer_token(
+        &self,
+        device_id: &str,
+        token: &str,
+    ) -> Option<AiotStorageAssociation> {
+        if is_blank(Some(device_id)) || is_blank(Some(token)) {
+            return None;
+        }
+        let now = current_rfc3339_timestamp();
+        let device_id = device_id.to_string();
+        let token = token.to_string();
+        self.db
+            .run_owned(|pool| async move {
+                let dialect = pool.dialect();
+                let sql = adapt_sqlite_placeholders(
+                    dialect,
+                    "SELECT tenant_id, organization_id, credential_hash
+                 FROM iot_device_credential
+                 WHERE device_id = ?1
+                   AND status = ?2
+                   AND (expires_at IS NULL OR expires_at > ?3)",
+                );
+                match pool.engine() {
+                    DeviceDatabaseEngine::Sqlite => {
+                        let rows = sqlx::query(&sql)
+                            .bind(&device_id)
+                            .bind(CREDENTIAL_STATUS_ACTIVE)
+                            .bind(&now)
+                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
+                            .await?;
+                        Ok::<Option<AiotStorageAssociation>, sqlx::Error>(
+                            rows.iter().find_map(|row| {
+                                row.try_get::<String, _>("credential_hash")
+                                    .ok()
+                                    .filter(|stored| !stored.is_empty())
+                                    .filter(|stored| {
+                                        verify_device_credential_secret(stored, token.as_bytes())
+                                    })
+                                    .map(|_| {
+                                        AiotStorageAssociation::tenant_org(
+                                            row.get("tenant_id"),
+                                            row.get("organization_id"),
+                                        )
+                                    })
+                            }),
+                        )
+                    }
+                    DeviceDatabaseEngine::Postgres => {
+                        let rows = sqlx::query(&sql)
+                            .bind(&device_id)
+                            .bind(CREDENTIAL_STATUS_ACTIVE)
+                            .bind(&now)
+                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
+                            .await?;
+                        Ok::<Option<AiotStorageAssociation>, sqlx::Error>(
+                            rows.iter().find_map(|row| {
+                                row.try_get::<String, _>("credential_hash")
+                                    .ok()
+                                    .filter(|stored| !stored.is_empty())
+                                    .filter(|stored| {
+                                        verify_device_credential_secret(stored, token.as_bytes())
+                                    })
+                                    .map(|_| {
+                                        AiotStorageAssociation::tenant_org(
+                                            row.get("tenant_id"),
+                                            row.get("organization_id"),
+                                        )
+                                    })
+                            }),
+                        )
+                    }
+                }
+            })
+            .ok()
+            .flatten()
+    }
+
     pub fn device_has_active_credential(&self, device_id: &str) -> bool {
         if is_blank(Some(device_id)) {
             return false;
@@ -226,22 +306,8 @@ impl SqliteSqlxCredentialRepository {
         self.db
             .with_device_transaction(|mut tx, dialect| {
                 Box::pin(async move {
-                    let next_id_sql = adapt_sqlite_placeholders(
-                        dialect,
-                        "SELECT COALESCE(MAX(id), 0) + 1 FROM iot_device_credential",
-                    );
-                    let next_id: i64 = match &mut tx {
-                        DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query_scalar(&next_id_sql)
-                                .fetch_one(&mut **connection)
-                                .await?
-                        }
-                        DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query_scalar(&next_id_sql)
-                                .fetch_one(&mut **connection)
-                                .await?
-                        }
-                    };
+                    let next_id =
+                        allocate_row_id(&mut tx, dialect, "iot_device_credential").await?;
                     let credential_id = format!("credential-{next_id:04}");
                     let issued_secret = generate_device_secret(&command.device_id, next_id);
                     let credential_hash = hash_device_credential_secret(issued_secret.as_bytes());

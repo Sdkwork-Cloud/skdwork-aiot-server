@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "name": "sdkwork-aiot-app-sdk",
-  "version": "0.1.11",
+  "version": "0.1.14",
   "language": "typescript",
   "sdkType": "app",
   "packageName": "sdkwork-aiot-app-sdk-generated-typescript",

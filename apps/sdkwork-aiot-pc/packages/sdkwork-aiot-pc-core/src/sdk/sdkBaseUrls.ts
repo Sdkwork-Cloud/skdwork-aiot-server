@@ -178,11 +178,11 @@ export function resolveDriveAppApiBaseUrl(): string {
 }
 
 export function isAgentsAppSdkConfigured(): boolean {
-  return Boolean(
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_AGENTS_APP_API_BASE_URL)
-    || readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL)
-    || isSdkRuntimeDev(),
-  );
+  if (readSdkBaseUrlEnvValue(VITE_SDKWORK_AGENTS_APP_API_BASE_URL)) {
+    return true;
+  }
+  return isSdkRuntimeDev()
+    && Boolean(readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL));
 }
 
 export function resolveAgentsAppApiBaseUrl(): string {
@@ -198,11 +198,11 @@ export function resolveAgentsAppApiBaseUrl(): string {
 }
 
 export function isVoiceAppSdkConfigured(): boolean {
-  return Boolean(
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_VOICE_APP_API_BASE_URL)
-    || readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL)
-    || isSdkRuntimeDev(),
-  );
+  if (readSdkBaseUrlEnvValue(VITE_SDKWORK_VOICE_APP_API_BASE_URL)) {
+    return true;
+  }
+  return isSdkRuntimeDev()
+    && Boolean(readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL));
 }
 
 export function resolveVoiceAppApiBaseUrl(): string {

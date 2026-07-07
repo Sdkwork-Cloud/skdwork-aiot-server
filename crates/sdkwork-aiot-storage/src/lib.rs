@@ -9,8 +9,8 @@ pub use outbox::{
     OUTBOX_STATUS_CLAIMED, OUTBOX_STATUS_FAILED, OUTBOX_STATUS_PENDING, OUTBOX_STATUS_PUBLISHED,
 };
 pub use pagination::{
-    offset_list_page_info, paginate_vec, AiotOffsetListResult, OffsetListPageParams,
-    DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE,
+    offset_list_page_info, paginate_bounded_catalog, paginate_vec, AiotOffsetListResult,
+    OffsetListPageParams, DEFAULT_LIST_PAGE_SIZE, MAX_LIST_PAGE_SIZE,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -421,6 +421,12 @@ pub trait AiotCommandRepository: Send + Sync {
         &self,
         command: AiotCommandCreateCommand,
     ) -> Result<AiotCommandRecord, AiotCommandRepositoryError>;
+    fn get_command(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        command_id: &str,
+    ) -> Result<Option<AiotCommandRecord>, AiotCommandRepositoryError>;
     fn list_commands(
         &self,
         association: &AiotStorageAssociation,
@@ -976,6 +982,26 @@ impl AiotCommandRepository for InMemoryAiotCommandRepository {
         };
         state.commands.insert(scoped_key, record.clone());
         Ok(record)
+    }
+
+    fn get_command(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        command_id: &str,
+    ) -> Result<Option<AiotCommandRecord>, AiotCommandRepositoryError> {
+        let state = self
+            .state
+            .lock()
+            .expect("in-memory aiot command repo poisoned");
+        let key = scoped_command_key(association, command_id);
+        let Some(record) = state.commands.get(&key) else {
+            return Ok(None);
+        };
+        if record.device_id != device_id {
+            return Ok(None);
+        }
+        Ok(Some(record.clone()))
     }
 
     fn list_commands(

@@ -12,7 +12,7 @@
   "mode": "apply",
   "hasChanges": true,
   "hasDestructiveChanges": false,
-  "changeFingerprint": "baf16d9c9c2b08a723394c1af24c4ea5e3e4ded9346bf3e062e93367ddc89a5c",
+  "changeFingerprint": "82649a9df2ac375b3488281e9fd0efea8421a0f2da332adcf3cdd606beadca3d",
   "changeImpact": {
     "schemaVersion": 1,
     "areas": [
@@ -135,7 +135,7 @@
   },
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.11",
+    "version": "0.1.14",
     "language": "typescript",
     "sdkType": "app",
     "protocol": "http",
@@ -143,16 +143,16 @@
     "packageName": "@sdkwork/aiot-app-sdk"
   },
   "versioning": {
-    "resolvedVersion": "0.1.11",
+    "resolvedVersion": "0.1.14",
     "localVersions": [
-      "0.1.10"
+      "0.1.13"
     ]
   },
   "stats": {
-    "totalFiles": 55,
-    "models": 31,
+    "totalFiles": 54,
+    "models": 30,
     "apis": 1,
-    "types": 33
+    "types": 32
   },
   "warnings": [],
   "syncSummary": {
@@ -160,10 +160,10 @@
     "controlPlaneEnabled": true,
     "writtenFiles": 3,
     "skippedScaffoldFiles": 2,
-    "skippedUnchangedGeneratedFiles": 50,
+    "skippedUnchangedGeneratedFiles": 49,
     "deletedGeneratedFiles": 0,
     "changeSummaryPath": ".sdkwork/sdkwork-generator-changes.json",
-    "changeFingerprint": "baf16d9c9c2b08a723394c1af24c4ea5e3e4ded9346bf3e062e93367ddc89a5c",
+    "changeFingerprint": "82649a9df2ac375b3488281e9fd0efea8421a0f2da332adcf3cdd606beadca3d",
     "changes": {
       "createdGeneratedFiles": [],
       "updatedGeneratedFiles": [
@@ -212,7 +212,6 @@
         "src/types/media-source.ts",
         "src/types/page-info.ts",
         "src/types/problem-detail.ts",
-        "src/types/problem-details.ts",
         "src/types/sdk-work-api-response.ts",
         "src/types/sdk-work-command-data.ts",
         "src/types/sdk-work-command-response.ts",

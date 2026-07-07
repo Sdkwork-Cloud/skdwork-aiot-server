@@ -4,7 +4,8 @@ mod mqtt_bridge_readiness;
 mod xiaozhi_ws_media_session;
 
 pub use active_ws_sessions::{
-    register_active_ws_session, touch_active_ws_session, unregister_active_ws_session,
+    active_ws_sessions, register_active_ws_session, touch_active_ws_session,
+    unregister_active_ws_session,
 };
 pub use command_delivery_worker::start_command_delivery_worker;
 pub use mqtt_bridge_readiness::{
@@ -115,7 +116,6 @@ const ENV_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT: &str =
     "SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT";
 const ENV_XIAOZHI_SERVER_TIMEZONE_OFFSET_MINUTES: &str =
     "SDKWORK_AIOT_XIAOZHI_SERVER_TIMEZONE_OFFSET_MINUTES";
-const ENV_DEVICE_DB_PATH: &str = "SDKWORK_AIOT_DEVICE_DB_PATH";
 
 const ACTIVATION_REGISTRY_BACKEND_UNKNOWN: u64 = 0;
 const ACTIVATION_REGISTRY_BACKEND_IN_MEMORY: u64 = 1;
@@ -1302,21 +1302,16 @@ impl XiaozhiSessionOptions {
                     device_credential_repository: device_credential_repository_from_env(),
                 },
                 Err(error) => {
-                    eprintln!(
-                        "sdkwork-aiot-cloud-gateway: production intelligence misconfigured: {error}"
-                    );
-                    Self {
-                        mcp_tool_provider: Arc::new(
-                            DefaultXiaozhiSimulatorMcpToolProvider::from_env(),
-                        ),
-                        mcp_tool_invoker: Arc::new(DefaultXiaozhiSimulatorMcpToolInvoker),
-                        mcp_tool_policy: Arc::new(
-                            RuleBasedXiaozhiSimulatorMcpToolPolicy::from_env(),
-                        ),
-                        speech_pipeline: None,
-                        protocol_ingest: protocol_ingest_from_env(),
-                        device_credential_repository: device_credential_repository_from_env(),
+                    if production_environment_enabled() {
+                        eprintln!(
+                            "FATAL: sdkwork-aiot-cloud-gateway kernel intelligence misconfigured in production: {error}"
+                        );
+                        std::process::exit(1);
                     }
+                    eprintln!(
+                        "sdkwork-aiot-cloud-gateway: kernel intelligence misconfigured, using simulator (non-production only): {error}"
+                    );
+                    Self::simulator_from_env()
                 }
             }
         } else {
@@ -1419,22 +1414,26 @@ impl XiaozhiSessionOptions {
 }
 
 fn device_credential_repository_from_env() -> Option<Arc<SqliteSqlxCredentialRepository>> {
-    let path = env_string(ENV_DEVICE_DB_PATH)?;
-    match sdkwork_aiot_storage_sqlx::open_aiot_device_database(Some(&path)) {
-        Ok(database) => {
-            match database.credential_repository() {
-                Ok(repository) => {
-                    println!("sdkwork-aiot-cloud-gateway device_credential_repository=sqlite");
-                    Some(Arc::new(repository))
-                }
-                Err(error) => {
-                    eprintln!("sdkwork-aiot-cloud-gateway device_credential_repository_open_error={error}");
-                    None
-                }
+    match open_aiot_device_database_from_env() {
+        Ok(database) => match database.credential_repository() {
+            Ok(repository) => {
+                println!(
+                    "sdkwork-aiot-cloud-gateway device_credential_repository={:?}",
+                    database.engine()
+                );
+                Some(Arc::new(repository))
             }
-        }
+            Err(error) => {
+                eprintln!(
+                    "sdkwork-aiot-cloud-gateway device_credential_repository_open_error={error}"
+                );
+                None
+            }
+        },
         Err(error) => {
-            eprintln!("sdkwork-aiot-cloud-gateway device_credential_repository_open_error={error}");
+            eprintln!(
+                "sdkwork-aiot-cloud-gateway device_credential_repository_open_error={error:?}"
+            );
             None
         }
     }
@@ -1807,8 +1806,62 @@ pub fn xiaozhi_speak_websocket_replies(
     request: &HttpRequest,
     session_id: &str,
     text: &str,
+    speech_pipeline: Option<&KernelSpeechPipeline>,
 ) -> Result<Vec<WebSocketSessionReply>, TransportError> {
+    if let Some(pipeline) = speech_pipeline {
+        let output = pipeline
+            .run_speak(text)
+            .map_err(|error| TransportError::new(format!("intelligence.speech.failed:{error}")))?;
+        return xiaozhi_websocket_replies_from_speech_output(request, session_id, &output);
+    }
+    if is_kernel_mode() {
+        return Err(TransportError::new("intelligence.kernel.misconfigured"));
+    }
     xiaozhi_simulator_websocket_speech_replies(request, session_id, text, text)
+}
+
+fn xiaozhi_websocket_replies_from_speech_output(
+    request: &HttpRequest,
+    session_id: &str,
+    output: &SpeechTurnOutput,
+) -> Result<Vec<WebSocketSessionReply>, TransportError> {
+    let frame_duration_ms = XIAOZHI_DEFAULT_AUDIO_FRAME_DURATION_MS;
+    let mut replies = vec![
+        WebSocketSessionReply::Text(format!(
+            r#"{{"session_id":"{}","type":"stt","text":"{}"}}"#,
+            json_escape(session_id),
+            json_escape(&output.stt_text)
+        )),
+        WebSocketSessionReply::Text(format!(
+            r#"{{"session_id":"{}","type":"llm","emotion":"{}","text":"{}"}}"#,
+            json_escape(session_id),
+            json_escape(&output.llm_emotion),
+            json_escape(&output.llm_text)
+        )),
+        WebSocketSessionReply::Text(format!(
+            r#"{{"session_id":"{}","type":"tts","state":"start"}}"#,
+            json_escape(session_id)
+        )),
+    ];
+    let opus_packets = xiaozhi_opus_packets_from_speech_output(output, frame_duration_ms)?;
+    for (index, packet) in opus_packets.iter().enumerate() {
+        let timestamp_ms = (index as u32) * frame_duration_ms;
+        replies.push(xiaozhi_websocket_binary_audio_reply(
+            request,
+            packet,
+            timestamp_ms,
+        )?);
+    }
+    replies.push(WebSocketSessionReply::Text(format!(
+        r#"{{"session_id":"{}","type":"tts","state":"sentence_start","text":"{}"}}"#,
+        json_escape(session_id),
+        json_escape(&output.llm_text)
+    )));
+    replies.push(WebSocketSessionReply::Text(format!(
+        r#"{{"session_id":"{}","type":"tts","state":"stop"}}"#,
+        json_escape(session_id)
+    )));
+    Ok(replies)
 }
 
 pub fn xiaozhi_mqtt_device_token_valid(
@@ -1838,7 +1891,9 @@ pub fn xiaozhi_mqtt_device_token_valid(
     };
 
     if let Some(repository) = options.device_credential_repository() {
-        return repository.verify_bearer_token(&device_id, &token);
+        return repository
+            .resolve_association_for_bearer_token(&device_id, &token)
+            .is_some();
     }
 
     env_string(ENV_XIAOZHI_DEVICE_TOKEN)
@@ -1959,49 +2014,10 @@ fn xiaozhi_production_websocket_speech_replies(
     pipeline: &KernelSpeechPipeline,
     turn_input: SpeechTurnInput,
 ) -> Result<Vec<WebSocketSessionReply>, TransportError> {
-    let frame_duration_ms = turn_input
-        .uplink_frame_duration_ms
-        .unwrap_or(XIAOZHI_DEFAULT_AUDIO_FRAME_DURATION_MS);
     let output = pipeline
         .run_turn(turn_input)
         .map_err(|error| TransportError::new(format!("intelligence.speech.failed:{error}")))?;
-
-    let mut replies = vec![
-        WebSocketSessionReply::Text(format!(
-            r#"{{"session_id":"{}","type":"stt","text":"{}"}}"#,
-            json_escape(session_id),
-            json_escape(&output.stt_text)
-        )),
-        WebSocketSessionReply::Text(format!(
-            r#"{{"session_id":"{}","type":"llm","emotion":"{}","text":"{}"}}"#,
-            json_escape(session_id),
-            json_escape(&output.llm_emotion),
-            json_escape(&output.llm_text)
-        )),
-        WebSocketSessionReply::Text(format!(
-            r#"{{"session_id":"{}","type":"tts","state":"start"}}"#,
-            json_escape(session_id)
-        )),
-    ];
-    let opus_packets = xiaozhi_opus_packets_from_speech_output(&output, frame_duration_ms)?;
-    for (index, packet) in opus_packets.iter().enumerate() {
-        let timestamp_ms = (index as u32) * frame_duration_ms;
-        replies.push(xiaozhi_websocket_binary_audio_reply(
-            request,
-            packet,
-            timestamp_ms,
-        )?);
-    }
-    replies.push(WebSocketSessionReply::Text(format!(
-        r#"{{"session_id":"{}","type":"tts","state":"sentence_start","text":"{}"}}"#,
-        json_escape(session_id),
-        json_escape(&output.llm_text)
-    )));
-    replies.push(WebSocketSessionReply::Text(format!(
-        r#"{{"session_id":"{}","type":"tts","state":"stop"}}"#,
-        json_escape(session_id)
-    )));
-    Ok(replies)
+    xiaozhi_websocket_replies_from_speech_output(request, session_id, &output)
 }
 
 fn xiaozhi_listen_websocket_speech_replies(
@@ -2664,16 +2680,34 @@ pub fn dev_mode_enabled() -> bool {
     std::env::var("SDKWORK_AIOT_DEV_MODE").as_deref() == Ok("1")
 }
 
+pub fn production_environment_enabled() -> bool {
+    std::env::var("SDKWORK_AIOT_ENVIRONMENT").as_deref() == Ok("production")
+}
+
 const PRODUCTION_MIN_SECRET_LENGTH: usize = 32;
 
 pub fn assert_production_environment_safety() {
-    if std::env::var("SDKWORK_AIOT_ENVIRONMENT").as_deref() != Ok("production") {
+    if !production_environment_enabled() {
         return;
     }
 
     if dev_mode_enabled() {
         eprintln!(
             "FATAL: SDKWORK_AIOT_DEV_MODE=1 is forbidden when SDKWORK_AIOT_ENVIRONMENT=production"
+        );
+        std::process::exit(1);
+    }
+
+    if !sdkwork_aiot_storage_sqlx::device_database_config_is_durable_from_env() {
+        eprintln!(
+            "FATAL: production requires durable device persistence (SDKWORK_AIOT_DEVICE_DB_PATH or SDKWORK_AIOT_DEVICE_DATABASE_URL)"
+        );
+        std::process::exit(1);
+    }
+
+    if device_credential_repository_from_env().is_none() {
+        eprintln!(
+            "FATAL: production requires a device credential repository backed by the durable device database"
         );
         std::process::exit(1);
     }
@@ -2694,32 +2728,37 @@ pub fn assert_production_environment_safety() {
         std::process::exit(1);
     }
 
-    if is_kernel_mode() {
-        for (key, label) in [
-            (
-                "SDKWORK_AIOT_INTELLIGENCE_KERNEL_HTTP_URL",
-                "kernel runtime HTTP URL",
-            ),
-            (
-                "SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL",
-                "claw-router open HTTP URL",
-            ),
-        ] {
-            let value = std::env::var(key).unwrap_or_default();
-            if value.trim().len() < 8 {
-                eprintln!(
-                    "FATAL: {key} must be set for production intelligence ({label}) when SDKWORK_AIOT_INTELLIGENCE_MODE=kernel"
-                );
-                std::process::exit(1);
-            }
-        }
-        let claw_key = std::env::var("SDKWORK_CLAW_ROUTER_API_KEY").unwrap_or_default();
-        if claw_key.trim().len() < PRODUCTION_MIN_SECRET_LENGTH {
+    if !is_kernel_mode() {
+        eprintln!(
+            "FATAL: SDKWORK_AIOT_INTELLIGENCE_MODE=kernel is required when SDKWORK_AIOT_ENVIRONMENT=production"
+        );
+        std::process::exit(1);
+    }
+
+    for (key, label) in [
+        (
+            "SDKWORK_AIOT_INTELLIGENCE_KERNEL_HTTP_URL",
+            "kernel runtime HTTP URL",
+        ),
+        (
+            "SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL",
+            "claw-router open HTTP URL",
+        ),
+    ] {
+        let value = std::env::var(key).unwrap_or_default();
+        if value.trim().len() < 8 {
             eprintln!(
-                "FATAL: SDKWORK_CLAW_ROUTER_API_KEY must be at least {PRODUCTION_MIN_SECRET_LENGTH} characters when SDKWORK_AIOT_INTELLIGENCE_MODE=kernel in production"
+                "FATAL: {key} must be set for production intelligence ({label})"
             );
             std::process::exit(1);
         }
+    }
+    let claw_key = std::env::var("SDKWORK_CLAW_ROUTER_API_KEY").unwrap_or_default();
+    if claw_key.trim().len() < PRODUCTION_MIN_SECRET_LENGTH {
+        eprintln!(
+            "FATAL: SDKWORK_CLAW_ROUTER_API_KEY must be at least {PRODUCTION_MIN_SECRET_LENGTH} characters in production"
+        );
+        std::process::exit(1);
     }
 }
 
@@ -2736,13 +2775,37 @@ pub fn xiaozhi_device_token_valid(request: &HttpRequest, options: &XiaozhiSessio
         let Some(device_id) = extract_device_id(request) else {
             return false;
         };
-        return repository.verify_bearer_token(&device_id, &token);
+        return repository
+            .resolve_association_for_bearer_token(&device_id, &token)
+            .is_some();
     }
 
     let Some(expected) = env_string(ENV_XIAOZHI_DEVICE_TOKEN) else {
         return false;
     };
     secure_compare(&token, &expected)
+}
+
+/// Resolves tenant scope for an authenticated device connection.
+pub fn resolve_device_storage_association(
+    request: &HttpRequest,
+    options: &XiaozhiSessionOptions,
+) -> sdkwork_aiot_storage::AiotStorageAssociation {
+    if dev_mode_enabled() {
+        return sdkwork_aiot_storage::AiotStorageAssociation::default();
+    }
+
+    let Some(device_id) = extract_device_id(request) else {
+        return sdkwork_aiot_storage::AiotStorageAssociation::default();
+    };
+    let Some(token) = extract_device_token(request) else {
+        return sdkwork_aiot_storage::AiotStorageAssociation::default();
+    };
+
+    options
+        .device_credential_repository()
+        .and_then(|repository| repository.resolve_association_for_bearer_token(&device_id, &token))
+        .unwrap_or_default()
 }
 
 fn extract_device_id(request: &HttpRequest) -> Option<String> {
@@ -2788,7 +2851,10 @@ fn resolve_ota_websocket_token(
         };
 
         if let Some(bearer) = extract_device_token(request) {
-            if repository.verify_bearer_token(&device_id, &bearer) {
+            if repository
+                .resolve_association_for_bearer_token(&device_id, &bearer)
+                .is_some()
+            {
                 return OtaWebsocketTokenResolution::Token(bearer);
             }
             return OtaWebsocketTokenResolution::Unauthorized;

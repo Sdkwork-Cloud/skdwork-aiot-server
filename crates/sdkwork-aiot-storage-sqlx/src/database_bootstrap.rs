@@ -69,6 +69,21 @@ pub fn resolve_device_database_config_from_env(
     Ok(aiot_device_sqlite_memory_config())
 }
 
+/// Returns true when env resolves to a durable SQLite file or explicit Postgres config.
+pub fn device_database_config_is_durable_from_env() -> bool {
+    if configured_device_db_path_from_env().is_some() {
+        return true;
+    }
+    if !explicit_device_database_env_configured() {
+        return false;
+    }
+    DatabaseConfig::from_env(AIOT_DEVICE_DATABASE_SERVICE_NAME)
+        .ok()
+        .is_some_and(|config| {
+            config.engine != DatabaseEngine::Sqlite || !config.url.contains("mode=memory")
+        })
+}
+
 fn explicit_device_database_env_configured() -> bool {
     EXPLICIT_DEVICE_DATABASE_ENV_KEYS.iter().any(|key| {
         std::env::var(key)

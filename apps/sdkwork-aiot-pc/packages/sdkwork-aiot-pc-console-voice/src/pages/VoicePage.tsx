@@ -74,12 +74,21 @@ export function SdkworkVoicePage({ service: serviceProp }: SdkworkVoicePageProps
         setDraft(text);
         if (isFinal) {
           setIsListening(false);
+        }
+      }, {
+        autoRunDialogue: true,
+        onDialogueComplete: () => {
+          setIsListening(false);
           void service.getCatalog().then((next) => {
             setCatalog(next);
             setIsSpeaking(next.isSpeaking);
           });
-        }
-      }, { autoRunDialogue: true });
+        },
+        onDialogueError: (cause) => {
+          setIsListening(false);
+          setError(cause.message);
+        },
+      });
     } catch (cause) {
       setIsListening(false);
       setError(cause instanceof Error ? cause.message : '语音识别启动失败');

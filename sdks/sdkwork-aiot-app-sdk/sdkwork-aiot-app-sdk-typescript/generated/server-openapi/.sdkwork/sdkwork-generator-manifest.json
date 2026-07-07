@@ -3,7 +3,7 @@
   "generator": "@sdkwork/sdk-generator",
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.11",
+    "version": "0.1.14",
     "language": "typescript",
     "sdkType": "app",
     "protocol": "http",
@@ -32,7 +32,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "7fa0e5fad82c668b14cf1f92846b72acb131f1b30feba1de29f0df25c2346de3"
+      "sha256": "25c2f160e49c17fd474aff89aff4f8ffe0d52cd43ca62265aaddc96536516496"
     },
     {
       "path": "LICENSE",
@@ -40,15 +40,15 @@
     },
     {
       "path": "package.json",
-      "sha256": "17ac1f6302220bbdd9552ae552e97b7fdbdb0b42d9da6403a0bb9bd640db1a2a"
+      "sha256": "10b8a2af76e24075913710d54d3469e9b77cffbfa03e59e5f3ac5d876a869d6e"
     },
     {
       "path": "README.md",
-      "sha256": "d3200cc347947ea6bfedee985c7cdac9a098ef30ae51b492bef7f7952ebd5e0c"
+      "sha256": "9fe2f819792285f420c212136ef7d1db77de08636bc9fe40cbbb25c89ca96023"
     },
     {
       "path": "sdkwork-sdk.json",
-      "sha256": "639f5ff982c62bff872e4f22e7b295a3aa360c12c69e554cffc3148f8877b47b"
+      "sha256": "c373d25413b3d49d2dffe5fa329c7185aaff0dfe3d432a2ac5674095f269644d"
     },
     {
       "path": "src/api/base.ts",
@@ -60,7 +60,7 @@
     },
     {
       "path": "src/api/iot.ts",
-      "sha256": "a2b90b252cc2ee4e5a0f2042be3558e46d023338ba3dfd64b2d4e3202a42c561"
+      "sha256": "d65095f077fe7875739f4fc88fc63dfb65ad64d1cbb658066de849c8cc3c7c79"
     },
     {
       "path": "src/api/paths.ts",
@@ -144,7 +144,7 @@
     },
     {
       "path": "src/types/index.ts",
-      "sha256": "459d0159f0aa3a5ef4cd33ad211260802533e4e018b70e5ec1b8b13bb437352d"
+      "sha256": "76abc20ac3ba217c51af502938c996de56f21114b52cb204af582d33c2dc88f6"
     },
     {
       "path": "src/types/json-value.ts",
@@ -181,10 +181,6 @@
     {
       "path": "src/types/problem-detail.ts",
       "sha256": "deca621176487754cbfa2012aa3eab046131ced5829ddf7cff64de692f8bcb0e"
-    },
-    {
-      "path": "src/types/problem-details.ts",
-      "sha256": "35011cfb37591ce07732edbb8b489c38229e907eff8b802857d6c7ae3441f1d4"
     },
     {
       "path": "src/types/sdk-work-api-response.ts",

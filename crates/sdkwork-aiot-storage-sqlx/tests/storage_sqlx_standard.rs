@@ -479,12 +479,22 @@ fn migration_catalog_is_versioned_and_ordered() {
     assert_eq!(catalog[0].name, "aiot_core_schema");
     assert_eq!(catalog[0].schema_version, schema_version());
     assert!(catalog[0].sql.contains("CREATE TABLE iot_device"));
-    assert_eq!(catalog.len(), 2);
+    assert_eq!(catalog.len(), 4);
     assert_eq!(catalog[1].version, "0002");
     assert_eq!(catalog[1].name, "aiot_admin_entity_schema");
     assert!(catalog[1]
         .sql
         .contains("CREATE TABLE IF NOT EXISTS iot_admin_entity"));
+    assert_eq!(catalog[2].version, "0003");
+    assert_eq!(catalog[2].name, "aiot_row_id_allocator");
+    assert!(catalog[2]
+        .sql
+        .contains("CREATE TABLE IF NOT EXISTS iot_row_id_allocator"));
+    assert_eq!(catalog[3].version, "0004");
+    assert_eq!(catalog[3].name, "aiot_device_credential_active_unique");
+    assert!(catalog[3]
+        .sql
+        .contains("uk_iot_device_credential_tenant_device_active"));
 }
 
 #[test]
@@ -1290,9 +1300,15 @@ fn sql_statement_plans_validate_placeholder_count_matches_bind_count() {
         .expect("valid plan");
 
     plan.validate().expect("generated plan must be valid");
-    assert_eq!(plan.guard.placeholder_count(), plan.guard.binds.len());
+    assert_eq!(
+        plan.guard.placeholder_count(),
+        plan.guard.binds.len() + plan.guard.runtime_prepended_bind_count()
+    );
     for statement in &plan.write_batch.statements {
-        assert_eq!(statement.placeholder_count(), statement.binds.len());
+        assert_eq!(
+            statement.placeholder_count(),
+            statement.binds.len() + statement.runtime_prepended_bind_count()
+        );
     }
 
     let invalid = SqlStatementPlan::new(
@@ -1455,7 +1471,7 @@ fn ddl_declares_column(ddl: &str, column: &str) -> bool {
 
 fn idempotency_guard_for_test() -> SqlStatementPlan {
     SqlStatementPlan::new(
-        "idempotency_guard",
+        "test_idempotency_guard",
         "iot_protocol_ingest_record",
         "INSERT INTO iot_protocol_ingest_record (tenant_id, organization_id, data_scope, protocol_id, adapter_id, device_id, idempotency_key, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING",
     )

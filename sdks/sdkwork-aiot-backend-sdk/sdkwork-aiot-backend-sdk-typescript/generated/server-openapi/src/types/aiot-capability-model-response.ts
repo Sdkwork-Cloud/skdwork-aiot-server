@@ -1,7 +1,2 @@
-import type { JsonValue } from './json-value';
-
-export interface AiotCapabilityModelResponse {
-  code: string;
-  msg?: string;
-  data: JsonValue;
-}
+/** Arbitrary JSON value constrained by use-case validation. */
+export type AiotCapabilityModelResponse = Record<string, unknown> | unknown[] | string | number | number | boolean | null;

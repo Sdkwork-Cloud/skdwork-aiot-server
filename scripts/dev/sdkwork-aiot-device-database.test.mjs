@@ -65,3 +65,15 @@ test('aiot-dev applies device database env before spawning services', () => {
   assert.match(devScript, /mergeProcessRuntimeEnv/u);
   assert.match(devScript, /databaseEngine: settings\.database/u);
 });
+
+test('cloud gateway credential repository uses shared device database env resolver', () => {
+  const gatewayLib = fs.readFileSync(
+    path.join(repoRoot, 'services/sdkwork-aiot-cloud-gateway/src/lib.rs'),
+    'utf8',
+  );
+  assert.match(gatewayLib, /open_aiot_device_database_from_env/u);
+  assert.doesNotMatch(
+    gatewayLib,
+    /device_credential_repository_from_env[\s\S]*ENV_DEVICE_DB_PATH\?\)/u,
+  );
+});

@@ -834,3 +834,14 @@ CREATE TABLE IF NOT EXISTS iot_admin_entity (
 
 CREATE INDEX IF NOT EXISTS idx_iot_admin_entity_tenant_kind
     ON iot_admin_entity (tenant_id, entity_kind, status);
+
+-- Monotonic row-id allocator (parity with embedded migration 0003)
+CREATE TABLE IF NOT EXISTS iot_row_id_allocator (
+    table_name VARCHAR(128) NOT NULL PRIMARY KEY,
+    next_id BIGINT NOT NULL
+);
+
+-- Active device credential uniqueness per tenant (parity with embedded migration 0004)
+CREATE UNIQUE INDEX IF NOT EXISTS uk_iot_device_credential_tenant_device_active
+    ON iot_device_credential (tenant_id, device_id)
+    WHERE status = 1;

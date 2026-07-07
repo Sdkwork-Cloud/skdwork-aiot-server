@@ -2,12 +2,14 @@ use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
+use sdkwork_aiot_storage::AiotStorageAssociation;
 use crate::WebSocketSessionReply;
 
 #[derive(Debug)]
 struct ActiveWsSession {
     outbound: std::sync::mpsc::Sender<Vec<WebSocketSessionReply>>,
     last_touched: Instant,
+    association: AiotStorageAssociation,
 }
 
 fn store() -> &'static Mutex<HashMap<String, ActiveWsSession>> {
@@ -19,6 +21,7 @@ pub fn register_active_ws_session(
     device_id: &str,
     _session_id: &str,
     outbound: std::sync::mpsc::Sender<Vec<WebSocketSessionReply>>,
+    association: AiotStorageAssociation,
 ) {
     if let Ok(mut guard) = store().lock() {
         guard.insert(
@@ -26,6 +29,7 @@ pub fn register_active_ws_session(
             ActiveWsSession {
                 outbound,
                 last_touched: Instant::now(),
+                association,
             },
         );
     }
@@ -65,12 +69,24 @@ pub fn evict_stale_active_ws_sessions(ttl: Duration) -> usize {
     before.saturating_sub(guard.len())
 }
 
-pub fn active_ws_device_ids() -> Vec<String> {
+pub fn active_ws_sessions() -> Vec<(String, AiotStorageAssociation)> {
     store()
         .lock()
         .ok()
-        .map(|guard| guard.keys().cloned().collect())
+        .map(|guard| {
+            guard
+                .iter()
+                .map(|(device_id, session)| (device_id.clone(), session.association.clone()))
+                .collect()
+        })
         .unwrap_or_default()
+}
+
+pub fn active_ws_device_ids() -> Vec<String> {
+    active_ws_sessions()
+        .into_iter()
+        .map(|(device_id, _)| device_id)
+        .collect()
 }
 
 #[cfg(test)]
@@ -81,7 +97,7 @@ mod tests {
     fn register_and_push_roundtrip() {
         unregister_active_ws_session("dev-test");
         let (sender, receiver) = std::sync::mpsc::channel();
-        register_active_ws_session("dev-test", "session-test", sender);
+        register_active_ws_session("dev-test", "session-test", sender, AiotStorageAssociation::default());
         assert!(push_ws_command_replies(
             "dev-test",
             vec![WebSocketSessionReply::Text(

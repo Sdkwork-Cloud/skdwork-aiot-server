@@ -3032,3 +3032,44 @@ fn rollout_aware_ota_provider_delivers_firmware_once_per_pending_deployment() {
         "offered deployments must not be re-served on subsequent OTA polls"
     );
 }
+
+#[test]
+fn internal_route_requires_token_when_dev_mode_disabled() {
+    let _env = EnvGuard::set_all_locked(&[
+        ("SDKWORK_AIOT_DEV_MODE", None),
+        (
+            "SDKWORK_AIOT_INTERNAL_TOKEN",
+            Some("gateway-production-internal-token-32chars"),
+        ),
+    ]);
+
+    let missing =
+        parse_http_request_bytes(b"GET /internal/bridge/health HTTP/1.1\r\nHost: local\r\n\r\n")
+            .expect("missing token request");
+    assert!(!sdkwork_aiot_cloud_gateway::internal_route_authorized(
+        &missing
+    ));
+
+    let authorized = parse_http_request_bytes(
+        b"GET /internal/bridge/health HTTP/1.1\r\nHost: local\r\nx-sdkwork-internal-token: gateway-production-internal-token-32chars\r\n\r\n",
+    )
+    .expect("authorized request");
+    assert!(sdkwork_aiot_cloud_gateway::internal_route_authorized(
+        &authorized
+    ));
+}
+
+#[test]
+fn xiaozhi_device_token_rejects_missing_credential_in_non_dev_mode() {
+    let _env = EnvGuard::set_all_locked(&[("SDKWORK_AIOT_DEV_MODE", None)]);
+
+    let options = XiaozhiSessionOptions::from_mcp_tool_provider(Arc::new(
+        DefaultXiaozhiSimulatorMcpToolProvider::from_env(),
+    ));
+
+    let request = parse_http_request_bytes(
+        b"GET /iot/xiaozhi/ws?device_id=gateway-device-001&client_id=client-001 HTTP/1.1\r\nHost: domain\r\nAuthorization: Bearer any-token\r\n\r\n",
+    )
+    .expect("ws request");
+    assert!(!xiaozhi_device_token_valid(&request, &options));
+}

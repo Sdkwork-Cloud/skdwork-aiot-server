@@ -38,11 +38,17 @@ Replace every `DEPLOY_INJECT:` placeholder before starting services.
 
 ```powershell
 $env:SDKWORK_AIOT_ENVIRONMENT='production'
-$env:SDKWORK_AIOT_INTERNAL_TOKEN='<random-internal-token>'
-$env:SDKWORK_AIOT_CREDENTIAL_PEPPER='<random-pepper>'
+$env:SDKWORK_AIOT_INTERNAL_TOKEN='<random-internal-token-at-least-32-chars>'
+$env:SDKWORK_AIOT_CREDENTIAL_PEPPER='<random-pepper-at-least-32-chars>'
 $env:SDKWORK_AIOT_CORS_ALLOWED_ORIGINS='https://console.example.com'
+$env:SDKWORK_AIOT_INTELLIGENCE_MODE='kernel'
+$env:SDKWORK_AIOT_INTELLIGENCE_KERNEL_HTTP_URL='https://kernel.example.com'
+$env:SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL='https://claw-router.example.com'
+$env:SDKWORK_CLAW_ROUTER_API_KEY='<random-claw-router-key-at-least-32-chars>'
 # Do NOT set SDKWORK_AIOT_DEV_MODE in production
 ```
+
+When `SDKWORK_AIOT_TRUST_PROXY_HEADERS=1`, appbase **must** send `x-sdkwork-proxy-auth` matching `SDKWORK_AIOT_INTERNAL_TOKEN` on every request that carries `X-Sdkwork-*` context headers.
 
 Gateway device auth:
 

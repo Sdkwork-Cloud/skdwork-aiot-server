@@ -9,7 +9,6 @@ import {
   createAiotVoiceDialogueService,
   createAiotVoiceService,
   listDevicePage,
-  loadAllDevicePages,
   readDeviceId,
   type AiotAgentService,
   type AiotVoiceDialogueService,
@@ -86,6 +85,5 @@ export {
   createAiotCommandService,
   createAiotVoiceService,
   listDevicePage,
-  loadAllDevicePages,
   readDeviceId,
 } from '@sdkwork/aiot-app-core';

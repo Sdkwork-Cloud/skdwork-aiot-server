@@ -74,6 +74,10 @@ where
     }
 }
 
+fn paginate_memory_catalog<T>(items: Vec<T>, params: OffsetListPageParams) -> AiotOffsetListResult<T> {
+    paginate_vec(items, params)
+}
+
 #[derive(Clone)]
 pub struct AiotCatalogRepositoryHandle {
     memory: InMemoryAiotCatalogRepository,
@@ -169,7 +173,10 @@ impl AiotCatalogRepositoryHandle {
                 parse_product_record,
             );
         }
-        Ok(paginate_vec(self.memory.list_products(association), params))
+        Ok(paginate_memory_catalog(
+            self.memory.list_products(association),
+            params,
+        ))
     }
 
     pub fn update_product(
@@ -307,7 +314,7 @@ impl AiotCatalogRepositoryHandle {
                 parse_hardware_profile_record,
             );
         }
-        Ok(paginate_vec(
+        Ok(paginate_memory_catalog(
             self.memory.list_hardware_profiles(association),
             params,
         ))
@@ -451,7 +458,7 @@ impl AiotCatalogRepositoryHandle {
                 parse_protocol_profile_record,
             );
         }
-        Ok(paginate_vec(
+        Ok(paginate_memory_catalog(
             self.memory.list_protocol_profiles(association),
             params,
         ))
@@ -597,7 +604,7 @@ impl AiotCatalogRepositoryHandle {
                 parse_capability_model_record,
             );
         }
-        Ok(paginate_vec(
+        Ok(paginate_memory_catalog(
             self.memory.list_capability_models(association),
             params,
         ))
@@ -729,7 +736,7 @@ impl AiotFirmwareRepositoryHandle {
                 parse_firmware_artifact,
             );
         }
-        Ok(paginate_vec(
+        Ok(paginate_memory_catalog(
             self.memory.list_artifacts(association),
             params,
         ))
@@ -856,7 +863,10 @@ impl AiotFirmwareRepositoryHandle {
                 parse_firmware_rollout,
             );
         }
-        Ok(paginate_vec(self.memory.list_rollouts(association), params))
+        Ok(paginate_memory_catalog(
+            self.memory.list_rollouts(association),
+            params,
+        ))
     }
 
     pub fn get_rollout(
@@ -921,9 +931,8 @@ fn next_firmware_artifact_id(
     association: &AiotStorageAssociation,
 ) -> String {
     let next = store
-        .list_entities(association, ENTITY_FIRMWARE_ARTIFACT)
-        .len()
-        + 1;
+        .next_entity_ordinal(association, ENTITY_FIRMWARE_ARTIFACT)
+        .unwrap_or(1);
     format!("firmware-artifact-{next:04}")
 }
 
@@ -932,9 +941,8 @@ fn next_firmware_rollout_id(
     association: &AiotStorageAssociation,
 ) -> String {
     let next = store
-        .list_entities(association, ENTITY_FIRMWARE_ROLLOUT)
-        .len()
-        + 1;
+        .next_entity_ordinal(association, ENTITY_FIRMWARE_ROLLOUT)
+        .unwrap_or(1);
     format!("firmware-rollout-{next:04}")
 }
 
@@ -943,9 +951,8 @@ fn next_firmware_deployment_id(
     association: &AiotStorageAssociation,
 ) -> String {
     let next = store
-        .list_entities(association, ENTITY_FIRMWARE_DEPLOYMENT)
-        .len()
-        + 1;
+        .next_entity_ordinal(association, ENTITY_FIRMWARE_DEPLOYMENT)
+        .unwrap_or(1);
     format!("firmware-deployment-{next:04}")
 }
 

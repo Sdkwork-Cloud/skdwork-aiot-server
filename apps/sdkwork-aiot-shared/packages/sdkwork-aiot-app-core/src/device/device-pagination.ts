@@ -24,7 +24,7 @@ export async function listDevicePage(
   const page = params.page ?? 1;
   const pageSize = params.pageSize ?? DEFAULT_DEVICE_LIST_PAGE_SIZE;
   const response = await aiotClient.iot.devices.list({ page, pageSize });
-  const items = Array.isArray(response.items) ? response.items : [];
+  const items = (Array.isArray(response.items) ? response.items : []) as unknown as AiotDevice[];
   const pageInfo = readRecord(response.pageInfo);
 
   return {
@@ -36,24 +36,24 @@ export async function listDevicePage(
   };
 }
 
-/** Device picker only: loads every page from the authoritative store. */
-export async function loadAllDevicePages(
+/** Loads device pages from the server for pickers (bounded, no client-side slice pagination). */
+export async function listDevicePagesForPicker(
   aiotClient: SdkworkAiotAppClient,
-  pageSize = 200,
+  options: { maxPages?: number } = {},
 ): Promise<AiotDevice[]> {
-  const devices: AiotDevice[] = [];
+  const maxPages = options.maxPages ?? 10;
+  const collected: AiotDevice[] = [];
   let page = 1;
+  let hasMore = true;
 
-  while (true) {
-    const result = await listDevicePage(aiotClient, { page, pageSize });
-    devices.push(...result.items);
-    if (!result.hasMore || result.items.length === 0) {
-      break;
-    }
+  while (hasMore && page <= maxPages) {
+    const result = await listDevicePage(aiotClient, { page });
+    collected.push(...result.items);
+    hasMore = result.hasMore;
     page += 1;
   }
 
-  return devices;
+  return collected;
 }
 
 export function readDeviceId(device: AiotDevice | Record<string, unknown>): string {

@@ -54,9 +54,18 @@ export function MobileVoicePage() {
         setDraft(text);
         if (isFinal) {
           setIsListening(false);
-          void service.getCatalog().then(setCatalog);
         }
-      }, { autoRunDialogue: true });
+      }, {
+        autoRunDialogue: true,
+        onDialogueComplete: () => {
+          setIsListening(false);
+          void refresh();
+        },
+        onDialogueError: (error) => {
+          setIsListening(false);
+          setLastError(error.message);
+        },
+      });
     } catch (error) {
       setIsListening(false);
       setLastError(error instanceof Error ? error.message : '语音识别启动失败');

@@ -26,6 +26,13 @@ export interface RunDialogueTurnOptions {
   speakReply?: boolean;
 }
 
+export interface VoiceDialogueListenOptions {
+  autoRunDialogue?: boolean;
+  maxRecordingMs?: number;
+  onDialogueComplete?: (reply: string) => void;
+  onDialogueError?: (error: Error) => void;
+}
+
 export interface AiotVoiceDialogueService {
   getCatalog(): Promise<AiotVoiceDialogueCatalog>;
   runDialogueTurn(text: string, options?: RunDialogueTurnOptions): Promise<string>;
@@ -33,7 +40,7 @@ export interface AiotVoiceDialogueService {
   speakSelected(text: string): Promise<void>;
   startListening(
     onTranscript: (text: string, isFinal: boolean) => void,
-    options?: { autoRunDialogue?: boolean; maxRecordingMs?: number },
+    options?: VoiceDialogueListenOptions,
   ): Promise<void>;
   stopListening(): void;
 }
@@ -51,6 +58,7 @@ export function createAiotVoiceDialogueService(
   let lastAssistantReply = '';
   let dialogueSessionId: string | null = null;
   let isSpeaking = false;
+  let dialogueInFlight = false;
 
   function resolveDialogueDeviceId(): string {
     if (selectedDeviceId) {
@@ -121,27 +129,35 @@ export function createAiotVoiceDialogueService(
     text: string,
     runOptions: RunDialogueTurnOptions = {},
   ): Promise<string> {
-    const normalized = text.trim();
-    if (!normalized) {
-      throw new Error('请输入或说出有效内容后再发起对话。');
+    if (dialogueInFlight) {
+      throw new Error('上一轮对话尚未结束，请稍候。');
     }
+    dialogueInFlight = true;
+    try {
+      const normalized = text.trim();
+      if (!normalized) {
+        throw new Error('请输入或说出有效内容后再发起对话。');
+      }
 
-    if (!dialogueSessionId) {
-      const session = agentService.createSession(resolveDialogueDeviceId(), 'AIoT 语音对话');
-      dialogueSessionId = session.id;
+      if (!dialogueSessionId) {
+        const session = agentService.createSession(resolveDialogueDeviceId(), 'AIoT 语音对话');
+        dialogueSessionId = session.id;
+      }
+
+      const reply = await agentService.sendMessage({
+        deviceId: resolveDialogueDeviceId(),
+        sessionId: dialogueSessionId,
+        text: normalized,
+      });
+
+      lastAssistantReply = reply.content;
+      if (runOptions.speakReply !== false) {
+        await speakReply(reply.content);
+      }
+      return reply.content;
+    } finally {
+      dialogueInFlight = false;
     }
-
-    const reply = await agentService.sendMessage({
-      deviceId: resolveDialogueDeviceId(),
-      sessionId: dialogueSessionId,
-      text: normalized,
-    });
-
-    lastAssistantReply = reply.content;
-    if (runOptions.speakReply !== false) {
-      await speakReply(reply.content);
-    }
-    return reply.content;
   }
 
   async function getCatalogInternal(): Promise<AiotVoiceDialogueCatalog> {
@@ -182,15 +198,17 @@ export function createAiotVoiceDialogueService(
         transcript = value;
         onTranscript(value, isFinal);
 
-        if (isFinal && listenOptions.autoRunDialogue && value.trim()) {
-          try {
-            await runDialogueTurnInternal(value.trim());
-          } catch (error) {
-            onTranscript(
-              error instanceof Error ? error.message : '语音对话失败',
-              true,
-            );
-          }
+        if (!isFinal || !listenOptions.autoRunDialogue || !value.trim()) {
+          return;
+        }
+
+        try {
+          const reply = await runDialogueTurnInternal(value.trim());
+          listenOptions.onDialogueComplete?.(reply);
+        } catch (error) {
+          const normalizedError = error instanceof Error ? error : new Error('语音对话失败');
+          listenOptions.onDialogueError?.(normalizedError);
+          onTranscript(normalizedError.message, true);
         }
       }, {
         maxRecordingMs: listenOptions.maxRecordingMs,

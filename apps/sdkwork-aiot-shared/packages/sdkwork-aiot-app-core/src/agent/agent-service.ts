@@ -17,6 +17,8 @@ export interface CreateAiotAgentServiceOptions {
   agentsDialoguePort?: AiotAgentsDialoguePort;
   aiotClient: SdkworkAiotAppClient;
   commandService?: AiotCommandService;
+  /** When true (default), device `assistant.chat` is used if sdkwork-agents fails. */
+  fallbackToDeviceOnAgentsFailure?: boolean;
 }
 
 export interface SendAgentMessageInput {
@@ -44,6 +46,7 @@ export function createAiotAgentService(
 ): AiotAgentService {
   const commandService = options.commandService ?? createAiotCommandService(options);
   const agentsDialoguePort = options.agentsDialoguePort;
+  const fallbackToDeviceOnAgentsFailure = options.fallbackToDeviceOnAgentsFailure !== false;
   const sessions = new Map<string, AiotConversationSession>();
   const messages = new Map<string, AiotConversationMessage[]>();
   const toolCalls = new Map<string, AiotAgentToolCall[]>();
@@ -91,6 +94,36 @@ export function createAiotAgentService(
       remoteSessionId,
       text,
     });
+  }
+
+  async function sendViaDeviceCommand(
+    sessionId: string,
+    deviceId: string,
+    text: string,
+    sessionMessages: AiotConversationMessage[],
+  ): Promise<string> {
+    const command = await commandService.executeCommand({
+      capabilityName: 'assistant',
+      commandName: 'chat',
+      deviceId,
+      payload: {
+        history: sessionMessages
+          .filter((message) => message.status === 'completed')
+          .map((message) => ({ content: message.content, role: message.role })),
+        lang: 'zh-CN',
+        text,
+      },
+      sessionId,
+    });
+
+    const completed = await pollCommandResult(options.aiotClient, deviceId, command.commandId);
+    const replyText = extractAssistantText(completed?.result?.resultPayload);
+    if (!replyText) {
+      throw new Error(
+        '设备未返回 assistant.chat 回复，请确认设备在线且已启用智能体能力。',
+      );
+    }
+    return replyText;
   }
 
   return {
@@ -145,33 +178,26 @@ export function createAiotAgentService(
 
         let replyText: string | null = null;
         if (agentsDialoguePort?.configured) {
-          replyText = await sendViaAgentsPort(session, input.text.trim());
-        } else {
-          const command = await commandService.executeCommand({
-            capabilityName: 'assistant',
-            commandName: 'chat',
-            deviceId: input.deviceId,
-            payload: {
-              history: sessionMessages
-                .filter((message) => message.status === 'completed')
-                .map((message) => ({ content: message.content, role: message.role })),
-              lang: 'zh-CN',
-              text: input.text.trim(),
-            },
-            sessionId,
-          });
-
-          const completed = await pollCommandResult(options.aiotClient, input.deviceId, command.commandId);
-          replyText = extractAssistantText(completed?.result?.resultPayload);
-          if (!replyText) {
-            const missingReplyError = new Error(
-              '设备未返回 assistant.chat 回复，请确认设备在线且已启用智能体能力。',
+          try {
+            replyText = await sendViaAgentsPort(session, input.text.trim());
+          } catch (agentsError) {
+            if (!fallbackToDeviceOnAgentsFailure) {
+              throw agentsError;
+            }
+            replyText = await sendViaDeviceCommand(
+              sessionId,
+              input.deviceId,
+              input.text.trim(),
+              sessionMessages,
             );
-            pendingAssistant.content = missingReplyError.message;
-            pendingAssistant.status = 'failed';
-            pendingAssistant.createdAt = nowIso();
-            throw missingReplyError;
           }
+        } else {
+          replyText = await sendViaDeviceCommand(
+            sessionId,
+            input.deviceId,
+            input.text.trim(),
+            sessionMessages,
+          );
         }
 
         pendingAssistant.content = replyText;

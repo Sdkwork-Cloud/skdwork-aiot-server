@@ -12,14 +12,21 @@
   "mode": "apply",
   "hasChanges": true,
   "hasDestructiveChanges": false,
-  "changeFingerprint": "62855c99aea42ba3572afded3967421473d1463a03d66b3e46ce3ffe93f78720",
+  "changeFingerprint": "b760c8094339e6a01d9e05f06a8cdcb057c71b9833c35a058672b489e32dccd5",
   "changeImpact": {
     "schemaVersion": 1,
     "areas": [
+      "models",
       "build-metadata",
       "documentation"
     ],
     "details": [
+      {
+        "area": "models",
+        "paths": [
+          "src/types/aiot-credential-response.ts"
+        ]
+      },
       {
         "area": "build-metadata",
         "paths": [
@@ -35,7 +42,7 @@
       }
     ],
     "requiresVerification": true,
-    "summary": "Detected impact areas: build-metadata, documentation. Verification is required."
+    "summary": "Detected impact areas: models, build-metadata, documentation. Verification is required."
   },
   "executionDecision": {
     "schemaVersion": 1,
@@ -56,7 +63,7 @@
         "id": "verify-check",
         "title": "Unified package check",
         "required": true,
-        "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
+        "rationale": "Validate the generated package with the unified publish helper. Triggered by: models, build-metadata, documentation.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-backend-sdk\\sdkwork-aiot-backend-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -74,7 +81,7 @@
         "id": "verify-build",
         "title": "Unified package build",
         "required": true,
-        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
+        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: models, build-metadata, documentation.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-backend-sdk\\sdkwork-aiot-backend-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -93,13 +100,13 @@
   "verificationPlan": {
     "shouldRun": true,
     "runPhase": "now",
-    "summary": "Detected impact areas: build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
+    "summary": "Detected impact areas: models, build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
     "steps": [
       {
         "id": "check",
         "title": "Unified package check",
         "required": true,
-        "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
+        "rationale": "Validate the generated package with the unified publish helper. Triggered by: models, build-metadata, documentation.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-backend-sdk\\sdkwork-aiot-backend-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -117,7 +124,7 @@
         "id": "build",
         "title": "Unified package build",
         "required": true,
-        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
+        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: models, build-metadata, documentation.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-backend-sdk\\sdkwork-aiot-backend-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -135,7 +142,7 @@
   },
   "sdk": {
     "name": "sdkwork-aiot-backend-sdk",
-    "version": "0.1.8",
+    "version": "0.1.11",
     "language": "typescript",
     "sdkType": "backend",
     "protocol": "http",
@@ -143,33 +150,34 @@
     "packageName": "@sdkwork/aiot-backend-sdk"
   },
   "versioning": {
-    "resolvedVersion": "0.1.8",
+    "resolvedVersion": "0.1.11",
     "localVersions": [
-      "0.1.7"
+      "0.1.10"
     ]
   },
   "stats": {
-    "totalFiles": 115,
-    "models": 91,
+    "totalFiles": 107,
+    "models": 83,
     "apis": 1,
-    "types": 93
+    "types": 85
   },
   "warnings": [],
   "syncSummary": {
     "dryRun": false,
     "controlPlaneEnabled": true,
-    "writtenFiles": 3,
+    "writtenFiles": 4,
     "skippedScaffoldFiles": 2,
-    "skippedUnchangedGeneratedFiles": 110,
+    "skippedUnchangedGeneratedFiles": 101,
     "deletedGeneratedFiles": 0,
     "changeSummaryPath": ".sdkwork/sdkwork-generator-changes.json",
-    "changeFingerprint": "62855c99aea42ba3572afded3967421473d1463a03d66b3e46ce3ffe93f78720",
+    "changeFingerprint": "b760c8094339e6a01d9e05f06a8cdcb057c71b9833c35a058672b489e32dccd5",
     "changes": {
       "createdGeneratedFiles": [],
       "updatedGeneratedFiles": [
         "CHANGELOG.md",
         "package.json",
-        "sdkwork-sdk.json"
+        "sdkwork-sdk.json",
+        "src/types/aiot-credential-response.ts"
       ],
       "unchangedGeneratedFiles": [
         "bin/publish-core.mjs",
@@ -189,7 +197,6 @@
         "src/index.ts",
         "src/sdk.ts",
         "src/types/aiot-capability-model-create-request.ts",
-        "src/types/aiot-capability-model-list-response.ts",
         "src/types/aiot-capability-model-response.ts",
         "src/types/aiot-capability-model-update-request.ts",
         "src/types/aiot-codec-kind.ts",
@@ -197,10 +204,8 @@
         "src/types/aiot-command-result.ts",
         "src/types/aiot-command.ts",
         "src/types/aiot-credential-create-request.ts",
-        "src/types/aiot-credential-response.ts",
         "src/types/aiot-device-auth-mode.ts",
         "src/types/aiot-device-create-request.ts",
-        "src/types/aiot-device-list-response.ts",
         "src/types/aiot-device-update-request.ts",
         "src/types/aiot-event-list-response.ts",
         "src/types/aiot-event.ts",
@@ -212,17 +217,14 @@
         "src/types/aiot-firmware-rollout-response.ts",
         "src/types/aiot-firmware-rollout-update-request.ts",
         "src/types/aiot-hardware-profile-create-request.ts",
-        "src/types/aiot-hardware-profile-list-response.ts",
         "src/types/aiot-hardware-profile-response.ts",
         "src/types/aiot-hardware-profile-update-request.ts",
         "src/types/aiot-product-create-request.ts",
-        "src/types/aiot-product-list-response.ts",
         "src/types/aiot-product-response.ts",
         "src/types/aiot-product-update-request.ts",
         "src/types/aiot-protocol-adapter-list-response.ts",
         "src/types/aiot-protocol-adapter.ts",
         "src/types/aiot-protocol-profile-create-request.ts",
-        "src/types/aiot-protocol-profile-list-response.ts",
         "src/types/aiot-protocol-profile-response.ts",
         "src/types/aiot-protocol-profile-update-request.ts",
         "src/types/aiot-runtime-capacity-policy-response.ts",
@@ -263,7 +265,6 @@
         "src/types/media-source.ts",
         "src/types/page-info.ts",
         "src/types/problem-detail.ts",
-        "src/types/problem-details.ts",
         "src/types/products-create-response201.ts",
         "src/types/products-retrieve-response.ts",
         "src/types/products-update-response.ts",
@@ -279,8 +280,6 @@
         "src/types/sdk-work-platform-error-code.ts",
         "src/types/sdk-work-resource-data.ts",
         "src/types/sdk-work-resource-response.ts",
-        "src/types/standard-collection-response.ts",
-        "src/types/standard-resource-response.ts",
         "tsconfig.json"
       ],
       "deletedGeneratedFiles": [],
@@ -294,10 +293,17 @@
     "impact": {
       "schemaVersion": 1,
       "areas": [
+        "models",
         "build-metadata",
         "documentation"
       ],
       "details": [
+        {
+          "area": "models",
+          "paths": [
+            "src/types/aiot-credential-response.ts"
+          ]
+        },
         {
           "area": "build-metadata",
           "paths": [
@@ -313,18 +319,18 @@
         }
       ],
       "requiresVerification": true,
-      "summary": "Detected impact areas: build-metadata, documentation. Verification is required."
+      "summary": "Detected impact areas: models, build-metadata, documentation. Verification is required."
     },
     "verificationPlan": {
       "shouldRun": true,
       "runPhase": "now",
-      "summary": "Detected impact areas: build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
+      "summary": "Detected impact areas: models, build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
       "steps": [
         {
           "id": "check",
           "title": "Unified package check",
           "required": true,
-          "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
+          "rationale": "Validate the generated package with the unified publish helper. Triggered by: models, build-metadata, documentation.",
           "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-backend-sdk\\sdkwork-aiot-backend-sdk-typescript\\generated\\server-openapi",
           "command": "node",
           "args": [
@@ -342,7 +348,7 @@
           "id": "build",
           "title": "Unified package build",
           "required": true,
-          "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
+          "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: models, build-metadata, documentation.",
           "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-backend-sdk\\sdkwork-aiot-backend-sdk-typescript\\generated\\server-openapi",
           "command": "node",
           "args": [

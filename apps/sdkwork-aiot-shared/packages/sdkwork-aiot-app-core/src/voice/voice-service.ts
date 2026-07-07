@@ -2,10 +2,11 @@ import type { SdkworkAiotAppClient } from '@sdkwork/aiot-app-sdk';
 
 import {
   createAiotCommandService,
+  pollCommandResult,
   type AiotCommandService,
 } from '../command/command-service';
 import type { AiotVoiceDialoguePort } from '../ports/dialogue-ports';
-import { loadAllDevicePages } from '../device/device-pagination';
+import { listDevicePagesForPicker } from '../device/device-pagination';
 import type { AiotVoiceDevice } from '../types/conversation';
 import { readRecord, readString } from '../utils/session';
 
@@ -28,8 +29,17 @@ export interface SpeechRecognitionLike {
   stop(): void;
 }
 
-const DEFAULT_SPEECH_RECOGNITION_LANG = 'zh-CN';
+async function invokeListenResult(
+  onResult: (text: string, isFinal: boolean) => void | Promise<void>,
+  text: string,
+  isFinal: boolean,
+): Promise<void> {
+  await onResult(text, isFinal);
+}
 const MAX_MEDIA_RECORDING_MS = 30_000;
+const DEVICE_SPEAK_POLL_INTERVAL_MS = 300;
+const DEFAULT_SPEECH_RECOGNITION_LANG = 'zh-CN';
+const DEVICE_SPEAK_POLL_MAX_ATTEMPTS = 24;
 
 export interface StartListeningOptions {
   /** Maximum MediaRecorder capture duration before auto-stop (sdkwork-voice STT path). */
@@ -105,6 +115,27 @@ export function createAiotVoiceService(
 
   let listening = false;
   let activeRecognition: SpeechRecognitionLike | null = null;
+  let activeResultHandler: EventListener | null = null;
+  let activeErrorHandler: EventListener | null = null;
+  let activeEndHandler: EventListener | null = null;
+
+  const detachSpeechRecognitionListeners = () => {
+    if (!speechRecognition) {
+      return;
+    }
+    if (activeResultHandler) {
+      speechRecognition.removeEventListener('result', activeResultHandler);
+      activeResultHandler = null;
+    }
+    if (activeErrorHandler) {
+      speechRecognition.removeEventListener('error', activeErrorHandler);
+      activeErrorHandler = null;
+    }
+    if (activeEndHandler) {
+      speechRecognition.removeEventListener('end', activeEndHandler);
+      activeEndHandler = null;
+    }
+  };
 
   return {
     isCloudVoiceConfigured() {
@@ -116,14 +147,26 @@ export function createAiotVoiceService(
     },
 
     async listVoiceDevices() {
-      const devices = await loadAllDevicePages(options.aiotClient);
+      const devices = await listDevicePagesForPicker(options.aiotClient);
       return devices
         .map((device) => mapVoiceDevice(readRecord(device)))
         .filter((device) => device.deviceId.length > 0);
     },
 
     async speakOnDevice(deviceId, text, sessionId) {
-      await commandService.speak(deviceId, text, sessionId);
+      const command = await commandService.speak(deviceId, text, sessionId);
+      if (!command.commandId) {
+        return;
+      }
+
+      try {
+        await pollCommandResult(options.aiotClient, deviceId, command.commandId, {
+          intervalMs: DEVICE_SPEAK_POLL_INTERVAL_MS,
+          maxAttempts: DEVICE_SPEAK_POLL_MAX_ATTEMPTS,
+        });
+      } catch {
+        // Some devices accept speak asynchronously without a completion event.
+      }
     },
 
     async speakLocally(text, lang = 'zh-CN') {
@@ -179,7 +222,7 @@ export function createAiotVoiceService(
             listening = false;
             stream.getTracks().forEach((track) => track.stop());
             if (chunks.length === 0) {
-              onResult('', true);
+              await invokeListenResult(onResult, '', true);
               return;
             }
 
@@ -190,10 +233,10 @@ export function createAiotVoiceService(
                 fileName: 'aiot-input.webm',
                 language: 'zh',
               });
-              onResult(result.text, true);
+              await invokeListenResult(onResult, result.text, true);
             } catch (error) {
               const message = error instanceof Error ? error.message : '语音识别失败';
-              onResult(message, true);
+              await invokeListenResult(onResult, message, true);
             }
           };
 
@@ -226,13 +269,15 @@ export function createAiotVoiceService(
         return;
       }
 
+      detachSpeechRecognitionListeners();
+
       listening = true;
       activeRecognition = speechRecognition;
       speechRecognition.continuous = false;
       speechRecognition.interimResults = true;
       speechRecognition.lang = DEFAULT_SPEECH_RECOGNITION_LANG;
 
-      const handleResult = (event: Event) => {
+      const handleResult = async (event: Event) => {
         const resultEvent = event as Event & {
           results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>;
         };
@@ -242,13 +287,13 @@ export function createAiotVoiceService(
           return;
         }
 
-        onResult(latest[0].transcript, latest.isFinal);
+        await invokeListenResult(onResult, latest[0].transcript, latest.isFinal);
       };
 
-      const handleError = () => {
+      const handleError = async () => {
         listening = false;
         activeRecognition = null;
-        onResult('浏览器语音识别失败', true);
+        await invokeListenResult(onResult, '浏览器语音识别失败', true);
       };
 
       const handleEnd = () => {
@@ -256,18 +301,23 @@ export function createAiotVoiceService(
         activeRecognition = null;
       };
 
-      speechRecognition.addEventListener('result', handleResult);
-      speechRecognition.addEventListener('error', handleError);
-      speechRecognition.addEventListener('end', handleEnd);
+      activeResultHandler = handleResult as EventListener;
+      activeErrorHandler = handleError as EventListener;
+      activeEndHandler = handleEnd as EventListener;
+      speechRecognition.addEventListener('result', activeResultHandler);
+      speechRecognition.addEventListener('error', activeErrorHandler);
+      speechRecognition.addEventListener('end', activeEndHandler);
       speechRecognition.start();
     },
 
     stopListening() {
       if (!activeRecognition) {
         listening = false;
+        detachSpeechRecognitionListeners();
         return;
       }
 
+      detachSpeechRecognitionListeners();
       activeRecognition.stop();
       listening = false;
       activeRecognition = null;

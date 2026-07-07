@@ -2,7 +2,7 @@ import type {
   AiotFirmwareArtifact,
   MediaResource as BackendMediaResource,
 } from '@sdkwork/aiot-backend-sdk';
-import { isBlank } from '@sdkwork/utils/string';
+import { isBlank } from '@sdkwork/utils';
 
 import { getAiotBackendSdkClient } from '../sdk/aiotBackendSdkClient';
 import { getDriveAppSdkClient } from '../sdk/driveAppSdkClient';
@@ -93,7 +93,7 @@ export async function uploadAiotFirmwareArtifactToDrive(
   );
 
   const backendClient = getAiotBackendSdkClient();
-  const artifact = await backendClient.iot.firmwareArtifacts.create({
+  const created = await backendClient.iot.firmwareArtifacts.create({
     artifactKey,
     version,
     resource: mediaResource,
@@ -101,6 +101,11 @@ export async function uploadAiotFirmwareArtifactToDrive(
     targetChipFamily: input.targetChipFamily,
     targetRuntimeProfile: input.targetRuntimeProfile,
   });
+  const artifact = (
+    created && typeof created === 'object' && 'data' in created && created.data
+      ? created.data
+      : created
+  ) as AiotFirmwareArtifact;
 
   return {
     artifact,

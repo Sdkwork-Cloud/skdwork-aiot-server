@@ -1,5 +1,7 @@
 import { readRecord, readString, sleep } from './session';
 
+export { readString };
+
 export const TERMINAL_VOICE_TASK_STATUSES = new Set([
   'succeeded',
   'failed',

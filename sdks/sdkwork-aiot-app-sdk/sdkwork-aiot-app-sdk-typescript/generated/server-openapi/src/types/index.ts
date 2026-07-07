@@ -16,7 +16,6 @@ export type { AiotTwinResponse } from './aiot-twin-response';
 export type { AiotEvent } from './aiot-event';
 export type { AiotEventListResponse } from './aiot-event-list-response';
 export type { JsonValue } from './json-value';
-export type { ProblemDetails } from './problem-details';
 export type { PageInfo } from './page-info';
 export type { SdkWorkApiResponse } from './sdk-work-api-response';
 export type { SdkWorkResourceData } from './sdk-work-resource-data';

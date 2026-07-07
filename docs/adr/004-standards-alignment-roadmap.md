@@ -64,6 +64,10 @@ The AIoT server aligns on API contracts, SDK workspaces, topology, security post
 | X | API security + SDK generation parity | OpenAPI `AuthToken`/`AccessToken`, `sync-openapi-web-context.mjs`, workspace `tools/run-sdkgen.mjs`, sdkwork-v3 envelope unwrap in generated TypeScript SDKs, CORS allow-list cleanup | Done |
 | Y | Drive Uploader integration | `sdkwork-drive` workflow dependency, `@sdkwork/drive-app-sdk` PC firmware upload via `client.uploader.uploadArchive`, backend artifact registration with Drive-backed `MediaResource` (`source: drive`), `check:drive-standard` contract gate | Done |
 | Z | Pagination + governance CI closure | Store-level `list_*_page` for admin entities and credentials; `sdk-manifest.json` replaces `.sdkwork-assembly.json`; `pnpm check` runs api-envelope, pagination, and app-sdk-consumer-import gates; gateway WS command delivery worker for `audio.playback/speak` | Done |
+| AA | Production hardening (pre-launch) | Gateway Postgres credential wiring; kernel fail-closed; baseline `iot_row_id_allocator` parity; offset-only OpenAPI list params; monotonic IDs for command/delivery/outbox; twin property LIMIT; production gateway security tests; PRD + readiness doc refresh | Done |
+| AB | Store-level ID allocation closure | Protocol ingest/dead-letter/outbox `allocate_row_id`; credential/session/event/twin IDs; catalog `list_*_page` requires SQL store; production outbox webhook env defaults | Done |
+| AC | Launch hardening closure | Catalog memory pagination fallback; `devices.commands.retrieve`; DB-only command idempotency; outbox failure transaction; `PageInfo.mode`; docs refresh | Done |
+| AD | Pre-launch commercial closure | Production kernel fail-closed; speak kernel TTS; tenant-scoped WS delivery; proxy auth header; pagination 40003; credential unique index; Postgres row decode; bounded catalog export | Done |
 
 ## Consequences
 

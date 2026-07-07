@@ -8,10 +8,11 @@ Page({
   },
   onShow() {
     api.listDevices().then((response) => {
-      const devices = Array.isArray(response.data) ? response.data : [];
+      const devices = response.data?.items ?? [];
+      const selectedDeviceId = devices[0] ? (devices[0].deviceId || devices[0].id) : '';
       this.setData({
-        devices,
-        selectedDeviceId: devices[0] ? (devices[0].deviceId || devices[0].id) : '',
+        devices: Array.isArray(devices) ? devices : [],
+        selectedDeviceId,
       });
     }).catch((error) => {
       wx.showToast({
@@ -24,7 +25,10 @@ Page({
     this.setData({ draft: event.detail.value });
   },
   onDeviceChange(event) {
-    this.setData({ selectedDeviceId: event.detail.value });
+    const index = Number(event.detail.value);
+    const device = this.data.devices[index];
+    const selectedDeviceId = device ? (device.deviceId || device.id) : '';
+    this.setData({ selectedDeviceId });
   },
   onSpeak() {
     const text = this.data.draft.trim();

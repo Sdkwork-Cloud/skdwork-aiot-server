@@ -29,7 +29,13 @@ export interface AiotVoiceSdkBridge {
   configured: boolean;
   createSpeech(input: { input: string; model: string; voice: string }): Promise<unknown>;
   createTranscription(input: {
-    file: { fileName: string; kind: string; mimeType: string; sourceUri: string };
+    file: {
+      fileName: string;
+      kind: string;
+      mimeType: string;
+      source: string;
+      url: string;
+    };
     language: string;
     model: string;
     responseFormat: string;
@@ -167,7 +173,8 @@ export function createAiotVoiceDialoguePortFromSdk(
           fileName: input.fileName ?? 'aiot-input.webm',
           kind: 'audio',
           mimeType: input.audioBlob.type || 'audio/webm',
-          sourceUri: dataUrl,
+          source: 'data_url',
+          url: dataUrl,
         },
         language: input.language ?? 'zh',
         model,

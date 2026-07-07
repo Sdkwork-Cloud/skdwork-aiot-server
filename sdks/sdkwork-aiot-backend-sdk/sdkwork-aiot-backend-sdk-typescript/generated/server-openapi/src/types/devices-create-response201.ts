@@ -1,4 +1,4 @@
-import type { StandardResourceResponse } from './standard-resource-response';
+import type { JsonValue } from './json-value';
 
 export interface DevicesCreateResponse201 {
   code: 0;

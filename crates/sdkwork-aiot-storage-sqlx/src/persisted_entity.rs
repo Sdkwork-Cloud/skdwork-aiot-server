@@ -5,6 +5,7 @@ use sqlx::Row;
 
 use crate::blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine, DeviceDbTransaction};
 use crate::dialect_sql::adapt_sqlite_placeholders;
+use crate::row_id_allocator::allocate_row_id;
 use crate::schema::ensure_device_schema;
 use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
 
@@ -75,6 +76,24 @@ impl SqlitePersistedEntityRepository {
         self.db.clone()
     }
 
+    pub fn next_entity_ordinal(
+        &self,
+        association: &AiotStorageAssociation,
+        entity_kind: &str,
+    ) -> Result<i64, SqlitePersistedEntityError> {
+        let association = association.clone();
+        let allocator_key = format!(
+            "iot_admin_entity:{}:{}:{}",
+            entity_kind, association.tenant_id, association.organization_id
+        );
+        self.db
+            .with_device_transaction(|mut tx, dialect| {
+                let allocator_key = allocator_key.clone();
+                Box::pin(async move { allocate_row_id(&mut tx, dialect, &allocator_key).await })
+            })
+            .map_err(|_| SqlitePersistedEntityError::PersistenceFailure)
+    }
+
     pub fn upsert_entity(
         &self,
         association: &AiotStorageAssociation,
@@ -128,23 +147,8 @@ impl SqlitePersistedEntityRepository {
                         return Ok(());
                     }
 
-                    let next_id_sql = adapt_sqlite_placeholders(
-                        dialect,
-                        "SELECT COALESCE(MAX(id), 0) + 1 FROM iot_admin_entity",
-                    );
-                    let next_id: i64 = match &mut tx {
-                        DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query_scalar(&next_id_sql)
-                                .fetch_one(&mut **connection)
-                                .await?
-                        }
-                        DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query_scalar(&next_id_sql)
-                                .fetch_one(&mut **connection)
-                                .await?
-                        }
-                    };
-                    let uuid = format!("admin-entity-{next_id:08}");
+                    let next_id = allocate_row_id(&mut tx, dialect, "iot_admin_entity").await?;
+                    let uuid = sdkwork_utils_rust::uuid();
                     let insert_sql = adapt_sqlite_placeholders(
                         dialect,
                         "INSERT INTO iot_admin_entity (
@@ -330,50 +334,35 @@ impl SqlitePersistedEntityRepository {
         association: &AiotStorageAssociation,
         entity_kind: &str,
     ) -> Vec<SqlitePersistedEntityRecord> {
-        let association = association.clone();
-        let entity_kind = entity_kind.to_string();
-        self.db
-            .run_owned(|pool| async move {
-                let dialect = pool.dialect();
-                let sql = adapt_sqlite_placeholders(
-                    dialect,
-                    "SELECT entity_kind, entity_key, payload_json
-                 FROM iot_admin_entity
-                 WHERE tenant_id = ?1 AND organization_id = ?2 AND entity_kind = ?3 AND status = ?4
-                 ORDER BY id ASC",
-                );
-                match pool.engine() {
-                    DeviceDatabaseEngine::Sqlite => {
-                        let rows = sqlx::query(&sql)
-                            .bind(association.tenant_id)
-                            .bind(association.organization_id)
-                            .bind(&entity_kind)
-                            .bind(ENTITY_STATUS_ACTIVE)
-                            .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
-                            .await?;
-                        Ok::<Vec<SqlitePersistedEntityRecord>, sqlx::Error>(
-                            rows.iter()
-                                .filter_map(|row| row_to_entity_record(row).ok())
-                                .collect(),
-                        )
-                    }
-                    DeviceDatabaseEngine::Postgres => {
-                        let rows = sqlx::query(&sql)
-                            .bind(association.tenant_id)
-                            .bind(association.organization_id)
-                            .bind(&entity_kind)
-                            .bind(ENTITY_STATUS_ACTIVE)
-                            .fetch_all(pool.postgres_pool().expect("postgres pool"))
-                            .await?;
-                        Ok::<Vec<SqlitePersistedEntityRecord>, sqlx::Error>(
-                            rows.iter()
-                                .filter_map(|row| row_to_entity_record_postgres(row).ok())
-                                .collect(),
-                        )
-                    }
-                }
-            })
-            .unwrap_or_default()
+        self.list_entities_catalog(association, entity_kind)
+    }
+
+    /// Loads catalog entities through bounded SQL pagination (export/picker paths only).
+    pub fn list_entities_catalog(
+        &self,
+        association: &AiotStorageAssociation,
+        entity_kind: &str,
+    ) -> Vec<SqlitePersistedEntityRecord> {
+        const MAX_CATALOG_EXPORT_PAGES: i64 = 10;
+        let mut items = Vec::new();
+        for page_no in 1..=MAX_CATALOG_EXPORT_PAGES {
+            let params = OffsetListPageParams::parse(
+                Some(page_no),
+                Some(i64::from(sdkwork_aiot_storage::MAX_LIST_PAGE_SIZE)),
+            );
+            let Ok(page) = self.list_entities_page(association, entity_kind, params) else {
+                break;
+            };
+            if page.items.is_empty() {
+                break;
+            }
+            let collected = items.len() as i64 + page.items.len() as i64;
+            items.extend(page.items);
+            if collected >= page.total {
+                break;
+            }
+        }
+        items
     }
 
     pub fn delete_entity(

@@ -253,10 +253,14 @@ export function sortSdkworkManagedDevices(
   );
 }
 
+type SdkworkDeviceSummaryAccumulator = SdkworkDeviceSummary & {
+  scoredDevices: number;
+};
+
 export function summarizeSdkworkDevices(
   devices: readonly SdkworkManagedDevice[],
 ): SdkworkDeviceSummary {
-  const summary = devices.reduce<SdkworkDeviceSummary>(
+  const summary = devices.reduce<SdkworkDeviceSummaryAccumulator>(
     (state, device) => {
       state.totalDevices += 1;
       state.connectedPeripherals += device.peripherals.filter((peripheral) => peripheral.connected).length;
@@ -292,10 +296,15 @@ export function summarizeSdkworkDevices(
   );
 
   return {
-    ...summary,
+    connectedPeripherals: summary.connectedPeripherals,
+    criticalDevices: summary.criticalDevices,
+    healthyDevices: summary.healthyDevices,
     postureAverage: summary.scoredDevices > 0
       ? clampScore(summary.postureAverage / summary.scoredDevices)
       : 0,
+    primaryDeviceId: summary.primaryDeviceId,
+    totalDevices: summary.totalDevices,
+    warningDevices: summary.warningDevices,
   };
 }
 

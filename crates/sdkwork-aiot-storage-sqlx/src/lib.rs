@@ -15,6 +15,8 @@ mod outbox;
 mod outbox_worker;
 mod persisted_entity;
 mod postgres_sync;
+mod row_decode;
+mod row_id_allocator;
 mod schema;
 mod sqlite_sync;
 
@@ -29,16 +31,17 @@ pub use credential::{
 pub use database_bootstrap::{
     aiot_device_blocking_pool, aiot_device_blocking_pool_from_env, aiot_device_pool_from_env,
     aiot_device_sqlite_memory_config, aiot_device_sqlite_memory_pool,
-    resolve_device_database_config, resolve_device_database_config_from_env,
-    AIOT_DEVICE_DATABASE_SERVICE_NAME,
+    device_database_config_is_durable_from_env, resolve_device_database_config,
+    resolve_device_database_config_from_env, AIOT_DEVICE_DATABASE_SERVICE_NAME,
 };
 pub use device_database::{
     open_aiot_device_database, open_aiot_device_database_from_env, AiotDeviceDatabase,
 };
 pub use device_repository_sqlite::SqliteSqlxDeviceRepository;
 pub use firmware_ota_catalog::{
-    resolve_firmware_download_url, FirmwareOtaCatalog, FirmwareOtaHint, ENTITY_FIRMWARE_ARTIFACT,
-    ENTITY_FIRMWARE_DEPLOYMENT,
+    resolve_firmware_download_url, FirmwareOtaCatalog, FirmwareOtaHint,
+    DEFAULT_ROLLOUT_DEVICE_BATCH, ENTITY_FIRMWARE_ARTIFACT, ENTITY_FIRMWARE_DEPLOYMENT,
+    MAX_OTA_DEPLOYMENT_SCAN,
 };
 pub use framework_bootstrap::{
     bootstrap_aiot_database, bootstrap_aiot_database_from_env, connect_aiot_database_pool_from_env,
@@ -116,7 +119,36 @@ pub fn migration_catalog() -> Vec<SqlMigration> {
             schema_version: schema_version(),
             sql: admin_entity_migration_sql(),
         },
+        SqlMigration {
+            version: "0003",
+            name: "aiot_row_id_allocator",
+            schema_version: schema_version(),
+            sql: row_id_allocator_migration_sql(),
+        },
+        SqlMigration {
+            version: "0004",
+            name: "aiot_device_credential_active_unique",
+            schema_version: schema_version(),
+            sql: device_credential_active_unique_migration_sql(),
+        },
     ]
+}
+
+pub fn device_credential_active_unique_migration_sql() -> &'static str {
+    r#"
+CREATE UNIQUE INDEX IF NOT EXISTS uk_iot_device_credential_tenant_device_active
+    ON iot_device_credential (tenant_id, device_id)
+    WHERE status = 1;
+"#
+}
+
+pub fn row_id_allocator_migration_sql() -> &'static str {
+    r#"
+CREATE TABLE IF NOT EXISTS iot_row_id_allocator (
+    table_name VARCHAR(128) NOT NULL PRIMARY KEY,
+    next_id BIGINT NOT NULL
+);
+"#
 }
 
 pub fn admin_entity_migration_sql() -> &'static str {
@@ -483,6 +515,23 @@ impl AiotCommandRepository for InMemorySqlxDeviceRepository {
                 .insert(idempotency_scope_key, command_key);
         }
         Ok(record)
+    }
+
+    fn get_command(
+        &self,
+        association: &AiotStorageAssociation,
+        device_id: &str,
+        command_id: &str,
+    ) -> Result<Option<AiotCommandRecord>, AiotCommandRepositoryError> {
+        let state = self.state.lock().expect("sqlx device repo state poisoned");
+        let key = scoped_command_key(association, command_id);
+        let Some(command) = state.commands.get(&key) else {
+            return Ok(None);
+        };
+        if command.device_id != device_id {
+            return Ok(None);
+        }
+        Ok(Some(command.clone()))
     }
 
     fn list_commands(
@@ -960,9 +1009,20 @@ impl SqlStatementPlan {
         }
     }
 
+    pub fn runtime_prepended_bind_count(&self) -> usize {
+        if crate::row_id_allocator::row_id_allocator_table_for_statement(self.statement_kind)
+            .is_some()
+        {
+            1
+        } else {
+            0
+        }
+    }
+
     pub fn validate(&self) -> Result<(), SqlPlanError> {
         let placeholder_count = self.placeholder_count();
-        if placeholder_count != self.binds.len() {
+        let expected_binds = placeholder_count.saturating_sub(self.runtime_prepended_bind_count());
+        if expected_binds != self.binds.len() {
             return Err(SqlPlanError::new("storage.sql.bind_count_mismatch")
                 .with_table(self.table)
                 .with_statement_kind(self.statement_kind));
@@ -1353,9 +1413,17 @@ impl From<StorageSqliteError> for SqlExecutorTransactionError {
 impl SqlStatementExecutor for SqlxPoolSqlStatementExecutor {
     fn execute_idempotency_guard(&self, _key: &str, statement: SqlStatementPlan) -> bool {
         self.db
-            .with_device_transaction(|mut tx, _dialect| {
+            .with_device_transaction(|mut tx, dialect| {
                 Box::pin(async move {
-                    let changed = tx.execute_plan(&statement).await?;
+                    let statement = crate::row_id_allocator::prepend_allocated_row_id_bind(
+                        &mut tx, dialect, statement,
+                    )
+                    .await
+                    .map_err(|_| SqlExecutorTransactionError::Sql)?;
+                    let changed = tx
+                        .execute_plan(&statement)
+                        .await
+                        .map_err(|_| SqlExecutorTransactionError::Sql)?;
                     if changed == 0 {
                         return Err(SqlExecutorTransactionError::Duplicate);
                     }
@@ -1366,20 +1434,36 @@ impl SqlStatementExecutor for SqlxPoolSqlStatementExecutor {
     }
 
     fn execute_batch(&self, batch: SqlStatementBatch) {
-        let _ = self.db.execute_statement_batch(batch);
+        if let Err(error) = self.db.execute_statement_batch(batch) {
+            eprintln!("protocol ingest execute_batch failed: {error}");
+        }
     }
 
     fn execute_transaction(&self, transaction: SqlTransactionPlan) -> SqlTransactionOutcome {
-        match self.db.with_device_transaction(|mut tx, _dialect| {
+        match self.db.with_device_transaction(|mut tx, dialect| {
             let guard = transaction.guard.clone();
             let write_batch = transaction.write_batch.clone();
             Box::pin(async move {
-                let guard_changed = tx.execute_plan(&guard).await?;
+                let guard =
+                    crate::row_id_allocator::prepend_allocated_row_id_bind(&mut tx, dialect, guard)
+                        .await
+                        .map_err(|_| SqlExecutorTransactionError::Sql)?;
+                let guard_changed = tx
+                    .execute_plan(&guard)
+                    .await
+                    .map_err(|_| SqlExecutorTransactionError::Sql)?;
                 if guard_changed == 0 {
                     return Err(SqlExecutorTransactionError::Duplicate);
                 }
                 for statement in write_batch.statements {
-                    tx.execute_plan(&statement).await?;
+                    let statement = crate::row_id_allocator::prepend_allocated_row_id_bind(
+                        &mut tx, dialect, statement,
+                    )
+                    .await
+                    .map_err(|_| SqlExecutorTransactionError::Sql)?;
+                    tx.execute_plan(&statement)
+                        .await
+                        .map_err(|_| SqlExecutorTransactionError::Sql)?;
                 }
                 Ok(())
             })
@@ -1704,28 +1788,18 @@ fn parse_device_product_id(value: &str) -> Result<i64, SqlPlanError> {
     })
 }
 
-fn table_row_id_expr(dialect: SqlDialect, table: &str, _postgres_sequence: &str) -> String {
-    let _ = dialect;
-    format!("(SELECT COALESCE(MAX(id), 0) + 1 FROM {table})")
-}
-
 fn idempotency_guard_statement(
     dialect: SqlDialect,
     command: &AiotProtocolStorageCommand,
     idempotency_key: &str,
 ) -> SqlStatementPlan {
     let created_at = outbox::current_rfc3339_timestamp_for_insert();
-    let id_expr = table_row_id_expr(
-        dialect,
-        "iot_protocol_ingest_record",
-        "iot_protocol_ingest_record_id_seq",
-    );
     SqlStatementPlan::bound(
         "idempotency_guard",
         "iot_protocol_ingest_record",
         dialect,
         format!(
-            "INSERT INTO iot_protocol_ingest_record (id, uuid, tenant_id, organization_id, data_scope, protocol_id, adapter_id, device_id, message_id, correlation_id, media_resource_id, object_blob_id, media_resource_snapshot, idempotency_key, trace_id, status, created_at, updated_at) VALUES ({id_expr}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}) ON CONFLICT DO NOTHING",
+            "INSERT INTO iot_protocol_ingest_record (id, uuid, tenant_id, organization_id, data_scope, protocol_id, adapter_id, device_id, message_id, correlation_id, media_resource_id, object_blob_id, media_resource_snapshot, idempotency_key, trace_id, status, created_at, updated_at) VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}) ON CONFLICT DO NOTHING",
             dialect.placeholder(1),
             dialect.placeholder(2),
             dialect.placeholder(3),
@@ -1743,6 +1817,7 @@ fn idempotency_guard_statement(
             dialect.placeholder(15),
             dialect.placeholder(16),
             dialect.placeholder(17),
+            dialect.placeholder(18),
         ),
         vec![
             SqlBindValue::text(uuid()),
@@ -1819,13 +1894,12 @@ fn outbox_write_statement(
         outbox.aggregate_type, outbox.aggregate_id, outbox.event_type
     );
     let created_at = outbox::current_rfc3339_timestamp_for_insert();
-    let id_expr = table_row_id_expr(dialect, "iot_outbox_event", "iot_outbox_event_id_seq");
     SqlStatementPlan::bound(
         "outbox_write",
         "iot_outbox_event",
         dialect,
         format!(
-            "INSERT INTO iot_outbox_event (id, uuid, tenant_id, organization_id, data_scope, event_id, event_type, event_version, aggregate_type, aggregate_id, payload, payload_hash, status, trace_id, attempt_count, created_at) VALUES ({id_expr}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+            "INSERT INTO iot_outbox_event (id, uuid, tenant_id, organization_id, data_scope, event_id, event_type, event_version, aggregate_type, aggregate_id, payload, payload_hash, status, trace_id, attempt_count, created_at) VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
             dialect.placeholder(1),
             dialect.placeholder(2),
             dialect.placeholder(3),
@@ -1841,6 +1915,7 @@ fn outbox_write_statement(
             dialect.placeholder(13),
             dialect.placeholder(14),
             dialect.placeholder(15),
+            dialect.placeholder(16),
         ),
         vec![
             SqlBindValue::text(uuid()),
@@ -1867,17 +1942,12 @@ fn dead_letter_write_statement(
     intent: &AiotProtocolDeadLetterIntent,
 ) -> SqlStatementPlan {
     let created_at = outbox::current_rfc3339_timestamp_for_insert();
-    let id_expr = table_row_id_expr(
-        dialect,
-        "iot_protocol_message_dead_letter",
-        "iot_protocol_message_dead_letter_id_seq",
-    );
     SqlStatementPlan::bound(
         "dead_letter_write",
         "iot_protocol_message_dead_letter",
         dialect,
         format!(
-            "INSERT INTO iot_protocol_message_dead_letter (id, uuid, tenant_id, organization_id, data_scope, protocol_id, adapter_id, device_id, reason_code, payload_ref, payload_hash, trace_id, status, created_at, updated_at) VALUES ({id_expr}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+            "INSERT INTO iot_protocol_message_dead_letter (id, uuid, tenant_id, organization_id, data_scope, protocol_id, adapter_id, device_id, reason_code, payload_ref, payload_hash, trace_id, status, created_at, updated_at) VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
             dialect.placeholder(1),
             dialect.placeholder(2),
             dialect.placeholder(3),
@@ -1892,6 +1962,7 @@ fn dead_letter_write_statement(
             dialect.placeholder(12),
             dialect.placeholder(13),
             dialect.placeholder(14),
+            dialect.placeholder(15),
         ),
         vec![
             SqlBindValue::text(uuid()),
@@ -2728,9 +2799,13 @@ mod protocol_ingest_sqlite_tests {
         AiotOutboxWriteIntent, AiotProtocolStorageCommand, AiotStorageWriteKind,
     };
 
+    use sdkwork_aiot_storage::AiotProtocolIngestUnitOfWork;
+
     use crate::schema::ensure_device_schema;
-    use crate::sqlite_sync::{execute_sql_plan, sqlite_connect_url, BlockingSqlitePool};
-    use crate::{BlockingDevicePool, SqlDialect, SqlProtocolIngestPlanner};
+    use crate::sqlite_sync::sqlite_connect_url;
+    use crate::{
+        BlockingDevicePool, SqlDialect, SqlProtocolIngestPlanner, SqlxPoolSqlStatementExecutor,
+    };
 
     #[test]
     fn protocol_ingest_statements_execute_on_sqlite() {
@@ -2749,35 +2824,22 @@ mod protocol_ingest_sqlite_tests {
             "session-outbox-001",
             "iot.protocol.ingested",
         ));
-        let plan = SqlProtocolIngestPlanner::for_dialect(SqlDialect::Sqlite)
+        SqlProtocolIngestPlanner::for_dialect(SqlDialect::Sqlite)
             .try_plan_protocol_command(&command)
-            .expect("plan");
+            .expect("plan must validate with runtime row-id binds");
         let url = sqlite_connect_url("file:protocol-ingest-sqlite-test?mode=memory&cache=shared");
-        let db = BlockingSqlitePool::connect(&url).expect("connect");
+        let db = crate::sqlite_sync::BlockingSqlitePool::connect(&url).expect("connect");
         let pool = BlockingDevicePool::Sqlite(db);
         ensure_device_schema(&pool).expect("schema");
 
-        let guard_result = pool.run(async {
-            execute_sql_plan(pool.sqlite_pool().expect("sqlite pool"), &plan.guard).await
-        });
+        let executor = SqlxPoolSqlStatementExecutor::new(pool);
+        let receipt = executor
+            .protocol_ingest_unit_of_work()
+            .execute_protocol_command(&command);
         assert!(
-            guard_result.is_ok(),
-            "guard failed: {:?}, sql={}",
-            guard_result.err(),
-            plan.guard.sql
+            receipt.accepted,
+            "protocol ingest must commit: {:?}",
+            receipt
         );
-
-        for statement in plan.write_batch.statements {
-            let result = pool.run(async {
-                execute_sql_plan(pool.sqlite_pool().expect("sqlite pool"), &statement).await
-            });
-            assert!(
-                result.is_ok(),
-                "statement {} failed: {:?}, sql={}",
-                statement.statement_kind,
-                result.err(),
-                statement.sql
-            );
-        }
     }
 }

@@ -30,9 +30,6 @@ client.setAccessToken('your-access-token');
 const params = {
   page: 1,
   page_size: 2,
-  cursor: 'cursor',
-  sort: 'sort',
-  q: 'q',
 };
 const result = await client.iot.devices.list(params);
 ```
@@ -72,9 +69,6 @@ const client = new SdkworkAppClient({
 const params = {
   page: 1,
   page_size: 2,
-  cursor: 'cursor',
-  sort: 'sort',
-  q: 'q',
 };
 const result = await client.iot.devices.list(params);
 ```
@@ -88,9 +82,6 @@ try {
   const params = {
     page: 1,
     page_size: 2,
-    cursor: 'cursor',
-    sort: 'sort',
-    q: 'q',
   };
   const result = await client.iot.devices.list(params);
 } catch (error) {

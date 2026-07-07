@@ -5,7 +5,7 @@ import {
   parseNumber,
   uuid,
 } from '@sdkwork/utils';
-import { isBlank, trim } from '@sdkwork/utils/string';
+import { isBlank, trim } from '@sdkwork/utils';
 
 export function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)

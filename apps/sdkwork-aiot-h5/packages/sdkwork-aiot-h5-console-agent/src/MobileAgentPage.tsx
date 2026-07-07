@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  createAiotAgentsDialoguePort,
   createAiotH5AgentService,
   getAiotH5AppSdkClient,
-  loadAllDevicePages,
+  listDevicePage,
   readDeviceId,
 } from '@sdkwork/aiot-h5-core';
 import type { AiotAgentService } from '@sdkwork/aiot-app-core';
@@ -11,6 +10,9 @@ import type { AiotAgentService } from '@sdkwork/aiot-app-core';
 export function MobileAgentPage() {
   const agentServiceRef = useRef<AiotAgentService | null>(null);
   const [devices, setDevices] = useState<Array<{ deviceId: string; displayName: string }>>([]);
+  const [devicePage, setDevicePage] = useState(1);
+  const [deviceHasMore, setDeviceHasMore] = useState(false);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Array<{ id: string; role: string; content: string }>>([]);
   const [draft, setDraft] = useState('');
@@ -19,19 +21,23 @@ export function MobileAgentPage() {
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
-    void loadAllDevicePages(getAiotH5AppSdkClient())
-      .then((items) => {
-        setDevices(
-          items.map((device) => ({
-            deviceId: readDeviceId(device),
-            displayName: String(device.displayName ?? readDeviceId(device)),
-          })),
-        );
+    setIsLoadingDevices(true);
+    void listDevicePage(getAiotH5AppSdkClient(), { page: devicePage })
+      .then((result) => {
+        const mapped = result.items.map((device) => ({
+          deviceId: readDeviceId(device),
+          displayName: String(device.displayName ?? readDeviceId(device)),
+        }));
+        setDevices((current) => (devicePage === 1 ? mapped : [...current, ...mapped]));
+        setDeviceHasMore(result.hasMore);
       })
       .catch((error) => {
         setLastError(error instanceof Error ? error.message : '设备列表加载失败');
+      })
+      .finally(() => {
+        setIsLoadingDevices(false);
       });
-  }, []);
+  }, [devicePage]);
 
   const ensureSession = (deviceId: string) => {
     if (!agentServiceRef.current) {
@@ -92,6 +98,7 @@ export function MobileAgentPage() {
             key={device.deviceId}
             onClick={() => {
               setSelectedDeviceId(device.deviceId);
+              setMessages([]);
               setSessionId(null);
             }}
             type="button"
@@ -99,7 +106,19 @@ export function MobileAgentPage() {
             {device.displayName}
           </button>
         ))}
-        {devices.length === 0 ? <p className="text-sm text-zinc-500">暂无可用设备</p> : null}
+        {devices.length === 0 && !isLoadingDevices ? (
+          <p className="text-sm text-zinc-500">暂无可用设备</p>
+        ) : null}
+        {deviceHasMore ? (
+          <button
+            className="w-full rounded-2xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700"
+            disabled={isLoadingDevices}
+            onClick={() => setDevicePage((current) => current + 1)}
+            type="button"
+          >
+            {isLoadingDevices ? '加载中...' : '加载更多设备'}
+          </button>
+        ) : null}
       </div>
       <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
         {messages.map((message) => (

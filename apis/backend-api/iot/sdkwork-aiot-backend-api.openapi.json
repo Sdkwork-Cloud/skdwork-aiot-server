@@ -71,30 +71,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ]
       },
@@ -383,30 +359,6 @@
               "minimum": 1,
               "maximum": 200,
               "default": 20
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
             }
           }
         ]
@@ -697,30 +649,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ]
       },
@@ -1009,30 +937,6 @@
               "minimum": 1,
               "maximum": 200,
               "default": 20
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
             }
           }
         ]
@@ -1333,30 +1237,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ]
       },
@@ -1411,7 +1291,7 @@
                           ],
                           "properties": {
                             "item": {
-                              "$ref": "#/components/schemas/StandardResourceResponse"
+                              "$ref": "#/components/schemas/JsonValue"
                             }
                           }
                         }
@@ -1474,7 +1354,7 @@
                           ],
                           "properties": {
                             "item": {
-                              "$ref": "#/components/schemas/StandardResourceResponse"
+                              "$ref": "#/components/schemas/JsonValue"
                             }
                           }
                         }
@@ -1548,7 +1428,7 @@
                           ],
                           "properties": {
                             "item": {
-                              "$ref": "#/components/schemas/StandardResourceResponse"
+                              "$ref": "#/components/schemas/JsonValue"
                             }
                           }
                         }
@@ -1637,30 +1517,6 @@
               "minimum": 1,
               "maximum": 200,
               "default": 20
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -1804,7 +1660,7 @@
                           ],
                           "properties": {
                             "item": {
-                              "$ref": "#/components/schemas/StandardResourceResponse"
+                              "$ref": "#/components/schemas/JsonValue"
                             }
                           }
                         }
@@ -1896,30 +1752,6 @@
               "minimum": 1,
               "maximum": 200,
               "default": 20
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -2018,30 +1850,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -2103,30 +1911,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -2136,6 +1920,49 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SdkWorkListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "backend-api",
+        "x-sdkwork-owner": "sdkwork-aiot",
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+      }
+    },
+    "/backend/v3/api/iot/devices/{deviceId}/commands/{commandId}": {
+      "get": {
+        "tags": [
+          "iot"
+        ],
+        "operationId": "devices.commands.retrieve",
+        "x-sdkwork-required-permission": "iot.commands.read",
+        "summary": "Retrieve device command",
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          },
+          {
+            "$ref": "#/components/parameters/CommandId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Command resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SdkWorkResourceResponse"
                 }
               }
             }
@@ -2245,7 +2072,7 @@
                           ],
                           "properties": {
                             "item": {
-                              "$ref": "#/components/schemas/StandardResourceResponse"
+                              "$ref": "#/components/schemas/JsonValue"
                             }
                           }
                         }
@@ -2306,7 +2133,7 @@
                           ],
                           "properties": {
                             "item": {
-                              "$ref": "#/components/schemas/StandardResourceResponse"
+                              "$ref": "#/components/schemas/JsonValue"
                             }
                           }
                         }
@@ -2380,30 +2207,6 @@
               "minimum": 1,
               "maximum": 200,
               "default": 20
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
             }
           }
         ]
@@ -2699,30 +2502,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ]
       },
@@ -3017,30 +2796,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ]
       }
@@ -3098,30 +2853,6 @@
               "minimum": 1,
               "maximum": 200,
               "default": 20
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
             }
           }
         ]
@@ -3326,11 +3057,8 @@
       }
     },
     "schemas": {
-      "AiotProductListResponse": {
-        "$ref": "#/components/schemas/StandardCollectionResponse"
-      },
       "AiotProductResponse": {
-        "$ref": "#/components/schemas/StandardResourceResponse"
+        "$ref": "#/components/schemas/JsonValue"
       },
       "AiotProductCreateRequest": {
         "type": "object",
@@ -3391,11 +3119,8 @@
           }
         }
       },
-      "AiotHardwareProfileListResponse": {
-        "$ref": "#/components/schemas/StandardCollectionResponse"
-      },
       "AiotHardwareProfileResponse": {
-        "$ref": "#/components/schemas/StandardResourceResponse"
+        "$ref": "#/components/schemas/JsonValue"
       },
       "AiotHardwareProfileCreateRequest": {
         "type": "object",
@@ -3489,11 +3214,8 @@
           }
         }
       },
-      "AiotProtocolProfileListResponse": {
-        "$ref": "#/components/schemas/StandardCollectionResponse"
-      },
       "AiotProtocolProfileResponse": {
-        "$ref": "#/components/schemas/StandardResourceResponse"
+        "$ref": "#/components/schemas/JsonValue"
       },
       "AiotProtocolProfileCreateRequest": {
         "type": "object",
@@ -3571,11 +3293,8 @@
           }
         }
       },
-      "AiotCapabilityModelListResponse": {
-        "$ref": "#/components/schemas/StandardCollectionResponse"
-      },
       "AiotCapabilityModelResponse": {
-        "$ref": "#/components/schemas/StandardResourceResponse"
+        "$ref": "#/components/schemas/JsonValue"
       },
       "AiotCapabilityModelCreateRequest": {
         "type": "object",
@@ -3691,9 +3410,6 @@
           }
         }
       },
-      "AiotDeviceListResponse": {
-        "$ref": "#/components/schemas/StandardCollectionResponse"
-      },
       "AiotDeviceCreateRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -3785,7 +3501,51 @@
         }
       },
       "AiotCredentialResponse": {
-        "$ref": "#/components/schemas/StandardResourceResponse"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "credentialId",
+          "deviceId",
+          "credentialType",
+          "status",
+          "createdAt"
+        ],
+        "properties": {
+          "credentialId": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "credentialType": {
+            "type": "string",
+            "enum": [
+              "bearer_token",
+              "hmac",
+              "mtls_x509",
+              "hardware_attestation"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issuedSecret": {
+            "type": "string",
+            "description": "One-time provisioning secret returned only from devices.credentials.create."
+          }
+        }
       },
       "AiotCommandResult": {
         "type": "object",
@@ -4086,7 +3846,7 @@
         }
       },
       "AiotFirmwareRolloutResponse": {
-        "$ref": "#/components/schemas/StandardResourceResponse"
+        "$ref": "#/components/schemas/JsonValue"
       },
       "AiotEvent": {
         "type": "object",
@@ -4680,51 +4440,6 @@
           }
         }
       },
-      "StandardCollectionResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "code",
-          "data",
-          "pageInfo"
-        ],
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "msg": {
-            "type": "string"
-          },
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/JsonValue"
-            }
-          },
-          "pageInfo": {
-            "$ref": "#/components/schemas/PageInfo"
-          }
-        }
-      },
-      "StandardResourceResponse": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "code",
-          "data"
-        ],
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "msg": {
-            "type": "string"
-          },
-          "data": {
-            "$ref": "#/components/schemas/JsonValue"
-          }
-        }
-      },
       "JsonValue": {
         "description": "Arbitrary JSON value constrained by use-case validation.",
         "oneOf": [
@@ -4752,48 +4467,25 @@
           }
         ]
       },
-      "ProblemDetails": {
-        "type": "object",
-        "additionalProperties": true,
-        "required": [
-          "type",
-          "title",
-          "status"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "format": "uri-reference"
-          },
-          "title": {
-            "type": "string"
-          },
-          "status": {
-            "type": "integer",
-            "minimum": 100,
-            "maximum": 599
-          },
-          "detail": {
-            "type": "string"
-          },
-          "traceId": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          }
-        }
-      },
       "PageInfo": {
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "mode",
           "page",
           "pageSize",
           "total",
           "hasMore"
         ],
         "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "offset",
+              "cursor"
+            ],
+            "description": "Pagination mode for this collection."
+          },
           "page": {
             "type": "integer",
             "minimum": 1
@@ -4809,9 +4501,6 @@
           },
           "hasMore": {
             "type": "boolean"
-          },
-          "nextCursor": {
-            "type": "string"
           }
         }
       },

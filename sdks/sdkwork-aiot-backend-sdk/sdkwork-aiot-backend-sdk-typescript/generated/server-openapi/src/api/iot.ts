@@ -1,7 +1,7 @@
 import { backendApiPath } from './paths';
 import type { HttpClient } from '../http/client';
 
-import type { AiotCapabilityModelCreateRequest, AiotCapabilityModelResponse, AiotCapabilityModelUpdateRequest, AiotCredentialCreateRequest, AiotCredentialResponse, AiotDeviceCreateRequest, AiotDeviceUpdateRequest, AiotFirmwareArtifactCreateRequest, AiotFirmwareArtifactResponse, AiotFirmwareArtifactUpdateRequest, AiotFirmwareRolloutCreateRequest, AiotFirmwareRolloutResponse, AiotFirmwareRolloutUpdateRequest, AiotHardwareProfileCreateRequest, AiotHardwareProfileResponse, AiotHardwareProfileUpdateRequest, AiotProductCreateRequest, AiotProductResponse, AiotProductUpdateRequest, AiotProtocolProfileCreateRequest, AiotProtocolProfileResponse, AiotProtocolProfileUpdateRequest, AiotRuntimeCapacityPolicyResponse, AiotTwinUpdateRequest, SdkWorkCommandData, SdkWorkPageData, StandardResourceResponse } from '../types';
+import type { AiotCapabilityModelCreateRequest, AiotCapabilityModelResponse, AiotCapabilityModelUpdateRequest, AiotCredentialCreateRequest, AiotCredentialResponse, AiotDeviceCreateRequest, AiotDeviceUpdateRequest, AiotFirmwareArtifactCreateRequest, AiotFirmwareArtifactResponse, AiotFirmwareArtifactUpdateRequest, AiotFirmwareRolloutCreateRequest, AiotFirmwareRolloutResponse, AiotFirmwareRolloutUpdateRequest, AiotHardwareProfileCreateRequest, AiotHardwareProfileResponse, AiotHardwareProfileUpdateRequest, AiotProductCreateRequest, AiotProductResponse, AiotProductUpdateRequest, AiotProtocolProfileCreateRequest, AiotProtocolProfileResponse, AiotProtocolProfileUpdateRequest, AiotRuntimeCapacityPolicyResponse, AiotTwinUpdateRequest, JsonValue, SdkWorkCommandData, SdkWorkPageData } from '../types';
 
 
 export class IotRuntimeCapacityApi {
@@ -32,9 +32,6 @@ export class IotRuntimeApi {
 export interface IotProtocolAdaptersListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotProtocolAdaptersApi {
@@ -50,9 +47,6 @@ export class IotProtocolAdaptersApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/protocol_adapters`), query));
   }
@@ -61,9 +55,6 @@ export class IotProtocolAdaptersApi {
 export interface IotEventsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotEventsApi {
@@ -79,9 +70,6 @@ export class IotEventsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/events`), query));
   }
@@ -90,9 +78,6 @@ export class IotEventsApi {
 export interface IotFirmwareRolloutsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export interface IotFirmwareRolloutsCreateParams {
@@ -112,9 +97,6 @@ export class IotFirmwareRolloutsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/firmware_rollouts`), query));
   }
@@ -149,9 +131,6 @@ export class IotFirmwareRolloutsApi {
 export interface IotFirmwareArtifactsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export interface IotFirmwareArtifactsCreateParams {
@@ -171,9 +150,6 @@ export class IotFirmwareArtifactsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/firmware_artifacts`), query));
   }
@@ -214,22 +190,19 @@ export class IotDevicesTwinApi {
 
 
 /** Update backend device twin */
-  async update(deviceId: string, body: AiotTwinUpdateRequest): Promise<StandardResourceResponse> {
-    return this.client.patch<StandardResourceResponse>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`), body, undefined, undefined, 'application/json');
+  async update(deviceId: string, body: AiotTwinUpdateRequest): Promise<JsonValue> {
+    return this.client.patch<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`), body, undefined, undefined, 'application/json');
   }
 
 /** Retrieve backend device twin */
-  async retrieve(deviceId: string): Promise<StandardResourceResponse> {
-    return this.client.get<StandardResourceResponse>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`));
+  async retrieve(deviceId: string): Promise<JsonValue> {
+    return this.client.get<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`));
   }
 }
 
 export interface IotDevicesCommandsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotDevicesCommandsApi {
@@ -245,11 +218,13 @@ export class IotDevicesCommandsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands`), query));
+  }
+
+/** Retrieve device command */
+  async retrieve(deviceId: string, commandId: string): Promise<Record<string, unknown>> {
+    return this.client.get<Record<string, unknown>>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands/${serializePathParameter(commandId, { name: 'commandId', style: 'simple', explode: false })}`));
   }
 
 /** Cancel device command */
@@ -261,9 +236,6 @@ export class IotDevicesCommandsApi {
 export interface IotDevicesCapabilitiesListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotDevicesCapabilitiesApi {
@@ -279,9 +251,6 @@ export class IotDevicesCapabilitiesApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/capabilities`), query));
   }
@@ -290,9 +259,6 @@ export class IotDevicesCapabilitiesApi {
 export interface IotDevicesSessionsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotDevicesSessionsApi {
@@ -308,9 +274,6 @@ export class IotDevicesSessionsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/sessions`), query));
   }
@@ -324,9 +287,6 @@ export class IotDevicesSessionsApi {
 export interface IotDevicesCredentialsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export interface IotDevicesCredentialsCreateParams {
@@ -346,9 +306,6 @@ export class IotDevicesCredentialsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials`), query));
   }
@@ -365,8 +322,8 @@ export class IotDevicesCredentialsApi {
   }
 
 /** Retrieve device credential */
-  async retrieve(deviceId: string, credentialId: string): Promise<StandardResourceResponse> {
-    return this.client.get<StandardResourceResponse>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials/${serializePathParameter(credentialId, { name: 'credentialId', style: 'simple', explode: false })}`));
+  async retrieve(deviceId: string, credentialId: string): Promise<JsonValue> {
+    return this.client.get<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials/${serializePathParameter(credentialId, { name: 'credentialId', style: 'simple', explode: false })}`));
   }
 
 /** Revoke device credential */
@@ -378,9 +335,6 @@ export class IotDevicesCredentialsApi {
 export interface IotDevicesListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export interface IotDevicesCreateParams {
@@ -414,38 +368,35 @@ export class IotDevicesApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices`), query));
   }
 
 /** Create AIoT device */
-  async create(body: AiotDeviceCreateRequest, params?: IotDevicesCreateParams): Promise<StandardResourceResponse> {
+  async create(body: AiotDeviceCreateRequest, params?: IotDevicesCreateParams): Promise<JsonValue> {
     const requestHeaders = buildRequestHeaders(
       {
         'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.post<StandardResourceResponse>(backendApiPath(`/iot/devices`), body, undefined, requestHeaders, 'application/json');
+    return this.client.post<JsonValue>(backendApiPath(`/iot/devices`), body, undefined, requestHeaders, 'application/json');
   }
 
 /** Retrieve AIoT device */
-  async retrieve(deviceId: string): Promise<StandardResourceResponse> {
-    return this.client.get<StandardResourceResponse>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`));
+  async retrieve(deviceId: string): Promise<JsonValue> {
+    return this.client.get<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`));
   }
 
 /** Update AIoT device */
-  async update(deviceId: string, body: AiotDeviceUpdateRequest, params?: IotDevicesUpdateParams): Promise<StandardResourceResponse> {
+  async update(deviceId: string, body: AiotDeviceUpdateRequest, params?: IotDevicesUpdateParams): Promise<JsonValue> {
     const requestHeaders = buildRequestHeaders(
       {
         'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.put<StandardResourceResponse>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`), body, undefined, requestHeaders, 'application/json');
+    return this.client.put<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`), body, undefined, requestHeaders, 'application/json');
   }
 
 /** Delete AIoT device */
@@ -457,9 +408,6 @@ export class IotDevicesApi {
 export interface IotCapabilityModelsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotCapabilityModelsApi {
@@ -475,9 +423,6 @@ export class IotCapabilityModelsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/capability_models`), query));
   }
@@ -506,9 +451,6 @@ export class IotCapabilityModelsApi {
 export interface IotProtocolProfilesListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotProtocolProfilesApi {
@@ -524,9 +466,6 @@ export class IotProtocolProfilesApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/protocol_profiles`), query));
   }
@@ -555,9 +494,6 @@ export class IotProtocolProfilesApi {
 export interface IotHardwareProfilesListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotHardwareProfilesApi {
@@ -573,9 +509,6 @@ export class IotHardwareProfilesApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/hardware_profiles`), query));
   }
@@ -604,9 +537,6 @@ export class IotHardwareProfilesApi {
 export interface IotProductsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotProductsApi {
@@ -622,9 +552,6 @@ export class IotProductsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/products`), query));
   }

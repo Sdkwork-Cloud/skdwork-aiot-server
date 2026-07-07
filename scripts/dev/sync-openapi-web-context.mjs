@@ -25,6 +25,7 @@ const authorities = [
   },
 ];
 
+/** Offset-mode list parameters only — handlers implement page/page_size per PAGINATION_SPEC.md. */
 const LIST_QUERY_PARAMETERS = [
   {
     name: 'page',
@@ -38,42 +39,33 @@ const LIST_QUERY_PARAMETERS = [
     description: 'Page size (max 200).',
     schema: { type: 'integer', minimum: 1, maximum: 200, default: 20 },
   },
-  {
-    name: 'cursor',
-    in: 'query',
-    description: 'Opaque cursor for cursor pagination.',
-    schema: { type: 'string' },
-  },
-  {
-    name: 'sort',
-    in: 'query',
-    description: 'Comma-separated sort fields, prefix with - for descending.',
-    schema: { type: 'string' },
-  },
-  {
-    name: 'q',
-    in: 'query',
-    description: 'Free-text search keyword.',
-    schema: { type: 'string' },
-  },
 ];
+
+const LEGACY_UNIMPLEMENTED_LIST_PARAMETERS = new Set(['cursor', 'sort', 'q']);
 
 const PAGE_INFO_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['page', 'pageSize', 'total', 'hasMore'],
+  required: ['mode', 'page', 'pageSize', 'total', 'hasMore'],
   properties: {
+    mode: {
+      type: 'string',
+      enum: ['offset', 'cursor'],
+      description: 'Pagination mode for this collection.',
+    },
     page: { type: 'integer', minimum: 1 },
     pageSize: { type: 'integer', minimum: 1, maximum: 200 },
     total: { type: 'integer', minimum: 0 },
     hasMore: { type: 'boolean' },
-    nextCursor: { type: 'string' },
   },
 };
 
 function mergeListParameters(existing = []) {
-  const names = new Set(existing.map((param) => param.name));
-  const merged = [...existing];
+  const filtered = existing.filter(
+    (param) => !LEGACY_UNIMPLEMENTED_LIST_PARAMETERS.has(param.name),
+  );
+  const names = new Set(filtered.map((param) => param.name));
+  const merged = [...filtered];
   for (const param of LIST_QUERY_PARAMETERS) {
     if (!names.has(param.name)) {
       merged.push(param);

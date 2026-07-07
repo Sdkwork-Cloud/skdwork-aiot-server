@@ -2101,6 +2101,7 @@ dependencies = [
 name = "sdkwork-aiot-storage-sqlx"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "rand_core 0.6.4",
  "sdkwork-aiot-database-host",
  "sdkwork-aiot-service-host",
@@ -2220,9 +2221,11 @@ dependencies = [
  "base64",
  "chrono",
  "rand_core 0.6.4",
+ "rsa",
  "sdkwork-database-id",
  "sdkwork-iam-context-service",
  "sdkwork-iam-module-registry",
+ "serde_json",
  "sha2",
  "sqlx",
  "uuid",

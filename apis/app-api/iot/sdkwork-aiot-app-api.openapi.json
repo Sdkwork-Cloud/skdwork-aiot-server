@@ -71,30 +71,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ]
       }
@@ -215,6 +191,49 @@
         "x-sdkwork-api-surface": "app-api"
       }
     },
+    "/app/v3/api/iot/devices/{deviceId}/commands/{commandId}": {
+      "get": {
+        "tags": [
+          "iot"
+        ],
+        "operationId": "devices.commands.retrieve",
+        "x-sdkwork-owner": "sdkwork-aiot",
+        "x-sdkwork-api-authority": "sdkwork-aiot-app-api",
+        "x-sdkwork-required-permission": "iot.commands.read",
+        "summary": "Retrieve device command",
+        "security": [
+          {
+            "AuthToken": [],
+            "AccessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/DeviceId"
+          },
+          {
+            "$ref": "#/components/parameters/CommandId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Command resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SdkWorkResourceResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-sdkwork-request-context": "WebRequestContext",
+        "x-sdkwork-api-surface": "app-api"
+      }
+    },
     "/app/v3/api/iot/devices/{deviceId}/twin": {
       "get": {
         "tags": [
@@ -318,30 +337,6 @@
               "maximum": 200,
               "default": 20
             }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "description": "Opaque cursor for cursor pagination.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Comma-separated sort fields, prefix with - for descending.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Free-text search keyword.",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -382,6 +377,16 @@
     "parameters": {
       "DeviceId": {
         "name": "deviceId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "CommandId": {
+        "name": "commandId",
         "in": "path",
         "required": true,
         "schema": {
@@ -1036,48 +1041,25 @@
           }
         ]
       },
-      "ProblemDetails": {
-        "type": "object",
-        "additionalProperties": true,
-        "required": [
-          "type",
-          "title",
-          "status"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "format": "uri-reference"
-          },
-          "title": {
-            "type": "string"
-          },
-          "status": {
-            "type": "integer",
-            "minimum": 100,
-            "maximum": 599
-          },
-          "detail": {
-            "type": "string"
-          },
-          "traceId": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          }
-        }
-      },
       "PageInfo": {
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "mode",
           "page",
           "pageSize",
           "total",
           "hasMore"
         ],
         "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "offset",
+              "cursor"
+            ],
+            "description": "Pagination mode for this collection."
+          },
           "page": {
             "type": "integer",
             "minimum": 1
@@ -1093,9 +1075,6 @@
           },
           "hasMore": {
             "type": "boolean"
-          },
-          "nextCursor": {
-            "type": "string"
           }
         }
       },

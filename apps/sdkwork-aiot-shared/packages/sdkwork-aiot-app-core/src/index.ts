@@ -6,7 +6,6 @@ export {
 } from './agent/agent-service';
 export {
   createAiotCommandService,
-  createLocalAssistantReply,
   pollCommandResult,
   type AiotCommandService,
   type CreateAiotCommandServiceOptions,
@@ -15,7 +14,7 @@ export {
 export {
   DEFAULT_DEVICE_LIST_PAGE_SIZE,
   listDevicePage,
-  loadAllDevicePages,
+  listDevicePagesForPicker,
   readDeviceId,
   type ListDevicePageParams,
   type ListDevicePageResult,
@@ -53,6 +52,7 @@ export {
   type AiotVoiceDialogueService,
   type CreateAiotVoiceDialogueServiceOptions,
   type RunDialogueTurnOptions,
+  type VoiceDialogueListenOptions,
 } from './voice/voice-dialogue-service';
 export {
   extractSdkItems,

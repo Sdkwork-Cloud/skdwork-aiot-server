@@ -66,11 +66,28 @@ impl KernelSpeechPipeline {
         let assistant_text = self
             .kernel
             .send_user_message(&kernel_session_id, &user_text)?;
-        let tts_audio = self.synthesize_speech(&assistant_text)?;
+        self.finish_speech_output(user_text, assistant_text)
+    }
+
+    /// Synthesizes TTS for explicit speak/play commands without an LLM round trip.
+    pub fn run_speak(&self, text: &str) -> Result<SpeechTurnOutput, String> {
+        let text = text.trim();
+        if text.is_empty() {
+            return Err("speak text is required".to_string());
+        }
+        self.finish_speech_output(text.to_string(), text.to_string())
+    }
+
+    fn finish_speech_output(
+        &self,
+        stt_text: String,
+        spoken_text: String,
+    ) -> Result<SpeechTurnOutput, String> {
+        let tts_audio = self.synthesize_speech(&spoken_text)?;
         Ok(SpeechTurnOutput {
-            stt_text: user_text,
+            stt_text,
             llm_emotion: "neutral".to_string(),
-            llm_text: assistant_text.clone(),
+            llm_text: spoken_text,
             tts_audio: tts_audio.bytes,
             tts_audio_format: tts_audio.format,
             tts_sample_rate: tts_audio.sample_rate,
@@ -184,6 +201,31 @@ impl KernelSpeechPipeline {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn run_speak_requires_non_empty_text() {
+        let pipeline = KernelSpeechPipeline {
+            config: IntelligenceConfig {
+                mode: crate::config::IntelligenceMode::Kernel,
+                kernel_http_url: "http://127.0.0.1:18280".to_string(),
+                kernel_agent_id: "agent.xiaozhi".to_string(),
+                claw_router_http_url: "http://127.0.0.1:1".to_string(),
+                claw_router_api_key: None,
+                asr_model: "openai/whisper-1".to_string(),
+                tts_model: "openai/tts-1".to_string(),
+                tts_voice: "alloy".to_string(),
+                tts_response_format: "pcm".to_string(),
+                tts_sample_rate: 24_000,
+            },
+            kernel: KernelRuntimeClient::new("http://127.0.0.1:18280".to_string()).unwrap(),
+            claw: Arc::new(
+                SdkworkAiClient::new_with_base_url("http://127.0.0.1:1").expect("client"),
+            ),
+            session_map: SessionMap::new(),
+        };
+        let err = pipeline.run_speak("   ").unwrap_err();
+        assert!(err.contains("required"));
+    }
 
     #[test]
     fn speech_turn_input_requires_text_or_audio() {

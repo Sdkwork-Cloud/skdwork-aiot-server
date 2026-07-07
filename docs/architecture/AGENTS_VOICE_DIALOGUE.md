@@ -33,8 +33,8 @@ flowchart LR
 
 1. **User input** — text field or microphone.
 2. **STT** — if `voiceDialoguePort.transcribe` is configured, record via `MediaRecorder` and call sdkwork-voice; otherwise browser `SpeechRecognition`.
-3. **Agent reply** — if agents port is configured, create remote session + sync chat via sdkwork-agents; else fall back to device `assistant.chat` command with polling.
-4. **TTS playback** — if selected device is **online**, prefer device `speak` command; else if voice port is configured, sdkwork-voice synthesize + poll + play audio URL; else browser `speechSynthesis`.
+3. **Agent reply** — if agents port is configured, create remote session + sync chat via sdkwork-agents; on failure, fall back to device `assistant.chat` with polling; if agents is not configured, use device command directly.
+4. **TTS playback** — if selected device is **online**, prefer device `speak` command (poll completion when available); else if voice port is configured, sdkwork-voice synthesize + poll + play audio URL; else browser `speechSynthesis`.
 
 ## Environment Keys
 
@@ -53,6 +53,20 @@ Start sibling services before testing dialogue:
 
 - `sdkwork-agents` app-api on port 8095 (default)
 - `sdkwork-voice` app-api on port 18096 (default)
+
+## Device List Pagination
+
+PC/H5 Agent and Voice surfaces use **server-side** `listDevicePage` (default page size 20) instead of downloading the full fleet. Agent PC page supports **load more** for additional device pages.
+
+## Session Semantics
+
+Agent and voice dialogue sessions are **ephemeral in-browser** (in-memory `Map`). Refreshing the SPA clears history. Server-side session persistence is a planned enhancement for multi-device console continuity.
+
+## Production Requirements
+
+- Set `VITE_SDKWORK_AGENTS_APP_API_BASE_URL` and `VITE_SDKWORK_VOICE_APP_API_BASE_URL` explicitly in production builds.
+- Browser STT uses `DEFAULT_SPEECH_RECOGNITION_LANG = zh-CN` when cloud transcribe is unavailable.
+- Voice dialogue enforces single in-flight turn; concurrent listen/send is rejected.
 
 ## Mini-Program Scope
 

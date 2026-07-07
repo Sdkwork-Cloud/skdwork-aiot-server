@@ -7,9 +7,6 @@ import type { AiotCommandCreateRequest, AiotDevice, JsonValue, SdkWorkCommandDat
 export interface IotDevicesEventsListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotDevicesEventsApi {
@@ -25,9 +22,6 @@ export class IotDevicesEventsApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/events`), query));
   }
@@ -69,14 +63,16 @@ export class IotDevicesCommandsApi {
     );
     return this.client.post<SdkWorkCommandData>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands`), body, undefined, requestHeaders, 'application/json');
   }
+
+/** Retrieve device command */
+  async retrieve(deviceId: string, commandId: string): Promise<Record<string, unknown>> {
+    return this.client.get<Record<string, unknown>>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands/${serializePathParameter(commandId, { name: 'commandId', style: 'simple', explode: false })}`));
+  }
 }
 
 export interface IotDevicesListParams {
   page?: number;
   pageSize?: number;
-  cursor?: string;
-  sort?: string;
-  q?: string;
 }
 
 export class IotDevicesApi {
@@ -98,9 +94,6 @@ export class IotDevicesApi {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
-      { name: 'cursor', value: params?.cursor, style: 'form', explode: true, allowReserved: false },
-      { name: 'sort', value: params?.sort, style: 'form', explode: true, allowReserved: false },
-      { name: 'q', value: params?.q, style: 'form', explode: true, allowReserved: false },
     ]);
     return this.client.get<SdkWorkPageData>(appendQueryString(appApiPath(`/iot/devices`), query));
   }

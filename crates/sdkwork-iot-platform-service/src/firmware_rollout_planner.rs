@@ -1,6 +1,7 @@
 //! Resolves rollout target devices and materializes per-device deployment records.
 
 use sdkwork_aiot_storage::{AiotDeviceRepository, AiotStorageAssociation};
+use sdkwork_aiot_storage_sqlx::DEFAULT_ROLLOUT_DEVICE_BATCH;
 use serde_json::Value;
 
 pub const ENTITY_FIRMWARE_DEPLOYMENT: &str = "firmware_deployment";
@@ -23,7 +24,8 @@ pub fn resolve_rollout_target_device_ids(
     let batch = policy
         .get("batch")
         .and_then(Value::as_u64)
-        .map(|value| value as i64);
+        .map(|value| value as i64)
+        .or(Some(DEFAULT_ROLLOUT_DEVICE_BATCH));
 
     let mut candidates = match scope {
         "devices" => policy

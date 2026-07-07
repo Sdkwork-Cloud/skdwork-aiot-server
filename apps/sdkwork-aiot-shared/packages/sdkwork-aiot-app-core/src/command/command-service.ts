@@ -4,8 +4,38 @@ import type {
   SdkworkAiotAppClient,
 } from '@sdkwork/aiot-app-sdk';
 
+import type { JsonValue } from '@sdkwork/aiot-app-sdk';
+
 import { createMessageId, nowIso, readRecord, readString, sleep } from '../utils/session';
-import { DEFAULT_DEVICE_LIST_PAGE_SIZE } from '../device/device-pagination';
+
+const TERMINAL_COMMAND_STATUSES = new Set(['completed', 'failed', 'cancelled', 'timeout']);
+
+function mapCommandResource(
+  item: unknown,
+  deviceId: string,
+  commandId: string,
+): AiotCommand | null {
+  const record = readRecord(item);
+  const status = readString(record.status);
+  if (!status || !TERMINAL_COMMAND_STATUSES.has(status)) {
+    return null;
+  }
+
+  return {
+    ackAt: readString(record.ackAt) || undefined,
+    capabilityName: readString(record.capabilityName),
+    commandId: readString(record.commandId, commandId),
+    commandName: readString(record.commandName),
+    createdAt: readString(record.createdAt, nowIso()),
+    deviceId: readString(record.deviceId, deviceId),
+    requestPayload: (record.requestPayload ?? {}) as JsonValue,
+    result: record.result as AiotCommand['result'],
+    resultAt: readString(record.resultAt) || undefined,
+    sessionId: readString(record.sessionId) || undefined,
+    status,
+    traceId: readString(record.traceId) || undefined,
+  };
+}
 
 export interface CreateAiotCommandServiceOptions {
   aiotClient: SdkworkAiotAppClient;
@@ -60,7 +90,7 @@ export function createAiotCommandService(
       const acceptance = await aiotClient.iot.devices.commands.create(
         input.deviceId,
         body,
-        input.idempotencyKey,
+        input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined,
       );
 
       return mapCommandAcceptance(acceptance, input);
@@ -88,58 +118,16 @@ export async function pollCommandResult(
   const maxAttempts = options.maxAttempts ?? 12;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    let page = 1;
-    while (true) {
-      const eventsPage = await aiotClient.iot.devices.events.list(deviceId, {
-        page,
-        pageSize: DEFAULT_DEVICE_LIST_PAGE_SIZE,
-        q: commandId,
-      });
-      const items = Array.isArray(eventsPage.items) ? eventsPage.items : [];
-      const match = items.find((event) => {
-        const payload = readRecord(event.payload);
-        const correlationId = readString(payload.correlationId) || readString(payload.commandId);
-        return correlationId === commandId;
-      });
-
-      if (match) {
-        const payload = readRecord(match.payload);
-        return {
-          ackAt: readString(payload.ackAt) || undefined,
-          capabilityName: readString(payload.capabilityName),
-          commandId,
-          commandName: readString(payload.commandName),
-          createdAt: readString(match.occurredAt, nowIso()),
-          deviceId,
-          requestPayload: payload.requestPayload ?? {},
-          result: payload.result as AiotCommand['result'],
-          resultAt: readString(payload.resultAt) || undefined,
-          sessionId: readString(payload.sessionId) || undefined,
-          status: readString(payload.status, 'completed'),
-          traceId: readString(payload.traceId) || undefined,
-        };
-      }
-
-      const pageInfo = readRecord(eventsPage.pageInfo);
-      if (!pageInfo.hasMore || items.length === 0) {
-        break;
-      }
-      page += 1;
+    const item = await aiotClient.iot.devices.commands.retrieve(deviceId, commandId);
+    const command = mapCommandResource(item, deviceId, commandId);
+    if (command) {
+      return command;
     }
 
     await sleep(intervalMs);
   }
 
   return null;
-}
-
-export function createLocalAssistantReply(userText: string): string {
-  const trimmed = userText.trim();
-  if (!trimmed) {
-    return '请告诉我您需要什么帮助。';
-  }
-
-  return `已收到您的指令：「${trimmed}」。AIoT 智能体正在处理设备联动与场景编排。`;
 }
 
 export { createMessageId };

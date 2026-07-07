@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bot, MessageSquarePlus, Send } from 'lucide-react';
-import { loadAllDevicePages, readDeviceId } from '@sdkwork/aiot-app-core';
+import { listDevicePage, readDeviceId } from '@sdkwork/aiot-app-core';
 import { getAiotAppSdkClient } from '@sdkwork/aiot-pc-core';
-import { Button, LoadingBlock, StatusNotice } from '@sdkwork/ui-pc-react';
+import { Button, StatusNotice } from '@sdkwork/ui-pc-react';
 
 import { createAgentWorkspaceManifest } from '../agent';
 import {
@@ -19,6 +19,9 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
   const service = useMemo(() => serviceProp ?? createSdkworkAgentService(), [serviceProp]);
   const [catalog, setCatalog] = useState<SdkworkAgentCatalog>(() => service.getCatalog());
   const [devices, setDevices] = useState<Array<{ deviceId: string; displayName: string }>>([]);
+  const [devicePage, setDevicePage] = useState(1);
+  const [deviceHasMore, setDeviceHasMore] = useState(false);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -29,19 +32,23 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
   }, [service]);
 
   useEffect(() => {
-    void loadAllDevicePages(getAiotAppSdkClient())
-      .then((items) => {
-        setDevices(
-          items.map((device) => ({
-            deviceId: readDeviceId(device),
-            displayName: String(device.displayName ?? readDeviceId(device)),
-          })),
-        );
+    setIsLoadingDevices(true);
+    void listDevicePage(getAiotAppSdkClient(), { page: devicePage })
+      .then((result) => {
+        const mapped = result.items.map((device) => ({
+          deviceId: readDeviceId(device),
+          displayName: String(device.displayName ?? readDeviceId(device)),
+        }));
+        setDevices((current) => (devicePage === 1 ? mapped : [...current, ...mapped]));
+        setDeviceHasMore(result.hasMore);
       })
       .catch((cause) => {
         setError(cause instanceof Error ? cause.message : '设备列表加载失败');
+      })
+      .finally(() => {
+        setIsLoadingDevices(false);
       });
-  }, []);
+  }, [devicePage]);
 
   const handleCreateSession = () => {
     if (!selectedDeviceId) {
@@ -70,10 +77,6 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
     }
   };
 
-  if (!catalog.activeSession && catalog.sessions.length === 0) {
-    return <LoadingBlock label="选择设备后开始智能体会话..." />;
-  }
-
   return (
     <div className="h-full overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
       <div className="mx-auto max-w-6xl space-y-5">
@@ -84,7 +87,7 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
           </div>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight">智能体集成</h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
-            优先通过 sdkwork-agents 云端对话；未配置时回退到设备 assistant.chat 命令并轮询结果。
+            优先通过 sdkwork-agents 云端对话；Agents 不可用时自动回退到设备 assistant.chat 并轮询结果。
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs">
             <span className={`rounded-full px-3 py-1 ${catalog.agentsConfigured ? 'bg-emerald-500/20 text-emerald-100' : 'bg-white/10 text-white/60'}`}>
@@ -115,6 +118,16 @@ export function SdkworkAgentPage({ service: serviceProp }: SdkworkAgentPageProps
                   </button>
                 ))}
                 {devices.length === 0 ? <p className="text-sm text-zinc-500">暂无可用设备</p> : null}
+                {deviceHasMore ? (
+                  <Button
+                    disabled={isLoadingDevices}
+                    onClick={() => setDevicePage((page) => page + 1)}
+                    type="button"
+                    variant="outline"
+                  >
+                    {isLoadingDevices ? '加载中...' : '加载更多设备'}
+                  </Button>
+                ) : null}
               </div>
             </div>
 

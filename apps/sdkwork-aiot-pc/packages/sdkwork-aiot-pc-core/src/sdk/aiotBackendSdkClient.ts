@@ -23,7 +23,7 @@ export function createAiotBackendSdkClientConfig(
 }
 
 export function initAiotBackendSdkClient(
-  config: SdkworkAiotBackendSdkClientConfig = createAiotBackendSdkClientConfig(),
+  config: SdkworkAiotBackendClientConfig = createAiotBackendSdkClientConfig(),
 ): SdkworkAiotBackendClient {
   const client = createAiotBackendClient(config);
   client.setTokenManager(getAiotPcTokenManager());

@@ -1,4 +1,4 @@
-import type { StandardResourceResponse } from './standard-resource-response';
+import type { JsonValue } from './json-value';
 
 export interface DevicesTwinUpdateResponse {
   code: 0;

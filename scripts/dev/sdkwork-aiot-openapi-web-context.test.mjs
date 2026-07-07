@@ -21,7 +21,7 @@ const authorities = [
   },
 ];
 
-const LIST_QUERY_NAMES = ['page', 'page_size', 'cursor', 'sort', 'q'];
+const LIST_QUERY_NAMES = ['page', 'page_size'];
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), 'utf8'));
