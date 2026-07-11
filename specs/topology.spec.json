@@ -1,16 +1,11 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "kind": "sdkwork.app.topology",
   "appId": "sdkwork-aiot",
   "archetype": "application-rest-edge-device",
   "profileRoot": "configs/topology",
-  "profilePattern": "{deploymentProfile}.{serviceLayout}.{environment}.env",
+  "profilePattern": "{deploymentProfile}.{environment}.env",
   "vocabulary": {
-    "serviceLayout": {
-      "allowed": [
-        "split-services"
-      ]
-    },
     "environment": {
       "allowed": [
         "development",
@@ -32,18 +27,18 @@
     }
   },
   "defaults": {
-    "developmentProfileId": "standalone.split-services.development",
-    "productionProfileId": "cloud.split-services.production",
-    "gatewayBind": "127.0.0.1:3900"
+    "developmentProfileId": "standalone.development",
+    "productionProfileId": "cloud.production",
+    "gatewayBind": "127.0.0.1:3900",
+    "desktopBuildProfileId": "standalone.production"
   },
   "profileFiles": {
-    "standalone.split-services.development": "configs/topology/standalone.split-services.development.env",
-    "cloud.split-services.development": "configs/topology/cloud.split-services.development.env",
-    "standalone.split-services.production": "configs/topology/standalone.split-services.production.env",
-    "cloud.split-services.production": "configs/topology/cloud.split-services.production.env"
+    "standalone.development": "configs/topology/standalone.development.env",
+    "cloud.development": "configs/topology/cloud.development.env",
+    "standalone.production": "configs/topology/standalone.production.env",
+    "cloud.production": "configs/topology/cloud.production.env"
   },
   "envKeys": {
-    "serviceLayout": "SDKWORK_AIOT_SERVICE_LAYOUT",
     "environment": "SDKWORK_AIOT_ENVIRONMENT",
     "profileId": "SDKWORK_AIOT_PROFILE_ID",
     "gatewayAutostart": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_AUTOSTART",
@@ -169,7 +164,7 @@
   },
   "orchestration": {
     "profiles": {
-      "standalone.split-services.development": {
+      "standalone.development": {
         "processes": [
           {
             "id": "application.public-ingress",
@@ -196,7 +191,7 @@
           "edge.device-ingress"
         ]
       },
-      "cloud.split-services.development": {
+      "cloud.development": {
         "processes": [
           {
             "id": "platform.api-gateway",
@@ -224,7 +219,7 @@
           "edge.device-ingress"
         ]
       },
-      "cloud.split-services.production": {
+      "cloud.production": {
         "processes": [
           {
             "id": "application.public-ingress",
@@ -250,6 +245,33 @@
           "application.public-ingress",
           "edge.device-ingress",
           "platform.api-gateway"
+        ]
+      },
+      "standalone.production": {
+        "processes": [
+          {
+            "id": "application.public-ingress",
+            "crate": "sdkwork-aiot-standalone-gateway",
+            "binary": "sdkwork-aiot-standalone-gateway",
+            "required": true
+          },
+          {
+            "id": "edge.device-ingress",
+            "crate": "sdkwork-aiot-cloud-gateway",
+            "binary": "sdkwork-aiot-cloud-gateway",
+            "required": true
+          },
+          {
+            "id": "platform.api-gateway",
+            "crate": "sdkwork-api-cloud-gateway",
+            "binary": "sdkwork-api-cloud-gateway",
+            "repository": "sdkwork-api-cloud-gateway",
+            "required": false
+          }
+        ],
+        "healthSurfaces": [
+          "application.public-ingress",
+          "edge.device-ingress"
         ]
       }
     }

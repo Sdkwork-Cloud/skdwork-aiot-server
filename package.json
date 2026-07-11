@@ -83,7 +83,11 @@
     "gateway:package:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs bundle --root .",
     "gateway:validate:platform-config": "node ../sdkwork-app-topology/scripts/gateway-cloud-bundle.mjs validate --root .",
     "test:contract:database": "node ../sdkwork-specs/tools/check-database-framework-standard.mjs --root .",
-    "check:app-composition": "node ../sdkwork-specs/tools/verify-repo.mjs --root ."
+    "check:app-composition": "node ../sdkwork-specs/tools/verify-repo.mjs --root .",
+    "gateway:run:standalone": "cargo run -p sdkwork-aiot-standalone-gateway --bin sdkwork-aiot-standalone-gateway",
+    "gateway:build:standalone": "cargo build -p sdkwork-aiot-standalone-gateway --bin sdkwork-aiot-standalone-gateway",
+    "gateway:package:standalone": "cargo build -p sdkwork-aiot-standalone-gateway --release --bin sdkwork-aiot-standalone-gateway",
+    "gateway:validate:standalone": "cargo check -p sdkwork-aiot-standalone-gateway"
   },
   "exports": {
     ".": {

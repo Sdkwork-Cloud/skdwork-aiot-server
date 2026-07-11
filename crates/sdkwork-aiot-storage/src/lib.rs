@@ -273,7 +273,7 @@ pub trait AiotDeviceRepository: Send + Sync {
         &self,
         association: &AiotStorageAssociation,
         product_id: Option<&str>,
-        limit: Option<i64>,
+        page_size: Option<i64>,
     ) -> Result<Vec<String>, AiotDeviceRepositoryError>;
     fn update_device(
         &self,
@@ -857,7 +857,7 @@ impl AiotDeviceRepository for InMemoryAiotDeviceRepository {
         &self,
         association: &AiotStorageAssociation,
         product_id: Option<&str>,
-        limit: Option<i64>,
+        page_size: Option<i64>,
     ) -> Result<Vec<String>, AiotDeviceRepositoryError> {
         let mut ids = self
             .state

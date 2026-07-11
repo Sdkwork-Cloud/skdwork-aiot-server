@@ -130,7 +130,7 @@ mod tests {
             &self,
             _association: &AiotStorageAssociation,
             product_id: Option<&str>,
-            limit: Option<i64>,
+            page_size: Option<i64>,
         ) -> Result<Vec<String>, AiotDeviceRepositoryError> {
             let mut ids = self
                 .devices
