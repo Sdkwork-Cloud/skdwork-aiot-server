@@ -1,0 +1,30 @@
+{
+  "kind": "sdkwork.gateway.assembly",
+  "schemaVersion": 1,
+  "applicationCode": "aiot",
+  "packageName": "sdkwork-aiot-gateway-assembly",
+  "crateDir": "crates/sdkwork-aiot-gateway-assembly",
+  "generatedAt": "2026-07-13T00:00:00.000Z",
+  "routeCrates": [
+    {
+      "packageName": "sdkwork-routes-iot-app-api",
+      "memberDir": "crates/sdkwork-routes-iot-app-api",
+      "libName": "sdkwork_routes_iot_app_api",
+      "surface": "app-api",
+      "pathPrefix": "/app/v3/api/iot",
+      "mountOrder": 0,
+      "hasGatewayMount": true,
+      "hasGatewayRouteManifest": false
+    },
+    {
+      "packageName": "sdkwork-routes-iot-backend-api",
+      "memberDir": "crates/sdkwork-routes-iot-backend-api",
+      "libName": "sdkwork_routes_iot_backend_api",
+      "surface": "backend-api",
+      "pathPrefix": "/backend/v3/api/iot",
+      "mountOrder": 1,
+      "hasGatewayMount": true,
+      "hasGatewayRouteManifest": false
+    }
+  ]
+}
