@@ -15,9 +15,8 @@ use api_response::{
 use pagination::{page_params_from_request, PageQuery};
 
 fn require_page_params(request: &HttpRequest) -> Result<PageQuery, HttpResponse> {
-    page_params_from_request(request).map_err(|code| {
-        problem_detail_response(&resolve_trace_id(request), code, code.title())
-    })
+    page_params_from_request(request)
+        .map_err(|code| problem_detail_response(&resolve_trace_id(request), code, code.title()))
 }
 
 use std::collections::BTreeMap;
@@ -807,10 +806,17 @@ fn cors_allowed_origins() -> Vec<String> {
 fn cors_allowed_origin(request: &HttpRequest) -> Option<String> {
     let origin = optional_header(request, "origin")?;
     let allowed = cors_allowed_origins();
-    if allowed.is_empty() {
-        return None;
-    }
-    if allowed.iter().any(|candidate| candidate == origin) {
+    let environment = std::env::var("SDKWORK_AIOT_ENVIRONMENT")
+        .unwrap_or_else(|_| "development".to_owned())
+        .trim()
+        .to_ascii_lowercase();
+    let development = matches!(
+        environment.as_str(),
+        "development" | "dev" | "local" | "test" | "testing"
+    );
+    if allowed.iter().any(|candidate| candidate == origin)
+        || (development && sdkwork_web_core::is_development_private_network_origin(origin))
+    {
         Some(origin.to_string())
     } else {
         None

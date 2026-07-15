@@ -74,7 +74,10 @@ where
     }
 }
 
-fn paginate_memory_catalog<T>(items: Vec<T>, params: OffsetListPageParams) -> AiotOffsetListResult<T> {
+fn paginate_memory_catalog<T>(
+    items: Vec<T>,
+    params: OffsetListPageParams,
+) -> AiotOffsetListResult<T> {
     paginate_vec(items, params)
 }
 
