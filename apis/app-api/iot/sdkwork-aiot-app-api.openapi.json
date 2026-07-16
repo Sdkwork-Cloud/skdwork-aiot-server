@@ -173,7 +173,7 @@
           }
         },
         "responses": {
-          "202": {
+          "201": {
             "description": "Command accepted.",
             "content": {
               "application/json": {

@@ -1015,7 +1015,7 @@
         "name": "devices.sessions.disconnect"
       },
       "method": "DELETE",
-      "operationId": "devices.sessions.disconnect",
+      "operationId": "devices.sessions.delete",
       "ownership": {
         "apiAuthority": "sdkwork-aiot-backend-api",
         "owner": "sdkwork-aiot"

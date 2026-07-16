@@ -8,7 +8,7 @@
     "@sdkwork/app-topology": "workspace:*"
   },
   "scripts": {
-    "dev": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
+    "stop": "node ../sdkwork-specs/tools/stop-sdkwork-workspace-processes.mjs --workspace .",    "dev": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
     "dev:server:sqlite:split-services:standalone": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
     "dev:server:sqlite:split-services:cloud": "node scripts/aiot-dev.mjs --deployment-profile cloud --database sqlite --service-layout split-services",
     "start": "cargo run -p sdkwork-aiot-app-api",

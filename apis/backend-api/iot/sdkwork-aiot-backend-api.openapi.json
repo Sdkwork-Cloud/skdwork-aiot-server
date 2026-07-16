@@ -1781,7 +1781,7 @@
         "tags": [
           "iot"
         ],
-        "operationId": "devices.sessions.disconnect",
+        "operationId": "devices.sessions.delete",
         "x-sdkwork-required-permission": "iot.sessions.disconnect",
         "summary": "Disconnect device session",
         "security": [
@@ -2534,7 +2534,7 @@
           }
         },
         "responses": {
-          "202": {
+          "201": {
             "description": "Firmware rollout accepted.",
             "content": {
               "application/json": {
