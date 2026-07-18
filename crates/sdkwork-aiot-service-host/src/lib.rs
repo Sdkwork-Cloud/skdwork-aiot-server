@@ -347,6 +347,14 @@ impl RuntimeBuildError {
     }
 }
 
+impl std::fmt::Display for RuntimeBuildError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(&self.code)
+    }
+}
+
+impl std::error::Error for RuntimeBuildError {}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AiotProtocolMessageAction {
     OpenSession,

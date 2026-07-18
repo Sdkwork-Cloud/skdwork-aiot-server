@@ -874,8 +874,8 @@ impl AiotDeviceRepository for InMemoryAiotDeviceRepository {
             .collect::<Vec<_>>();
         ids.sort();
         ids.dedup();
-        if let Some(limit) = limit {
-            let max = limit.max(0) as usize;
+        if let Some(page_size) = page_size {
+            let max = page_size.max(0) as usize;
             ids.truncate(max);
         }
         Ok(ids)

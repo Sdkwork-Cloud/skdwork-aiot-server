@@ -10,7 +10,5 @@ path = "src/main.rs"
 
 [dependencies]
 axum.workspace = true
-sdkwork-iot-platform-service.workspace = true
-sdkwork-routes-iot-app-api.workspace = true
-sdkwork-routes-iot-backend-api.workspace = true
+sdkwork-aiot-gateway-assembly.workspace = true
 tokio.workspace = true

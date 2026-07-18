@@ -2123,9 +2123,7 @@ name = "sdkwork-aiot-standalone-gateway"
 version = "0.1.0"
 dependencies = [
  "axum",
- "sdkwork-iot-platform-service",
- "sdkwork-routes-iot-app-api",
- "sdkwork-routes-iot-backend-api",
+ "sdkwork-aiot-gateway-assembly",
  "tokio",
 ]
 

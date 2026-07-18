@@ -14,6 +14,7 @@ pub struct ApplicationAssembly {
 /// creates the app and admin API servers, and builds wrapped routers for both
 /// the app-api and backend-api surfaces.
 pub async fn assemble_application_router() -> Result<ApplicationAssembly, String> {
+    sdkwork_iot_platform_service::assert_production_environment_safety();
     let device_db_path = sdkwork_iot_platform_service::configured_device_db_path(
         "SDKWORK_AIOT_APPLICATION_GATEWAY_DEVICE_DB_PATH",
     );

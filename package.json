@@ -8,7 +8,8 @@
     "@sdkwork/app-topology": "workspace:*"
   },
   "scripts": {
-    "stop": "node ../sdkwork-specs/tools/stop-sdkwork-workspace-processes.mjs --workspace .",    "dev": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
+    "stop": "node ../sdkwork-specs/tools/stop-sdkwork-workspace-processes.mjs --workspace .",
+    "dev": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
     "dev:server:sqlite:split-services:standalone": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
     "dev:server:sqlite:split-services:cloud": "node scripts/aiot-dev.mjs --deployment-profile cloud --database sqlite --service-layout split-services",
     "start": "cargo run -p sdkwork-aiot-app-api",
@@ -87,7 +88,9 @@
     "gateway:run:standalone": "cargo run -p sdkwork-aiot-standalone-gateway --bin sdkwork-aiot-standalone-gateway",
     "gateway:build:standalone": "cargo build -p sdkwork-aiot-standalone-gateway --bin sdkwork-aiot-standalone-gateway",
     "gateway:package:standalone": "cargo build -p sdkwork-aiot-standalone-gateway --release --bin sdkwork-aiot-standalone-gateway",
-    "gateway:validate:standalone": "cargo check -p sdkwork-aiot-standalone-gateway"
+    "gateway:validate:standalone": "cargo check -p sdkwork-aiot-standalone-gateway",
+    "gateway:assembly:materialize": "node scripts/gateway/assembly-materialize.mjs",
+    "gateway:assembly:validate": "node scripts/gateway/assembly-validate.mjs"
   },
   "exports": {
     ".": {

@@ -1,8 +1,8 @@
 [package]
 name = "sdkwork-aiot-gateway-assembly"
 edition.workspace = true
-version.workspace = true
 license.workspace = true
+version.workspace = true
 description = "Generated gateway assembly for sdkwork-aiot application HTTP plane."
 
 [lib]
@@ -11,7 +11,7 @@ path = "src/lib.rs"
 
 [dependencies]
 axum.workspace = true
-tokio = { workspace = true }
-sdkwork_routes_iot_app_api = { package = "sdkwork-routes-iot-app-api", path = "../sdkwork-routes-iot-app-api" }
-sdkwork_routes_iot_backend_api = { package = "sdkwork-routes-iot-backend-api", path = "../sdkwork-routes-iot-backend-api" }
+tokio.workspace = true
 sdkwork-iot-platform-service = { workspace = true }
+sdkwork-routes-iot-app-api.workspace = true
+sdkwork-routes-iot-backend-api.workspace = true
