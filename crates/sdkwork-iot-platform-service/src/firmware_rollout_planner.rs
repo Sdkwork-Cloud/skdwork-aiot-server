@@ -140,8 +140,8 @@ mod tests {
                 .collect::<Vec<_>>();
             ids.sort();
             ids.dedup();
-            if let Some(limit) = limit {
-                ids.truncate(limit.max(0) as usize);
+            if let Some(page_size) = page_size {
+                ids.truncate(page_size.max(0) as usize);
             }
             Ok(ids)
         }

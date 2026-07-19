@@ -212,8 +212,8 @@ impl SqliteSqlxCredentialRepository {
                             .bind(&now)
                             .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        Ok::<Option<AiotStorageAssociation>, sqlx::Error>(
-                            rows.iter().find_map(|row| {
+                        Ok::<Option<AiotStorageAssociation>, sqlx::Error>(rows.iter().find_map(
+                            |row| {
                                 row.try_get::<String, _>("credential_hash")
                                     .ok()
                                     .filter(|stored| !stored.is_empty())
@@ -226,8 +226,8 @@ impl SqliteSqlxCredentialRepository {
                                             row.get("organization_id"),
                                         )
                                     })
-                            }),
-                        )
+                            },
+                        ))
                     }
                     DeviceDatabaseEngine::Postgres => {
                         let rows = sqlx::query(&sql)
@@ -236,8 +236,8 @@ impl SqliteSqlxCredentialRepository {
                             .bind(&now)
                             .fetch_all(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        Ok::<Option<AiotStorageAssociation>, sqlx::Error>(
-                            rows.iter().find_map(|row| {
+                        Ok::<Option<AiotStorageAssociation>, sqlx::Error>(rows.iter().find_map(
+                            |row| {
                                 row.try_get::<String, _>("credential_hash")
                                     .ok()
                                     .filter(|stored| !stored.is_empty())
@@ -250,8 +250,8 @@ impl SqliteSqlxCredentialRepository {
                                             row.get("organization_id"),
                                         )
                                     })
-                            }),
-                        )
+                            },
+                        ))
                     }
                 }
             })

@@ -1,13 +1,13 @@
 > Migrated from `docs/topology-standard.md` on 2026-06-24.
 > Owner: SDKWork maintainers
 
-Archetype: `application-rest-edge-device` (`specs/topology.spec.json`, `schemaVersion: 2`).
+Archetype: `application-rest-edge-device` (`specs/topology.spec.json`, `schemaVersion: 4`).
 
 Platform standard: `../sdkwork-specs/APP_RUNTIME_TOPOLOGY_ADOPTION.md`
 
 ## Default dev profile
 
-`standalone.split-services.development` — start the split-service stack with:
+`standalone.development` starts the standalone development stack with:
 
 ```bash
 pnpm dev
@@ -16,7 +16,7 @@ pnpm dev
 Cloud development profile:
 
 ```bash
-pnpm dev:server:sqlite:split-services:cloud
+pnpm dev:server:sqlite:cloud
 ```
 
 ## Surfaces
@@ -41,4 +41,3 @@ Validate:
 ```bash
 pnpm test:topology-validate
 ```
-

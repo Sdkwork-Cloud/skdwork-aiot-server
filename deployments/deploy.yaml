@@ -1,8 +1,8 @@
 version: 1
-defaultProfile: cloud.split-services.production
+defaultProfile: cloud.production
 
 profiles:
-  cloud.split-services.production:
+  cloud.production:
     install:
       layout: binary-package
     expose:
@@ -13,7 +13,7 @@ profiles:
     packages:
       - server
 
-  standalone.split-services.production:
+  standalone.production:
     install:
       layout: binary-package
     expose:
@@ -24,7 +24,7 @@ profiles:
     packages:
       - server
 
-  standalone.split-services.development:
+  standalone.development:
     expose:
       - domain: localhost
         tls: off

@@ -130,4 +130,4 @@ $env:SDKWORK_AIOT_TRUST_PROXY_HEADERS='1'   # appbase must send x-sdkwork-proxy-
 # Do NOT set SDKWORK_AIOT_DEV_MODE in production
 ```
 
-For cloud Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `configs/topology/cloud.split-services.production.env`).
+For cloud Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `configs/topology/cloud.production.env`).

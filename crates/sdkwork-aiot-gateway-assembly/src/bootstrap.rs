@@ -53,7 +53,54 @@ pub async fn assemble_application_router() -> Result<ApplicationAssembly, String
     let app_router = sdkwork_routes_iot_app_api::build_wrapped_app_api_router(app_server).await;
     let backend_router =
         sdkwork_routes_iot_backend_api::build_wrapped_backend_api_router(admin_server).await;
-    let router = Router::new().merge(app_router).merge(backend_router);
+    let router = compose_application_router(app_router, backend_router);
 
     Ok(ApplicationAssembly { router })
+}
+
+fn compose_application_router(app_router: Router, backend_router: Router) -> Router {
+    let app_service = app_router.into_service();
+    let backend_service = backend_router.into_service();
+
+    Router::new()
+        .route_service("/app/v3/api/iot", app_service.clone())
+        .route_service("/app/v3/api/iot/{*path}", app_service)
+        .route_service("/backend/v3/api/iot", backend_service.clone())
+        .route_service("/backend/v3/api/iot/{*path}", backend_service)
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{body::Body, http::Request, Router};
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+
+    use super::compose_application_router;
+
+    #[tokio::test]
+    async fn composition_preserves_both_fallback_dispatchers() {
+        let router = compose_application_router(
+            Router::new().fallback(|| async { "app" }),
+            Router::new().fallback(|| async { "backend" }),
+        );
+
+        assert_eq!(
+            response_body(&router, "/app/v3/api/iot/devices").await,
+            "app"
+        );
+        assert_eq!(
+            response_body(&router, "/backend/v3/api/iot/devices").await,
+            "backend",
+        );
+    }
+
+    async fn response_body(router: &Router, uri: &str) -> String {
+        let response = router
+            .clone()
+            .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        String::from_utf8(bytes.to_vec()).unwrap()
+    }
 }

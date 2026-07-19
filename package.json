@@ -9,9 +9,9 @@
   },
   "scripts": {
     "stop": "node ../sdkwork-specs/tools/stop-sdkwork-workspace-processes.mjs --workspace .",
-    "dev": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
-    "dev:server:sqlite:split-services:standalone": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite --service-layout split-services",
-    "dev:server:sqlite:split-services:cloud": "node scripts/aiot-dev.mjs --deployment-profile cloud --database sqlite --service-layout split-services",
+    "dev": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite",
+    "dev:server:sqlite:standalone": "node scripts/aiot-dev.mjs --deployment-profile standalone --database sqlite",
+    "dev:server:sqlite:cloud": "node scripts/aiot-dev.mjs --deployment-profile cloud --database sqlite",
     "start": "cargo run -p sdkwork-aiot-app-api",
     "build": "cargo build --release -p sdkwork-aiot-cloud-gateway -p sdkwork-aiot-app-api -p sdkwork-aiot-admin-api",
     "test": "node --test tests/aiot-workspace-standard.test.mjs && node --test scripts/dev/*.test.mjs && cargo test -p sdkwork-aiot-architecture && cargo test -p sdkwork-iot-platform-service",

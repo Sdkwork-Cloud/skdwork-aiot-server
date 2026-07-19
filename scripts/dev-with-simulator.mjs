@@ -12,8 +12,6 @@ const child = spawn(
     'standalone',
     '--database',
     'sqlite',
-    '--service-layout',
-    'split-services',
     '--with-simulator',
     ...process.argv.slice(2),
   ],

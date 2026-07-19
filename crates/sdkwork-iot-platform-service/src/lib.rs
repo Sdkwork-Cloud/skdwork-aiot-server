@@ -395,9 +395,7 @@ fn proxy_header_context_authorized(request: &HttpRequest) -> Result<(), HttpResp
 fn resolve_protected_context_from_proxy_headers(
     request: &HttpRequest,
 ) -> Result<AiotRequestContext, HttpResponse> {
-    if let Err(response) = proxy_header_context_authorized(request) {
-        return Err(response);
-    }
+    proxy_header_context_authorized(request)?;
 
     let tenant_id = required_header(request, "x-sdkwork-tenant-id").map_err(|_| {
         problem_response(
@@ -1138,7 +1136,7 @@ pub fn standard_api_route_contracts() -> Vec<AiotApiRouteContract> {
             surface: AiotApiSurface::Admin,
             method: "DELETE",
             path: "/backend/v3/api/iot/devices/{deviceId}/sessions/{sessionId}",
-            operation_id: "devices.sessions.disconnect",
+            operation_id: "devices.sessions.delete",
             required_permission: IOT_PERMISSION_SESSIONS_DISCONNECT,
         },
         AiotApiRouteContract {
@@ -2980,7 +2978,7 @@ pub fn handle_resolved_api_request(
                 Err(problem) => problem,
             }
         }
-        (AiotApiSurface::Admin, "devices.sessions.disconnect") => {
+        (AiotApiSurface::Admin, "devices.sessions.delete") => {
             let Some(context) = request_context else {
                 return problem_response(
                     HttpStatus::Forbidden,

@@ -18,14 +18,9 @@ pub struct BlockingSqlitePool {
 
 impl BlockingSqlitePool {
     fn build_runtime() -> Result<Arc<Runtime>, StorageSqliteError> {
-        Ok(Arc::new(
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .map_err(|error| {
-                    StorageSqliteError::Configuration(format!("tokio runtime: {error}").into())
-                })?,
-        ))
+        crate::runtime_bridge::shared_runtime().map_err(|error| {
+            StorageSqliteError::Configuration(format!("tokio runtime: {error}").into())
+        })
     }
 
     pub fn from_pool(pool: SqlitePool) -> Result<Self, StorageSqliteError> {
@@ -35,7 +30,7 @@ impl BlockingSqlitePool {
 
     pub fn connect(url: &str) -> Result<Self, StorageSqliteError> {
         let runtime = Self::build_runtime()?;
-        let pool = runtime.block_on(SqlitePool::connect(url))?;
+        let pool = crate::runtime_bridge::block_on(&runtime, SqlitePool::connect(url))?;
         Ok(Self { pool, runtime })
     }
 
@@ -47,14 +42,14 @@ impl BlockingSqlitePool {
     where
         F: Future<Output = T>,
     {
-        self.runtime.block_on(future)
+        crate::runtime_bridge::block_on(&self.runtime, future)
     }
 
     pub fn run<F, T, E>(&self, future: F) -> Result<T, E>
     where
         F: Future<Output = Result<T, E>>,
     {
-        self.runtime.block_on(future)
+        crate::runtime_bridge::block_on(&self.runtime, future)
     }
 
     pub fn execute_batch_sql(&self, sql: &str) -> Result<(), StorageSqliteError> {
@@ -160,4 +155,19 @@ pub fn read_optional_timestamp_column(
         return Ok(None);
     }
     read_timestamp_column(row, index).map(Some)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BlockingSqlitePool;
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn blocking_facade_is_safe_inside_a_multithread_runtime() -> Result<(), sqlx::Error> {
+        let database = BlockingSqlitePool::connect("sqlite::memory:")?;
+        let value =
+            database.run(sqlx::query_scalar::<_, i64>("SELECT 1").fetch_one(database.pool()))?;
+
+        assert_eq!(value, 1);
+        Ok(())
+    }
 }

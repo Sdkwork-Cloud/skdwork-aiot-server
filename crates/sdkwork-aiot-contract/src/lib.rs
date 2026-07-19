@@ -459,7 +459,7 @@ pub fn standard_api_surfaces() -> Vec<AiotApiSurface> {
                 "hardwareProfiles.list",
                 "protocolProfiles.list",
                 "capabilityModels.retrieve",
-                "devices.sessions.disconnect",
+                "devices.sessions.delete",
                 "devices.commands.cancel",
                 "devices.credentials.create",
                 "firmwareRollouts.create",

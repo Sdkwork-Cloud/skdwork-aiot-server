@@ -15,6 +15,7 @@ mod outbox;
 mod outbox_worker;
 mod persisted_entity;
 mod postgres_sync;
+mod runtime_bridge;
 mod row_decode;
 mod row_id_allocator;
 mod schema;

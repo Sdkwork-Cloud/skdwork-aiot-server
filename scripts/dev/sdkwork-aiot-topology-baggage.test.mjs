@@ -115,9 +115,9 @@ for (const { id, pattern } of bannedPatterns) {
 
 assert.ok(fs.existsSync(path.join(repoRoot, 'specs/topology.spec.json')), 'topology spec required');
 const spec = readJson('specs/topology.spec.json');
-assert.equal(spec.schemaVersion, 2);
+assert.equal(spec.schemaVersion, 4);
 assert.equal(spec.archetype, 'application-rest-edge-device');
-assert.equal(spec.defaults.developmentProfileId, 'standalone.split-services.development');
+assert.equal(spec.defaults.developmentProfileId, 'standalone.development');
 assert.ok(spec.surfaces['application.app-http']);
 assert.ok(spec.surfaces['application.admin-http']);
 assert.ok(spec.surfaces['edge.device-ingress']);
@@ -186,7 +186,7 @@ assert.ok(
 const { loadProfile, resolveSurfaceHttpUrl } = await import(
   pathToFileURL(path.join(repoRoot, 'scripts/lib/aiot-topology.mjs')).href
 );
-const devProfileEnv = loadProfile('standalone.split-services.development');
+const devProfileEnv = loadProfile('standalone.development');
 assert.equal(
   resolveSurfaceHttpUrl(devProfileEnv, 'application.app-http'),
   'http://127.0.0.1:18082',

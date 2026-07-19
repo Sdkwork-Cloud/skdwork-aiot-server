@@ -18,14 +18,9 @@ pub struct BlockingPostgresPool {
 
 impl BlockingPostgresPool {
     fn build_runtime() -> Result<Arc<Runtime>, StoragePostgresError> {
-        Ok(Arc::new(
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .map_err(|error| {
-                    StoragePostgresError::Configuration(format!("tokio runtime: {error}").into())
-                })?,
-        ))
+        crate::runtime_bridge::shared_runtime().map_err(|error| {
+            StoragePostgresError::Configuration(format!("tokio runtime: {error}").into())
+        })
     }
 
     pub fn from_pool(pool: PgPool) -> Result<Self, StoragePostgresError> {
@@ -35,7 +30,7 @@ impl BlockingPostgresPool {
 
     pub fn connect(url: &str) -> Result<Self, StoragePostgresError> {
         let runtime = Self::build_runtime()?;
-        let pool = runtime.block_on(PgPool::connect(url))?;
+        let pool = crate::runtime_bridge::block_on(&runtime, PgPool::connect(url))?;
         Ok(Self { pool, runtime })
     }
 
@@ -47,14 +42,14 @@ impl BlockingPostgresPool {
     where
         F: Future<Output = T>,
     {
-        self.runtime.block_on(future)
+        crate::runtime_bridge::block_on(&self.runtime, future)
     }
 
     pub fn run<F, T, E>(&self, future: F) -> Result<T, E>
     where
         F: Future<Output = Result<T, E>>,
     {
-        self.runtime.block_on(future)
+        crate::runtime_bridge::block_on(&self.runtime, future)
     }
 
     pub fn execute_batch_sql(&self, sql: &str) -> Result<(), StoragePostgresError> {

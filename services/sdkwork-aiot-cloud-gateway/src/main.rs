@@ -1182,8 +1182,10 @@ fn handle_xiaozhi_websocket_session(
     let (command_outbound_tx, command_outbound_rx) =
         std::sync::mpsc::channel::<Vec<WebSocketSessionReply>>();
     if !device_id.is_empty() {
-        let association =
-            sdkwork_aiot_cloud_gateway::resolve_device_storage_association(request, session_options);
+        let association = sdkwork_aiot_cloud_gateway::resolve_device_storage_association(
+            request,
+            session_options,
+        );
         register_active_ws_session(&device_id, &session_id, command_outbound_tx, association);
     }
 

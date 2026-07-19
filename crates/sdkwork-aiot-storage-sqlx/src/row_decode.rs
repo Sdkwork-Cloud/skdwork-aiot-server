@@ -42,7 +42,10 @@ pub fn read_postgres_optional_timestamp(
     if row.try_get::<Option<i64>, _>(column)?.is_some() {
         return read_postgres_timestamp(row, column).map(Some);
     }
-    if row.try_get::<Option<chrono::NaiveDateTime>, _>(column)?.is_some() {
+    if row
+        .try_get::<Option<chrono::NaiveDateTime>, _>(column)?
+        .is_some()
+    {
         return read_postgres_timestamp(row, column).map(Some);
     }
     Ok(None)

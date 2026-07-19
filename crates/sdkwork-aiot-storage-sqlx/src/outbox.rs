@@ -272,30 +272,28 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                          WHERE tenant_id = ?4 AND event_id = ?5 AND status = ?6",
                     );
                     let changed: i64 = match &mut tx {
-                        DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query(&update_sql)
-                                .bind(next_attempt)
-                                .bind(next_attempt_at)
-                                .bind(status)
-                                .bind(tenant_id)
-                                .bind(&event_id)
-                                .bind(OUTBOX_STATUS_CLAIMED)
-                                .execute(&mut **connection)
-                                .await?
-                                .rows_affected() as i64
-                        }
-                        DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query(&update_sql)
-                                .bind(next_attempt)
-                                .bind(next_attempt_at)
-                                .bind(status)
-                                .bind(tenant_id)
-                                .bind(&event_id)
-                                .bind(OUTBOX_STATUS_CLAIMED)
-                                .execute(&mut **connection)
-                                .await?
-                                .rows_affected() as i64
-                        }
+                        DeviceDbTransaction::Sqlite(connection) => sqlx::query(&update_sql)
+                            .bind(next_attempt)
+                            .bind(next_attempt_at)
+                            .bind(status)
+                            .bind(tenant_id)
+                            .bind(&event_id)
+                            .bind(OUTBOX_STATUS_CLAIMED)
+                            .execute(&mut **connection)
+                            .await?
+                            .rows_affected()
+                            as i64,
+                        DeviceDbTransaction::Postgres(connection) => sqlx::query(&update_sql)
+                            .bind(next_attempt)
+                            .bind(next_attempt_at)
+                            .bind(status)
+                            .bind(tenant_id)
+                            .bind(&event_id)
+                            .bind(OUTBOX_STATUS_CLAIMED)
+                            .execute(&mut **connection)
+                            .await?
+                            .rows_affected()
+                            as i64,
                     };
                     Ok(changed)
                 })

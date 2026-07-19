@@ -29,8 +29,8 @@ Upload each archive and SBOM to the URL declared in `sdkwork.app.config.json`.
 
 | Profile | Env template | Database |
 | --- | --- | --- |
-| Self-hosted production | `configs/topology/standalone.split-services.production.env` | SQLite file (`SDKWORK_AIOT_DEVICE_DB_PATH`) |
-| Cloud production | `configs/topology/cloud.split-services.production.env` | Postgres (`SDKWORK_AIOT_DEVICE_DATABASE_*`) |
+| Standalone production | `configs/topology/standalone.production.env` | SQLite file (`SDKWORK_AIOT_DEVICE_DB_PATH`) |
+| Cloud production | `configs/topology/cloud.production.env` | Postgres (`SDKWORK_AIOT_DEVICE_DATABASE_*`) |
 
 Replace every `DEPLOY_INJECT:` placeholder before starting services.
 
@@ -60,8 +60,8 @@ Gateway device auth:
 
 `deployments/deploy.yaml` maps topology profiles to install layout and public exposure:
 
-- `cloud.split-services.production` — CDN/binary package + `aiot.sdkwork.com`
-- `standalone.split-services.production` — on-prem binary package + local domain
+- `cloud.production` - CDN/binary package + `aiot.sdkwork.com`
+- `standalone.production` - on-prem binary package + local domain
 
 ## Post-Deploy Verification
 

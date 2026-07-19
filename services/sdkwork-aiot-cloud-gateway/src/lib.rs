@@ -2747,9 +2747,7 @@ pub fn assert_production_environment_safety() {
     ] {
         let value = std::env::var(key).unwrap_or_default();
         if value.trim().len() < 8 {
-            eprintln!(
-                "FATAL: {key} must be set for production intelligence ({label})"
-            );
+            eprintln!("FATAL: {key} must be set for production intelligence ({label})");
             std::process::exit(1);
         }
     }

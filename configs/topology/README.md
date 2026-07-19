@@ -1,6 +1,6 @@
 # AIoT topology profiles
 
-Machine contract: `specs/topology.spec.json` (`schemaVersion: 2`, archetype `application-rest-edge-device`).
+Machine contract: `specs/topology.spec.json` (`schemaVersion: 4`, archetype `application-rest-edge-device`).
 
 Platform standard: `../../sdkwork-specs/APP_RUNTIME_TOPOLOGY_ADOPTION.md`
 
@@ -8,10 +8,10 @@ Platform standard: `../../sdkwork-specs/APP_RUNTIME_TOPOLOGY_ADOPTION.md`
 
 | Profile id | Command |
 | --- | --- |
-| `standalone.split-services.development` | `pnpm dev` |
-| `cloud.split-services.development` | `pnpm dev:server:sqlite:split-services:cloud` |
-| `standalone.split-services.production` | on-prem release wiring |
-| `cloud.split-services.production` | SaaS release wiring |
+| `standalone.development` | `pnpm dev` |
+| `cloud.development` | `pnpm dev:server:sqlite:cloud` |
+| `standalone.production` | on-prem release wiring |
+| `cloud.production` | SaaS release wiring |
 
 Loader: `scripts/lib/aiot-topology.mjs` → `@sdkwork/app-topology`.
 

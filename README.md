@@ -37,7 +37,7 @@ Inactive standard directories are documented rather than omitted without explana
 
 ## Development (topology v2)
 
-Default profile: `standalone.split-services.development` (`specs/topology.spec.json`).
+Default profile: `standalone.development` (`specs/topology.spec.json`).
 
 ```bash
 pnpm dev
@@ -46,7 +46,7 @@ pnpm dev
 Cloud development profile:
 
 ```bash
-pnpm dev:server:sqlite:split-services:cloud
+pnpm dev:server:sqlite:cloud
 ```
 
 Include the Xiaozhi simulator UI:

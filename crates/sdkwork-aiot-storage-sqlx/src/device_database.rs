@@ -112,10 +112,7 @@ mod device_database_tests {
             ))
             .expect("create device");
         let listed = device_repo
-            .list_devices(
-                &association,
-                OffsetListPageParams::parse(Some(1), Some(20)),
-            )
+            .list_devices(&association, OffsetListPageParams::parse(Some(1), Some(20)))
             .expect("list devices");
         assert!(listed
             .items

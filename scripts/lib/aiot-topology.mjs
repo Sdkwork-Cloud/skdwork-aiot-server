@@ -2,7 +2,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  buildProfileId,
   createTopologyRuntime,
   isTcpPortReachable,
   loadTopologySpec,
@@ -28,18 +27,12 @@ const runtime = createTopologyRuntime(spec, REPO_ROOT);
 export const DEFAULT_DEV_PROFILE_ID = runtime.defaults.developmentProfileId;
 export const DEFAULT_PRODUCTION_PROFILE_ID = runtime.defaults.productionProfileId;
 
-export function resolveDevProfileId(hosting, serviceLayout = 'split-services') {
-  runtime.assertHosting(hosting);
-  runtime.assertServiceLayout(serviceLayout);
-  return buildProfileId(hosting, serviceLayout, 'development');
-}
-
-export function resolveHostingFromDeploymentProfile(deploymentProfile) {
+export function resolveDevProfileFromDeploymentProfile(deploymentProfile) {
   switch (deploymentProfile) {
     case 'standalone':
-      return 'self-hosted';
+      return 'standalone.development';
     case 'cloud':
-      return 'cloud-hosted';
+      return 'cloud.development';
     default:
       throw new Error(
         `unsupported deployment profile "${deploymentProfile}"; use standalone or cloud`,
@@ -47,22 +40,10 @@ export function resolveHostingFromDeploymentProfile(deploymentProfile) {
   }
 }
 
-export function resolveDevProfileFromDeploymentProfile(
-  deploymentProfile,
-  serviceLayout = 'split-services',
-) {
-  return resolveDevProfileId(
-    resolveHostingFromDeploymentProfile(deploymentProfile),
-    serviceLayout,
-  );
-}
-
 export const loadProfile = runtime.loadProfile;
 export const applyProfileEnv = runtime.applyProfileEnv;
 export const mergeRuntimeEnv = runtime.mergeRuntimeEnv;
 export const loadEnvFile = runtime.loadEnvFile;
-export const assertHosting = runtime.assertHosting;
-export const assertServiceLayout = runtime.assertServiceLayout;
 export const resolveSurfaceHttpUrl = runtime.resolveSurfaceHttpUrl.bind(runtime);
 export const resolveSurfaceBind = runtime.resolveSurfaceBind.bind(runtime);
 export const shouldAutostartGateway = runtime.shouldAutostartGateway;
@@ -72,4 +53,4 @@ export const resolveIamDevEnv = runtime.resolveIamDevEnv;
 export const listOrchestrationProcesses = runtime.listOrchestrationProcesses;
 export const listHealthSurfaces = runtime.listHealthSurfaces;
 
-export { buildProfileId, normalizeText, isTcpPortReachable, waitForHttpHealthy, spec, runtime };
+export { normalizeText, isTcpPortReachable, waitForHttpHealthy, spec, runtime };

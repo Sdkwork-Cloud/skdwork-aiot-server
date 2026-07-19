@@ -1012,7 +1012,7 @@
       },
       "handler": {
         "module": "sdkwork_iot_platform_service",
-        "name": "devices.sessions.disconnect"
+        "name": "devices.sessions.delete"
       },
       "method": "DELETE",
       "operationId": "devices.sessions.delete",

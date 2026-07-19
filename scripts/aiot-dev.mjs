@@ -40,7 +40,6 @@ function cargoCommand() {
 function parseArgs(argv) {
   const settings = {
     deploymentProfile: 'standalone',
-    serviceLayout: 'split-services',
     database: 'sqlite',
     withSimulator: false,
     dryRun: false,
@@ -59,9 +58,9 @@ function parseArgs(argv) {
       continue;
     }
     if (arg === '--service-layout') {
-      settings.serviceLayout = argv[index + 1] ?? settings.serviceLayout;
-      index += 1;
-      continue;
+      throw new Error(
+        '--service-layout is retired; use --deployment-profile standalone or --deployment-profile cloud',
+      );
     }
     if (arg === '--database') {
       settings.database = argv[index + 1] ?? settings.database;
@@ -97,7 +96,6 @@ Topology-aware AIoT dev entry. Loads configs/topology profile env via @sdkwork/a
 
 Options:
   --deployment-profile <standalone|cloud>           Default: standalone
-  --service-layout <split-services>                 Default: split-services
   --database <sqlite|postgres>                      Default: sqlite
   --with-simulator                                  Also start sdkwork-aiot-xiaozhi-simulator-ui
   --dry-run                                         Print plan without executing
@@ -241,7 +239,6 @@ async function main() {
 
   const profileId = resolveDevProfileFromDeploymentProfile(
     settings.deploymentProfile,
-    settings.serviceLayout,
   ) || DEFAULT_DEV_PROFILE_ID;
   const profileEnv = loadProfile(profileId);
   const runtimeEnv = mergeDeviceDatabaseEnv(

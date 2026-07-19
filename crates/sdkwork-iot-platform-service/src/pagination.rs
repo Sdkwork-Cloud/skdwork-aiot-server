@@ -9,13 +9,14 @@ pub fn page_params_from_request(
 ) -> Result<OffsetListPageParams, SdkWorkResultCode> {
     let page = request
         .query_param("page")
-        .or_else(|| request.query_param("pageNo"))
-        .or_else(|| request.query_param("page_no"))
-        .and_then(|value| value.parse::<i64>().ok());
+        .map(str::parse::<i64>)
+        .transpose()
+        .map_err(|_| SdkWorkResultCode::InvalidParameter)?;
     let page_size = request
         .query_param("page_size")
-        .or_else(|| request.query_param("pageSize"))
-        .and_then(|value| value.parse::<i64>().ok());
+        .map(str::parse::<i64>)
+        .transpose()
+        .map_err(|_| SdkWorkResultCode::InvalidParameter)?;
     validated_offset_list_params(page, page_size)
 }
 
@@ -35,7 +36,16 @@ mod tests {
 
     #[test]
     fn page_params_reject_page_size_above_max() {
-        let request = HttpRequest::new("GET", "/items?page_size=201");
+        let request = HttpRequest::new("GET", "/items").with_query_param("page_size", "201");
+        assert_eq!(
+            page_params_from_request(&request),
+            Err(SdkWorkResultCode::InvalidParameter)
+        );
+    }
+
+    #[test]
+    fn page_params_reject_non_numeric_values() {
+        let request = HttpRequest::new("GET", "/items").with_query_param("page", "first");
         assert_eq!(
             page_params_from_request(&request),
             Err(SdkWorkResultCode::InvalidParameter)

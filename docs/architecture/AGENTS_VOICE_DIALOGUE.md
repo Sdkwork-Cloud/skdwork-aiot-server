@@ -38,7 +38,7 @@ flowchart LR
 
 ## Environment Keys
 
-Set in `configs/topology/standalone.split-services.development.env` or app `.env.example`:
+Set in `configs/topology/standalone.development.env` or app `.env.example`:
 
 ```env
 VITE_SDKWORK_AGENTS_APP_API_BASE_URL=http://127.0.0.1:8095

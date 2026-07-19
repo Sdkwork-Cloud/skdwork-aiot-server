@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use sdkwork_aiot_storage::AiotStorageAssociation;
 use crate::WebSocketSessionReply;
+use sdkwork_aiot_storage::AiotStorageAssociation;
 
 #[derive(Debug)]
 struct ActiveWsSession {
@@ -82,6 +82,7 @@ pub fn active_ws_sessions() -> Vec<(String, AiotStorageAssociation)> {
         .unwrap_or_default()
 }
 
+#[cfg(test)]
 pub fn active_ws_device_ids() -> Vec<String> {
     active_ws_sessions()
         .into_iter()
@@ -97,7 +98,12 @@ mod tests {
     fn register_and_push_roundtrip() {
         unregister_active_ws_session("dev-test");
         let (sender, receiver) = std::sync::mpsc::channel();
-        register_active_ws_session("dev-test", "session-test", sender, AiotStorageAssociation::default());
+        register_active_ws_session(
+            "dev-test",
+            "session-test",
+            sender,
+            AiotStorageAssociation::default(),
+        );
         assert!(push_ws_command_replies(
             "dev-test",
             vec![WebSocketSessionReply::Text(
@@ -106,6 +112,7 @@ mod tests {
         ));
         let replies = receiver.recv().expect("outbound");
         assert_eq!(replies.len(), 1);
+        assert_eq!(active_ws_device_ids(), vec!["dev-test"]);
         unregister_active_ws_session("dev-test");
     }
 }

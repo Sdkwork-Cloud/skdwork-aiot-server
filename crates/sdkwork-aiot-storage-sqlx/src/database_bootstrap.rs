@@ -128,9 +128,10 @@ pub fn aiot_device_blocking_pool_from_env(
     let config = resolve_device_database_config_from_env(device_db_path)?;
     match config.engine {
         DatabaseEngine::Sqlite => {
-            let runtime = tokio::runtime::Runtime::new()
+            let runtime = crate::runtime_bridge::shared_runtime()
                 .map_err(|error| PoolError::DatabaseConfig(format!("tokio runtime: {error}")))?;
-            let database_pool = runtime.block_on(create_pool_from_config(config))?;
+            let database_pool =
+                crate::runtime_bridge::block_on(&runtime, create_pool_from_config(config))?;
             let sqlite_pool = database_pool.as_sqlite().ok_or_else(|| {
                 PoolError::DatabaseConfig("AIoT device database requires SQLite engine".to_owned())
             })?;
@@ -139,9 +140,10 @@ pub fn aiot_device_blocking_pool_from_env(
                 .map_err(PoolError::PoolCreation)
         }
         DatabaseEngine::Postgres => {
-            let runtime = tokio::runtime::Runtime::new()
+            let runtime = crate::runtime_bridge::shared_runtime()
                 .map_err(|error| PoolError::DatabaseConfig(format!("tokio runtime: {error}")))?;
-            let database_pool = runtime.block_on(create_pool_from_config(config))?;
+            let database_pool =
+                crate::runtime_bridge::block_on(&runtime, create_pool_from_config(config))?;
             let postgres_pool = database_pool.as_postgres().ok_or_else(|| {
                 PoolError::DatabaseConfig(
                     "AIoT device database requires Postgres engine".to_owned(),
