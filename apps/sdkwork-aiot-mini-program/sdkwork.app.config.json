@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 3,
+  "kind": "sdkwork.app",
+  "app": {
+    "key": "sdkwork-aiot-mini-program",
+    "name": "SDKWork AIoT Mini Program",
+    "displayName": "SDKWork AIoT Mini Program",
+    "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-aiot",
+    "appType": "APP_UNIAPP"
+  },
+  "backend": {},
+  "runtime": {
+    "family": "mini-program",
+    "framework": "mp-weixin",
+    "supportedDeploymentProfiles": ["standalone", "cloud"],
+    "defaultDeploymentProfile": "standalone"
+  },
+  "media": {
+    "icons": {
+      "primary": {
+        "id": "sdkwork-aiot-mini-program-primary-icon",
+        "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/assets/icon-1024.png",
+        "metadata": { "generatedPlaceholder": true }
+      },
+      "platform": []
+    },
+    "screenshots": [],
+    "previews": []
+  },
+  "publish": {
+    "status": "DRAFT",
+    "platforms": ["MP_WEIXIN"],
+    "installPlatforms": ["MP_WEIXIN"],
+    "defaultPackageId": "mp-weixin-universal-standalone-mini-program-package",
+    "stores": []
+  },
+  "artifacts": {
+    "installConfig": {
+      "defaultPackageId": "mp-weixin-universal-standalone-mini-program-package",
+      "packages": [
+        {
+          "id": "mp-weixin-universal-standalone-mini-program-package",
+          "name": "SDKWork AIoT Standalone WeChat Mini Program",
+          "sourceType": "MINI_PROGRAM",
+          "packageFormat": "MINI_PROGRAM_PACKAGE",
+          "platform": "MP_WEIXIN",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-mp-weixin-universal-standalone-mini-program-package-0.1.0.zip",
+          "enabled": false,
+          "metadata": {
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-aiot",
+            "requiresWeChatDevTools": true,
+            "requiresStoreApproval": true
+          },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "profileBinding": "fixed",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "mini-program",
+          "targetPlatform": "mp-weixin",
+          "clientArchitecture": "mini-program"
+        },
+        {
+          "id": "mp-weixin-universal-cloud-mini-program-package",
+          "name": "SDKWork AIoT Cloud WeChat Mini Program",
+          "sourceType": "MINI_PROGRAM",
+          "packageFormat": "MINI_PROGRAM_PACKAGE",
+          "platform": "MP_WEIXIN",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-mp-weixin-universal-cloud-mini-program-package-0.1.0.zip",
+          "enabled": false,
+          "metadata": {
+            "releaseBuildDeferred": true,
+            "releaseAuthority": "sdkwork-aiot",
+            "requiresWeChatDevTools": true,
+            "requiresStoreApproval": true
+          },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "profileBinding": "fixed",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "mini-program",
+          "targetPlatform": "mp-weixin",
+          "clientArchitecture": "mini-program"
+        }
+      ]
+    }
+  },
+  "release": {
+    "currentVersion": "0.1.0",
+    "defaultChannel": "STABLE",
+    "latest": { "STABLE": "0.1.0" },
+    "notes": [
+      {
+        "version": "0.1.0",
+        "packageIds": [
+          "mp-weixin-universal-standalone-mini-program-package",
+          "mp-weixin-universal-cloud-mini-program-package"
+        ],
+        "current": true
+      }
+    ]
+  },
+  "security": {
+    "checksumRequired": true,
+    "signatureRequired": true,
+    "sbomRequired": true
+  },
+  "metadata": {
+    "standardOwner": "sdkwork-aiot",
+    "deploymentConfig": "etc/sdkwork.deployment.config.json"
+  }
+}

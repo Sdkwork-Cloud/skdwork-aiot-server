@@ -1,6 +1,6 @@
 # SDKWork AIoT Server Component Specs
 
-This component is the SDKWork AIoT server foundation. It is designed as a reusable Rust component first and service binaries second.
+This contract describes the SDKWork AIoT application root and its canonical runtime composition.
 
 ## Boundary
 
@@ -15,8 +15,9 @@ AIoT stores only IAM association fields such as `tenant_id`, `organization_id`, 
 
 ## Integration Modes
 
-- Embedded library: host applications build `AiotRuntime` and mount selected routes/listeners.
-- Standalone server: `services/sdkwork-aiot-*` binaries assemble the same runtime builder and expose configured routes.
+- API assembly: `sdkwork-api-aiot-assembly` composes every AIoT app-api and backend-api route.
+- Standalone ingress: `sdkwork-api-aiot-standalone-gateway` is the only application HTTP listener.
+- Device edge runtime: `sdkwork-aiot-device-edge-runtime` owns WebSocket, MQTT, UDP, OTA, and device sessions, but no application HTTP APIs.
 - Plugin protocol: xiaozhi and future protocols register as protocol adapters; core domain models stay protocol-neutral.
 
 ## Protocol Plugin Standard
@@ -40,8 +41,8 @@ Runtime registration uses the manifest plus `AiotProtocolRoute` metadata. The ru
 
 ## Runtime Topology
 
-- Machine contract: `topology.spec.json` (`schemaVersion: 2`, archetype `application-rest-edge-device`)
-- Profile env: `../configs/topology/*.env`
+- Machine contract: `topology.spec.json` (`schemaVersion: 5`, archetype `application-rest-edge-device`)
+- Profile env: `../etc/topology/*.env`
 - Human summary: `../docs/topology-standard.md`
 - Dev entry: `pnpm dev`
 
@@ -73,7 +74,8 @@ Client firmware and media uploads use `@sdkwork/drive-app-sdk` (`client.uploader
 ## Project Structure
 
 - Shared Rust libraries live under `crates/`, including contracts, protocol, runtime, storage, security, observability, transport, HTTP routers, architecture checks, and the `sdkwork-aiot-adapter-xiaozhi` compatibility plugin.
-- Runnable services live under `services/`: `sdkwork-aiot-cloud-gateway`, `sdkwork-aiot-admin-api`, and `sdkwork-aiot-app-api`.
+- Application HTTP composition lives under `crates/sdkwork-api-aiot-assembly` and `crates/sdkwork-api-aiot-standalone-gateway`.
+- Runnable protocol services under `services/` are `sdkwork-aiot-device-edge-runtime` and the development-only Xiaozhi simulator.
 - Tests are colocated in each crate or service under `tests/`, usually with `*_standard.rs` names.
 - Generated or packaged SDK artifacts live under `sdks/`; design and planning notes live under `docs/`.
 - The `external/` tree contains reference projects and submodules and should not be edited for normal product changes.
@@ -81,19 +83,19 @@ Client firmware and media uploads use `@sdkwork/drive-app-sdk` (`client.uploader
 ## Build, Test, and Development Commands
 
 - `pnpm dev`: topology-aware dev entry for the default `standalone.development` profile.
-- `pnpm dev:server:cloud`: cloud deployment profile dev workflow.
+- `pnpm dev:cloud`: remote-client-only cloud development workflow.
 - `pnpm check`: workspace standard, database, API, SDK, topology, drive, api-envelope, pagination, app-sdk-consumer-imports, Rust fmt, and clippy gates.
 - `pnpm verify`: `pnpm check` plus `cargo test --workspace`.
 - `pnpm release:build` / `pnpm release:package` / `pnpm release:validate` / `pnpm release:publish` / `pnpm release:preflight`: server release binaries, CDN-aligned archives, SBOM evidence, and unified preflight gate.
 - `pnpm test:topology-validate`: validate `specs/topology.spec.json`.
 - `pnpm test:topology-baggage`: scan active paths for retired topology vocabulary.
 - `cargo build --workspace`: compile all workspace crates and services.
-- `cargo test -p sdkwork-aiot-cloud-gateway`: run tests for one package.
+- `cargo test -p sdkwork-aiot-device-edge-runtime`: run tests for one package.
 - Optional persistent device DB: `$env:SDKWORK_AIOT_DEVICE_DB_PATH='D:\\data\\aiot-device.db'`.
 
 ## Testing Guidelines
 
-Use Rust integration tests in each package's `tests/` directory. Name test files by behavior or standard surface, for example `xiaozhi_standard.rs`, `gateway_standard.rs`, or `transport_standard.rs`. Add focused tests for protocol compatibility, gateway routing, adapter parsing, and error cases before changing behavior. Run the narrow package test first, then `cargo test --workspace` before opening a pull request.
+Use Rust integration tests in each package's `tests/` directory. Name test files by behavior or standard surface, for example `xiaozhi_standard.rs`, `device_edge_runtime_standard.rs`, or `transport_standard.rs`. Add focused tests for protocol compatibility, application assembly routing, adapter parsing, and error cases before changing behavior. Run the narrow package test first, then `cargo test --workspace` before opening a pull request.
 
 ## Security and Configuration
 

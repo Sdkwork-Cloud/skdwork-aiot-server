@@ -1,6 +1,7 @@
 # Crates
 
-Rust libraries for the SDKWork AIoT server workspace.
+Rust libraries and responsibility-specific runtime crates for the SDKWork AIoT
+server workspace.
 
 | Crate family | Responsibility |
 | --- | --- |
@@ -19,5 +20,8 @@ Rust libraries for the SDKWork AIoT server workspace.
 | `sdkwork-aiot-security` | Device and platform security helpers |
 | `sdkwork-aiot-observability` | Logs, metrics, and trace fields |
 | `sdkwork-aiot-architecture` | Architecture guard tests |
+| `sdkwork-aiot-device-edge-runtime` | WebSocket/MQTT/UDP device protocol ingress and operations-only health endpoints |
 
-Runnable binaries live under `services/`.
+Application HTTP ingress is owned only by
+`sdkwork-api-aiot-standalone-gateway`. Development-only simulator processes
+remain under `services/`.

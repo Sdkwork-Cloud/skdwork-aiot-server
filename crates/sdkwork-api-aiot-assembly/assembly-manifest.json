@@ -14,7 +14,7 @@
       "pathPrefix": null,
       "mountOrder": 0,
       "componentRef": "crates/sdkwork-routes-iot-app-api/specs/component.spec.json",
-      "routeManifestRef": "crates/sdkwork-routes-iot-app-api/sdks/_route-manifests/app-api/sdkwork-routes-iot-app-api.route-manifest.json",
+      "routeManifestRef": "sdks/_route-manifests/app-api/sdkwork-aiot-app-api.route-manifest.json",
       "sourceRef": "crates/sdkwork-routes-iot-app-api/Cargo.toml"
     },
     {
@@ -25,7 +25,7 @@
       "pathPrefix": null,
       "mountOrder": 1,
       "componentRef": "crates/sdkwork-routes-iot-backend-api/specs/component.spec.json",
-      "routeManifestRef": "crates/sdkwork-routes-iot-backend-api/sdks/_route-manifests/backend-api/sdkwork-routes-iot-backend-api.route-manifest.json",
+      "routeManifestRef": "sdks/_route-manifests/backend-api/sdkwork-aiot-admin-api.route-manifest.json",
       "sourceRef": "crates/sdkwork-routes-iot-backend-api/Cargo.toml"
     }
   ]

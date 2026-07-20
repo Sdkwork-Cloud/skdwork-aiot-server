@@ -18,19 +18,18 @@ test('docs index registry paths resolve', () => {
   assert.match(result.stdout, /validate-docs-index\] ok/u);
 });
 
-test('release preflight script wires production gates', () => {
+test('release preflight delegates to the workflow facade and stays draft fail-closed', () => {
   const packageJson = JSON.parse(
     fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'),
   );
   assert.match(
     packageJson.scripts?.['release:preflight'] ?? '',
-    /release-preflight\.mjs/u,
+    /sdkwork-app release:preflight/u,
   );
-  const script = fs.readFileSync(
-    path.join(repoRoot, 'scripts/release-preflight.mjs'),
-    'utf8',
-  );
-  assert.match(script, /deploy:validate/u);
-  assert.match(script, /release:validate/u);
-  assert.match(script, /release:publish/u);
+  const workflow = JSON.parse(fs.readFileSync(path.join(repoRoot, 'sdkwork.workflow.json'), 'utf8'));
+  assert.ok(workflow.lifecycle?.preflight?.length > 0);
+  assert.equal(workflow.publish?.githubRelease, false);
+  const thinWorkflow = fs.readFileSync(path.join(repoRoot, '.github/workflows/package.yml'), 'utf8');
+  assert.match(thinWorkflow, /publish_release:\s*false/u);
+  assert.doesNotMatch(thinWorkflow, /github\.event_name == 'release'/u);
 });

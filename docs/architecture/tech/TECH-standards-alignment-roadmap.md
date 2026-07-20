@@ -1,7 +1,7 @@
 # SDKWork AIoT Standards Alignment Roadmap
 
-Status: active  
-Owner: SDKWork maintainers  
+Status: active
+Owner: SDKWork maintainers
 Canonical source: [docs/adr/004-standards-alignment-roadmap.md](../../adr/004-standards-alignment-roadmap.md)
 
 This TECH shard tracks the same phased alignment program as ADR 004. Read the ADR for the authoritative decision record, phase table, and verification commands.
@@ -21,7 +21,7 @@ This TECH shard tracks the same phased alignment program as ADR 004. Read the AD
 
 ## Intentional transport exception
 
-Device gateway ingress (`sdkwork-aiot-cloud-gateway`) remains on the minimal transport stack documented in ADR 002. It is not an HTTP `*-api` surface and does not require `sdkwork-web-framework`.
+Device protocol ingress (`sdkwork-aiot-device-edge-runtime`) remains on the minimal transport stack documented in ADR 002. It is not an HTTP `*-api` surface and does not require `sdkwork-web-framework`.
 
 ## Verification
 

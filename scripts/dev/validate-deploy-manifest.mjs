@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const deployPath = path.join(repoRoot, 'deployments', 'deploy.yaml');
-const topologyDir = path.join(repoRoot, 'configs', 'topology');
+const topologyDir = path.join(repoRoot, 'etc', 'topology');
 
 function parseEnvFile(content) {
   const values = new Map();
@@ -93,8 +93,8 @@ function validateDeployManifest() {
     );
     assert.match(
       body,
-      /packages:\s*\n\s*-\s*server/u,
-      `${profileId} production profile must install the server package`,
+      /deploymentProfile:\s*(?:standalone|cloud)/u,
+      `${profileId} production profile must declare typed deployment metadata`,
     );
   }
 }

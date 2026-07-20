@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.mini-program-runtime",
+  "platform": "mp-weixin",
+  "sourceDirectory": "src",
+  "runtimeBindings": {
+    "deploymentProfile": "SDKWORK_AIOT_DEPLOYMENT_PROFILE",
+    "environment": "SDKWORK_AIOT_ENVIRONMENT",
+    "applicationHttp": "SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL",
+    "sdkGatewayHttp": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL"
+  }
+}

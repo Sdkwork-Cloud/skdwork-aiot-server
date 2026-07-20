@@ -2,78 +2,51 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-test('postgres dev orchestration wires SDKWORK_AIOT_DEVICE_DATABASE env', async () => {
-  const moduleUrl = pathToFileURL(
-    path.join(repoRoot, 'scripts/lib/aiot-device-database.mjs'),
-  ).href;
-  const {
-    ENV_DEVICE_DATABASE_ENGINE,
-    ENV_DEVICE_DATABASE_TABLE_PREFIX,
-    ENV_DEVICE_DATABASE_URL,
-    ENV_DEVICE_DB_PATH,
-    mergeDeviceDatabaseEnv,
-  } = await import(moduleUrl);
+function read(relativePath) {
+  return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
 
-  const merged = mergeDeviceDatabaseEnv({}, { databaseEngine: 'postgres' });
-  assert.equal(merged[ENV_DEVICE_DATABASE_ENGINE], 'postgres');
-  assert.equal(merged[ENV_DEVICE_DATABASE_TABLE_PREFIX], 'iot_');
-  assert.match(merged[ENV_DEVICE_DATABASE_URL], /^postgres:\/\//u);
-  assert.equal(merged[ENV_DEVICE_DB_PATH], undefined);
-});
-
-test('dev orchestrator wires sqlite device db and outbox dispatch ownership', async () => {
-  const moduleUrl = pathToFileURL(
-    path.join(repoRoot, 'scripts/lib/aiot-device-database.mjs'),
-  ).href;
-  const {
-    ENV_DEVICE_DB_PATH,
-    ENV_DEVICE_DATABASE_ENGINE,
-    ENV_DEVICE_DATABASE_URL,
-    ENV_OUTBOX_DISPATCHER_ENABLED,
-    mergeDeviceDatabaseEnv,
-    mergeProcessRuntimeEnv,
-    resolveDevDeviceDatabasePath,
-  } = await import(moduleUrl);
-
-  const sqlitePath = resolveDevDeviceDatabasePath('sqlite');
-  assert.ok(sqlitePath);
-  assert.match(sqlitePath, /[\\/]\.sdkwork[\\/]dev[\\/]aiot-device\.db/u);
-
-  const merged = mergeDeviceDatabaseEnv({}, { databaseEngine: 'sqlite' });
-  assert.equal(merged[ENV_DEVICE_DB_PATH], sqlitePath);
-  assert.equal(merged[ENV_DEVICE_DATABASE_URL], undefined);
-  assert.equal(merged[ENV_DEVICE_DATABASE_ENGINE], undefined);
-  assert.ok(fs.existsSync(path.dirname(sqlitePath)));
-
-  const edgeEnv = mergeProcessRuntimeEnv({ id: 'edge.device-ingress' }, merged);
-  const appEnv = mergeProcessRuntimeEnv({ id: 'application.app-http' }, merged);
-  const adminEnv = mergeProcessRuntimeEnv({ id: 'application.admin-http' }, merged);
-
-  assert.equal(edgeEnv[ENV_OUTBOX_DISPATCHER_ENABLED], '1');
-  assert.equal(appEnv[ENV_OUTBOX_DISPATCHER_ENABLED], '0');
-  assert.equal(adminEnv[ENV_OUTBOX_DISPATCHER_ENABLED], '0');
-});
-
-test('aiot-dev applies device database env before spawning services', () => {
-  const devScript = fs.readFileSync(path.join(repoRoot, 'scripts/aiot-dev.mjs'), 'utf8');
-  assert.match(devScript, /mergeDeviceDatabaseEnv/u);
-  assert.match(devScript, /mergeProcessRuntimeEnv/u);
-  assert.match(devScript, /databaseEngine: settings\.database/u);
-});
-
-test('cloud gateway credential repository uses shared device database env resolver', () => {
-  const gatewayLib = fs.readFileSync(
-    path.join(repoRoot, 'services/sdkwork-aiot-cloud-gateway/src/lib.rs'),
-    'utf8',
+function parseEnv(relativePath) {
+  return new Map(
+    read(relativePath)
+      .split(/\r?\n/u)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'))
+      .map((line) => {
+        const separator = line.indexOf('=');
+        return [line.slice(0, separator), line.slice(separator + 1)];
+      }),
   );
-  assert.match(gatewayLib, /open_aiot_device_database_from_env/u);
+}
+
+test('standalone topology declares one shared durable SQLite device database', () => {
+  const env = parseEnv('etc/topology/standalone.development.env');
+
+  assert.equal(env.get('SDKWORK_AIOT_DEVICE_DB_PATH'), '.sdkwork/dev/aiot-device.db');
+  assert.equal(env.get('SDKWORK_AIOT_OUTBOX_DISPATCHER_ENABLED'), '1');
+  assert.equal(env.has('SDKWORK_AIOT_DEVICE_DATABASE_URL'), false);
+  assert.equal(env.has('SDKWORK_AIOT_APPLICATION_APP_HTTP_BIND'), false);
+  assert.equal(env.has('SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_BIND'), false);
+});
+
+test('device edge runtime uses the shared database environment resolver', () => {
+  const edgeRuntime = read('crates/sdkwork-aiot-device-edge-runtime/src/lib.rs');
+
+  assert.match(edgeRuntime, /open_aiot_device_database_from_env/u);
   assert.doesNotMatch(
-    gatewayLib,
+    edgeRuntime,
     /device_credential_repository_from_env[\s\S]*ENV_DEVICE_DB_PATH\?\)/u,
   );
+});
+
+test('API assembly reads the same canonical device database path key', () => {
+  const assembly = read('crates/sdkwork-api-aiot-assembly/src/bootstrap.rs');
+
+  assert.match(assembly, /SDKWORK_AIOT_DEVICE_DB_PATH/u);
+  assert.doesNotMatch(assembly, /APPLICATION_GATEWAY_DEVICE_DB_PATH/u);
 });

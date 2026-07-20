@@ -70,6 +70,7 @@
     }
   ],
   "contracts": {
+    "layerRole": "runtime-service-host",
     "publicExports": [
       "."
     ],

@@ -55,41 +55,6 @@ pub async fn build_wrapped_app_api_router(
     wrap_router_with_web_framework_from_env(router).await
 }
 
-pub async fn serve_app_api_router(bind_addr: &str, router: Router) -> std::io::Result<()> {
-    let listener = tokio::net::TcpListener::bind(bind_addr).await?;
-    println!("sdkwork-aiot-app-api listening on http://{bind_addr}");
-    axum::serve(listener, router)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
-    Ok(())
-}
-
-async fn shutdown_signal() {
-    let ctrl_c = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        () = ctrl_c => {},
-        () = terminate => {},
-    }
-}
-
-pub fn gateway_mount(
-    server: Arc<sdkwork_iot_platform_service::AiotApiServer>,
-) -> axum::Router {
+pub fn gateway_mount(server: Arc<sdkwork_iot_platform_service::AiotApiServer>) -> axum::Router {
     routes::build_sdkwork_iot_app_api_router(server)
 }

@@ -5,7 +5,7 @@ Design notes, architecture decisions, and operational guidance for SDKWork AIoT.
 | Path | Purpose |
 | --- | --- |
 | `docs/adr/` | Architecture decision records |
-| `docs/topology-standard.md` | Topology v2 adoption guide |
+| `docs/topology-standard.md` | Topology v5 application/API/device-edge guide |
 | `docs/production-readiness.md` | Production readiness checklist |
 | `docs/runbooks/` | Operator runbooks (release, incident response) |
 | `docs/deployment/` | IAM and deployment integration guides |

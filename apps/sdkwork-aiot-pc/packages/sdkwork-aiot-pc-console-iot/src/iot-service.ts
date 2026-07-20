@@ -1,9 +1,9 @@
 import { readPcReactRuntimeSession } from "@sdkwork/core-pc-react";
-import { getAiotAppSdkClient } from "@sdkwork/aiot-pc-core";
-import type {
-  AiotDevice,
-  SdkworkAiotAppClient,
-} from "@sdkwork/aiot-app-sdk";
+import {
+  getAiotAppSdkClient,
+  type AiotDevice,
+  type SdkworkAiotAppClient,
+} from "@sdkwork/aiot-pc-core";
 import {
   normalizeText,
   readNumber,
@@ -85,7 +85,7 @@ function mapAiotDeviceToNode(device: AiotDevice): SdkworkIotNode {
 }
 
 function deriveFleetAlertsFromNodes(nodes: readonly SdkworkIotNode[]): SdkworkIotAlert[] {
-  return nodes.flatMap((node) => {
+  return nodes.flatMap((node): SdkworkIotAlert[] => {
     if (!node.online) {
       return [{
         acknowledged: false,

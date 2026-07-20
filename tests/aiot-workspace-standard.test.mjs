@@ -25,7 +25,7 @@ test('sdkwork-aiot uses the SDKWork standard project-root directory dictionary',
     'tools',
     'plugins',
     'examples',
-    'configs',
+    'etc',
     'deployments',
     'scripts',
     'docs',
@@ -66,11 +66,9 @@ test('sdkwork-aiot root package.json follows PNPM script standard', () => {
 test('sdkwork-aiot dev scripts use deployment-profile axis instead of retired hosting flags', () => {
   const packageJson = JSON.parse(read('package.json'));
   const devCommand = String(packageJson.scripts?.dev ?? '');
-  assert.match(
-    devCommand,
-    /--deployment-profile\s+standalone/u,
-    'dev must use --deployment-profile standalone',
-  );
+  assert.equal(devCommand, 'pnpm dev:standalone');
+  assert.match(packageJson.scripts?.['dev:standalone'] ?? '', /--deployment-profile\s+standalone/u);
+  assert.match(packageJson.scripts?.['dev:cloud'] ?? '', /--deployment-profile\s+cloud/u);
   assert.doesNotMatch(devCommand, /--hosting/u, 'dev must not use retired --hosting');
   assert.doesNotMatch(
     JSON.stringify(packageJson.scripts ?? {}),
@@ -123,15 +121,12 @@ test('sdkwork-aiot uses responsibility-specific Rust crate names', () => {
   }
 });
 
-test('sdkwork-aiot dev orchestrator resolves deployment profiles through topology adapter', () => {
-  const devScript = read('scripts/aiot-dev.mjs');
-  assert.match(devScript, /resolveDevProfileFromDeploymentProfile/u);
-  assert.match(devScript, /--deployment-profile/u);
-  assert.match(
-    devScript,
-    /--hosting is retired/u,
-    'aiot-dev must reject retired --hosting flag',
-  );
+test('sdkwork-aiot delegates development orchestration to the shared lifecycle facade', () => {
+  const packageJson = JSON.parse(read('package.json'));
+  assert.equal(packageJson.scripts?.dev, 'pnpm dev:standalone');
+  assert.match(packageJson.scripts?.['dev:standalone'] ?? '', /sdkwork-app dev/u);
+  assert.match(packageJson.scripts?.['dev:cloud'] ?? '', /--deployment-profile cloud/u);
+  assert.equal(exists('scripts/aiot-dev.mjs'), false);
 });
 
 test('sdkwork-aiot h5 core must not read live tokens from VITE env', () => {
@@ -155,7 +150,7 @@ test('sdkwork-aiot h5 core must not read live tokens from VITE env', () => {
 
 test('sdkwork-aiot root check script includes sdkwork-spec governance gates', () => {
   const packageJson = JSON.parse(read('package.json'));
-  const checkCommand = String(packageJson.scripts?.check ?? '');
+  const checkCommand = String(packageJson.scripts?.['_sdkwork:check'] ?? '');
   for (const gate of [
     'check:api-envelope',
     'check:pagination',
@@ -173,7 +168,7 @@ test('sdkwork-aiot firmware rollout OTA alignment artifacts are present', () => 
     'database/ddl/baseline/postgres/0001_aiot_baseline.sql',
     'database/seeds/common/001_bootstrap.sql',
     'crates/sdkwork-aiot-storage-sqlx/src/firmware_ota_catalog.rs',
-    'services/sdkwork-aiot-cloud-gateway/tests/gateway_standard.rs',
+    'crates/sdkwork-aiot-device-edge-runtime/tests/device_edge_runtime_standard.rs',
     'deployments/deploy.yaml',
     '.github/workflows/ci.yml',
   ]) {
@@ -192,13 +187,13 @@ test('sdkwork-aiot firmware rollout OTA alignment artifacts are present', () => 
   assert.match(h5Core, /setTokenManager/u);
   assert.match(h5Core, /getAiotH5TokenManager/u);
 
-  const gatewayTests = read('services/sdkwork-aiot-cloud-gateway/tests/gateway_standard.rs');
+  const edgeRuntimeTests = read('crates/sdkwork-aiot-device-edge-runtime/tests/device_edge_runtime_standard.rs');
   assert.match(
-    gatewayTests,
+    edgeRuntimeTests,
     /rollout_aware_ota_provider_delivers_firmware_once_per_pending_deployment/u,
   );
   assert.match(
-    gatewayTests,
+    edgeRuntimeTests,
     /xiaozhi_mqtt_session_reply_with_options_persists_protocol_storage_command/u,
   );
 
@@ -212,11 +207,11 @@ test('sdkwork-aiot firmware rollout OTA alignment artifacts are present', () => 
     /cargo fmt --all/u,
     'check must format only sdkwork-aiot workspace members, not sibling path dependencies',
   );
-  assert.match(packageJson.scripts?.check ?? '', /cargo fmt -- --check/u);
-  assert.match(packageJson.scripts?.check ?? '', /check:docs-standard/u);
+  assert.match(packageJson.scripts?.['_sdkwork:check'] ?? '', /cargo fmt -- --check/u);
+  assert.match(packageJson.scripts?.['_sdkwork:check'] ?? '', /check:docs-standard/u);
 
-  const gatewayLib = read('services/sdkwork-aiot-cloud-gateway/src/lib.rs');
-  const ingestFinalizers = gatewayLib.match(/finalize_protocol_ingest\(&result\.storage_command, &receipt\)/gu);
+  const edgeRuntimeLib = read('crates/sdkwork-aiot-device-edge-runtime/src/lib.rs');
+  const ingestFinalizers = edgeRuntimeLib.match(/finalize_protocol_ingest\(&result\.storage_command, &receipt\)/gu);
   assert.ok(
     ingestFinalizers && ingestFinalizers.length >= 2,
     'websocket and mqtt ingress must finalize protocol ingest consistently',
@@ -250,7 +245,7 @@ test('sdkwork-aiot production intelligence alignment artifacts are present', () 
     'crates/sdkwork-aiot-adapter-xiaozhi/src/opus_codec.rs',
     'crates/sdkwork-aiot-adapter-xiaozhi/src/opus_uplink.rs',
     'crates/sdkwork-aiot-adapter-xiaozhi/src/provider_downlink.rs',
-    'services/sdkwork-aiot-cloud-gateway/src/xiaozhi_ws_media_session.rs',
+    'crates/sdkwork-aiot-device-edge-runtime/src/xiaozhi_ws_media_session.rs',
     'docs/architecture/XIAOZHI_INTELLIGENCE_INTEGRATION.md',
   ]) {
     assert.ok(exists(relativePath), `missing intelligence alignment artifact: ${relativePath}`);
@@ -271,10 +266,10 @@ test('sdkwork-aiot production intelligence alignment artifacts are present', () 
   assert.match(bridgeLib, /decode_xiaozhi_opus_uplink_to_wav/u);
   assert.match(bridgeLib, /asr_wav_bytes/u);
 
-  const gatewayLib = read('services/sdkwork-aiot-cloud-gateway/src/lib.rs');
-  assert.match(gatewayLib, /xiaozhi_ws_media_session/u);
-  assert.match(gatewayLib, /push_ws_uplink_packet/u);
-  assert.match(gatewayLib, /encode_provider_pcm_to_xiaozhi_opus_packets/u);
+  const edgeRuntimeLib = read('crates/sdkwork-aiot-device-edge-runtime/src/lib.rs');
+  assert.match(edgeRuntimeLib, /xiaozhi_ws_media_session/u);
+  assert.match(edgeRuntimeLib, /push_ws_uplink_packet/u);
+  assert.match(edgeRuntimeLib, /encode_provider_pcm_to_xiaozhi_opus_packets/u);
 
   const opusCodec = read('crates/sdkwork-aiot-adapter-xiaozhi/src/opus_codec.rs');
   assert.match(opusCodec, /audiopus/u);

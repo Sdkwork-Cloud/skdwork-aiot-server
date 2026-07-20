@@ -14,7 +14,7 @@ capabilities owned by SDKWork platform services:
 | Agent session / LLM turns | `sdkwork-kernel` | `sdkwork-agent-client` runtime HTTP |
 | MCP tool catalog + invoke | `sdkwork-kernel` | Runtime HTTP `/sessions/{id}/tools*` |
 
-Xiaozhi wire format stays in `sdkwork-aiot-adapter-xiaozhi` and `sdkwork-aiot-cloud-gateway`.
+Xiaozhi wire format stays in `sdkwork-aiot-adapter-xiaozhi` and `sdkwork-aiot-device-edge-runtime`.
 
 ## Architecture
 
@@ -81,7 +81,7 @@ Gateway only selects mode and formats Xiaozhi replies.
 
 ```bash
 cargo test -p sdkwork-aiot-intelligence-bridge
-cargo test -p sdkwork-aiot-cloud-gateway
+cargo test -p sdkwork-aiot-device-edge-runtime
 pnpm verify
 ```
 

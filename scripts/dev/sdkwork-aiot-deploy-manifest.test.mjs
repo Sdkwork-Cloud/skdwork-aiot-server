@@ -23,5 +23,7 @@ test('package.json wires deploy manifest validation', () => {
     fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'),
   );
   assert.match(packageJson.scripts?.['check:deploy-manifest'] ?? '', /validate-deploy-manifest/u);
-  assert.match(packageJson.scripts?.['deploy:validate'] ?? '', /check:deploy-manifest/u);
+  assert.match(packageJson.scripts?.['deploy:validate'] ?? '', /sdkwork-app deploy:validate/u);
+  assert.match(packageJson.scripts?.['deploy:validate:standalone'] ?? '', /--profile standalone\.production/u);
+  assert.match(packageJson.scripts?.['deploy:validate:cloud'] ?? '', /--profile cloud\.production/u);
 });

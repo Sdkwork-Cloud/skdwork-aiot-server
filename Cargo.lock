@@ -2004,26 +2004,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sdkwork-aiot-admin-api"
-version = "0.1.0"
-dependencies = [
- "sdkwork-aiot-service-host",
- "sdkwork-iot-platform-service",
- "sdkwork-routes-iot-backend-api",
- "tokio",
-]
-
-[[package]]
-name = "sdkwork-aiot-app-api"
-version = "0.1.0"
-dependencies = [
- "sdkwork-aiot-service-host",
- "sdkwork-iot-platform-service",
- "sdkwork-routes-iot-app-api",
- "tokio",
-]
-
-[[package]]
 name = "sdkwork-aiot-app-context"
 version = "0.1.0"
 dependencies = [
@@ -2046,7 +2026,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "sdkwork-aiot-cloud-gateway"
+name = "sdkwork-aiot-contract"
+version = "0.1.0"
+
+[[package]]
+name = "sdkwork-aiot-database-host"
+version = "0.1.0"
+dependencies = [
+ "dotenvy",
+ "sdkwork-database-config",
+ "sdkwork-database-lifecycle",
+ "sdkwork-database-spi",
+ "sdkwork-database-sqlx",
+]
+
+[[package]]
+name = "sdkwork-aiot-device-edge-runtime"
 version = "0.1.0"
 dependencies = [
  "ctrlc",
@@ -2063,21 +2058,6 @@ dependencies = [
  "sdkwork-utils-rust",
  "serde_json",
  "sqlx",
-]
-
-[[package]]
-name = "sdkwork-aiot-contract"
-version = "0.1.0"
-
-[[package]]
-name = "sdkwork-aiot-database-host"
-version = "0.1.0"
-dependencies = [
- "dotenvy",
- "sdkwork-database-config",
- "sdkwork-database-lifecycle",
- "sdkwork-database-spi",
- "sdkwork-database-sqlx",
 ]
 
 [[package]]
@@ -2123,15 +2103,6 @@ dependencies = [
  "sdkwork-iot-device-service",
  "sdkwork-utils-rust",
  "ureq",
-]
-
-[[package]]
-name = "sdkwork-aiot-standalone-gateway"
-version = "0.1.0"
-dependencies = [
- "axum",
- "sdkwork-api-aiot-assembly",
- "tokio",
 ]
 
 [[package]]
@@ -2185,10 +2156,12 @@ name = "sdkwork-api-aiot-assembly"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "http-body-util",
  "sdkwork-iot-platform-service",
  "sdkwork-routes-iot-app-api",
  "sdkwork-routes-iot-backend-api",
  "tokio",
+ "tower",
 ]
 
 [[package]]

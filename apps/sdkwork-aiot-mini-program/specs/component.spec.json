@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "sdkwork-aiot-mini-program",
+    "displayName": "SDKWork AIoT Mini Program",
+    "version": "0.1.0",
+    "type": "mini-program-app-root",
+    "root": "apps/sdkwork-aiot-mini-program",
+    "domain": "aiot",
+    "capability": "mobile-operator-console",
+    "surface": "app",
+    "languages": ["javascript"],
+    "generated": false,
+    "manifests": ["package.json", "sdkwork.app.config.json"]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "MINI_PROGRAM_APP_ARCHITECTURE_SPEC.md",
+      "path": "../../../sdkwork-specs/MINI_PROGRAM_APP_ARCHITECTURE_SPEC.md",
+      "purpose": "Mini Program application architecture."
+    },
+    {
+      "file": "SOURCE_CONFIG_SPEC.md",
+      "path": "../../../sdkwork-specs/SOURCE_CONFIG_SPEC.md",
+      "purpose": "Parent topology delegation and runtime config."
+    }
+  ],
+  "contracts": {
+    "layerRole": "frontend-shell",
+    "providedPorts": [],
+    "requiredPorts": [],
+    "sdkDependencies": ["@sdkwork/aiot-app-sdk"]
+  },
+  "verification": { "commands": ["pnpm check", "pnpm test", "pnpm build"] }
+}

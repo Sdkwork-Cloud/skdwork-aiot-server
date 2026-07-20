@@ -1,0 +1,25 @@
+[package]
+name = "sdkwork-aiot-device-edge-runtime"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "AIoT device protocol edge runtime for WebSocket, MQTT, UDP, OTA, and command delivery."
+
+[dependencies]
+sdkwork-aiot-service-host.workspace = true
+sdkwork-aiot-observability.workspace = true
+sdkwork-aiot-adapter-xiaozhi.workspace = true
+sdkwork-aiot-protocol.workspace = true
+sdkwork-aiot-storage.workspace = true
+sdkwork-aiot-storage-sqlx.workspace = true
+sdkwork-aiot-transport.workspace = true
+sdkwork-aiot-intelligence-bridge.workspace = true
+sdkwork-utils-rust.workspace = true
+rumqttc = "0.24"
+ctrlc = "=3.4.5"
+serde_json = "1"
+sqlx.workspace = true
+redis = "0.28"
+
+[dev-dependencies]
+sdkwork-aiot-storage.workspace = true

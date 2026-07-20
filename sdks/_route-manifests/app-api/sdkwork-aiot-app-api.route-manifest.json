@@ -4,7 +4,7 @@
   "domain": "iot",
   "kind": "sdkwork.route.manifest",
   "owner": "sdkwork-aiot",
-  "packageName": "sdkwork-aiot-app-api",
+  "packageName": "sdkwork-routes-iot-app-api",
   "prefix": "/app/v3/api",
   "routes": [
     {
@@ -210,8 +210,8 @@
   "schemaVersion": 1,
   "sdkFamily": "sdkwork-aiot-app-sdk",
   "source": {
-    "crateImport": "sdkwork_aiot_app_api",
-    "crateRoot": "services/sdkwork-aiot-app-api"
+    "crateImport": "sdkwork_routes_iot_app_api",
+    "crateRoot": "crates/sdkwork-routes-iot-app-api"
   },
   "surface": "app-api"
 }

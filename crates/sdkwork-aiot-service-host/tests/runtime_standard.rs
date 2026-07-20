@@ -467,7 +467,7 @@ fn runtime_storage_command_uses_device_as_fallback_aggregate_for_stateless_messa
 }
 
 #[test]
-fn runtime_gateway_pipeline_decodes_frame_and_returns_storage_command() {
+fn runtime_protocol_pipeline_decodes_frame_and_returns_storage_command() {
     let runtime = standard_aiot_runtime(RuntimeMode::Embedded).expect("runtime");
     let codec = FakeCodec::new(
         ProtocolEnvelope::builder("xiaozhi.websocket", MessageClass::Handshake)
@@ -500,7 +500,7 @@ fn runtime_gateway_pipeline_decodes_frame_and_returns_storage_command() {
 }
 
 #[test]
-fn runtime_gateway_pipeline_with_context_maps_storage_association() {
+fn runtime_protocol_pipeline_with_context_maps_storage_association() {
     let runtime = standard_aiot_runtime(RuntimeMode::Embedded).expect("runtime");
     let codec = FakeCodec::new(
         ProtocolEnvelope::builder("xiaozhi.websocket", MessageClass::Handshake)
@@ -530,7 +530,7 @@ fn runtime_gateway_pipeline_with_context_maps_storage_association() {
 }
 
 #[test]
-fn runtime_gateway_pipeline_with_context_rejects_invalid_association() {
+fn runtime_protocol_pipeline_with_context_rejects_invalid_association() {
     let runtime = standard_aiot_runtime(RuntimeMode::Embedded).expect("runtime");
     let codec = FakeCodec::new(
         ProtocolEnvelope::builder("xiaozhi.websocket", MessageClass::Handshake)
@@ -553,7 +553,7 @@ fn runtime_gateway_pipeline_with_context_rejects_invalid_association() {
 }
 
 #[test]
-fn runtime_gateway_pipeline_rejects_unknown_or_mismatched_protocol_routes() {
+fn runtime_protocol_pipeline_rejects_unknown_or_mismatched_protocol_routes() {
     let runtime = standard_aiot_runtime(RuntimeMode::Embedded).expect("runtime");
     let mqtt_codec = FakeCodec::new(
         ProtocolEnvelope::builder("mqtt.v5", MessageClass::Telemetry)

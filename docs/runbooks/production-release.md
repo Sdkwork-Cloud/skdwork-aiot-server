@@ -29,8 +29,8 @@ Upload each archive and SBOM to the URL declared in `sdkwork.app.config.json`.
 
 | Profile | Env template | Database |
 | --- | --- | --- |
-| Standalone production | `configs/topology/standalone.production.env` | SQLite file (`SDKWORK_AIOT_DEVICE_DB_PATH`) |
-| Cloud production | `configs/topology/cloud.production.env` | Postgres (`SDKWORK_AIOT_DEVICE_DATABASE_*`) |
+| Standalone production | `etc/topology/standalone.production.env` | SQLite file (`SDKWORK_AIOT_DEVICE_DB_PATH`) |
+| Cloud production | `etc/topology/cloud.production.env` | Postgres (`SDKWORK_AIOT_DEVICE_DATABASE_*`) |
 
 Replace every `DEPLOY_INJECT:` placeholder before starting services.
 
@@ -67,7 +67,7 @@ Gateway device auth:
 
 ```powershell
 pnpm check:production-topology
-curl http://<gateway-host>:18080/readyz
+curl http://<device-edge-host>:18080/readyz
 curl http://<admin-host>:18081/readyz
 curl http://<app-host>:18082/readyz
 ```

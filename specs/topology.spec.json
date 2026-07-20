@@ -3,7 +3,7 @@
   "kind": "sdkwork.app.topology",
   "appId": "sdkwork-aiot",
   "archetype": "application-rest-edge-device",
-  "profileRoot": "configs/topology",
+  "profileRoot": "etc/topology",
   "profilePattern": "{deploymentProfile}.{environment}.env",
   "vocabulary": {
     "environment": {
@@ -33,10 +33,10 @@
     "desktopBuildProfileId": "standalone.production"
   },
   "profileFiles": {
-    "standalone.development": "configs/topology/standalone.development.env",
-    "cloud.development": "configs/topology/cloud.development.env",
-    "standalone.production": "configs/topology/standalone.production.env",
-    "cloud.production": "configs/topology/cloud.production.env"
+    "standalone.development": "etc/topology/standalone.development.env",
+    "cloud.development": "etc/topology/cloud.development.env",
+    "standalone.production": "etc/topology/standalone.production.env",
+    "cloud.production": "etc/topology/cloud.production.env"
   },
   "envKeys": {
     "environment": "SDKWORK_AIOT_ENVIRONMENT",
@@ -61,7 +61,6 @@
       "protocols": [
         "http"
       ],
-      "bindEnv": "SDKWORK_AIOT_APPLICATION_APP_HTTP_BIND",
       "httpUrlEnv": "SDKWORK_AIOT_APPLICATION_APP_HTTP_URL",
       "clientHttpEnv": "VITE_SDKWORK_AIOT_APPLICATION_APP_HTTP_URL"
     },
@@ -70,7 +69,6 @@
       "protocols": [
         "http"
       ],
-      "bindEnv": "SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_BIND",
       "httpUrlEnv": "SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_URL",
       "clientHttpEnv": "VITE_SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_URL"
     },
@@ -99,10 +97,10 @@
   },
   "cloudPublicHosts": {
     "application.app-http": {
-      "httpHost": "aiot.sdkwork.com"
+      "httpHost": "api.sdkwork.com"
     },
     "application.admin-http": {
-      "httpHost": "aiot-admin.sdkwork.com"
+      "httpHost": "api.sdkwork.com"
     },
     "edge.device-ingress": {
       "httpHost": "edge.aiot.sdkwork.com"
@@ -111,7 +109,7 @@
       "httpHost": "api.sdkwork.com"
     },
     "application.public-ingress": {
-      "httpHost": "aiot.sdkwork.com"
+      "httpHost": "api.sdkwork.com"
     }
   },
   "database": {
@@ -138,21 +136,16 @@
     "ttsSampleRate": "SDKWORK_AIOT_INTELLIGENCE_TTS_SAMPLE_RATE"
   },
   "components": {
-    "edgeGateway": {
-      "crate": "sdkwork-aiot-cloud-gateway",
-      "binary": "sdkwork-aiot-cloud-gateway"
+    "deviceEdgeRuntime": {
+      "crate": "sdkwork-aiot-device-edge-runtime",
+      "binary": "sdkwork-aiot-device-edge-runtime"
     },
-    "appApi": {
-      "crate": "sdkwork-aiot-app-api",
-      "binary": "sdkwork-aiot-app-api"
-    },
-    "adminApi": {
-      "crate": "sdkwork-aiot-admin-api",
-      "binary": "sdkwork-aiot-admin-api"
+    "apiAssembly": {
+      "crate": "sdkwork-api-aiot-assembly"
     },
     "standaloneGateway": {
-      "crate": "sdkwork-aiot-standalone-gateway",
-      "binary": "sdkwork-aiot-standalone-gateway"
+      "crate": "sdkwork-api-aiot-standalone-gateway",
+      "binary": "sdkwork-api-aiot-standalone-gateway"
     }
   },
   "orchestration": {
@@ -161,10 +154,52 @@
         "processes": [
           {
             "id": "application.public-ingress",
-            "crate": "sdkwork-aiot-standalone-gateway",
-            "binary": "sdkwork-aiot-standalone-gateway",
+            "script": "_sdkwork:gateway:standalone",
             "required": true,
             "role": "api-standalone-gateway"
+          },
+          {
+            "id": "edge.device-ingress",
+            "script": "_sdkwork:runtime:device-edge",
+            "required": true,
+            "role": "edge-runtime",
+            "decisionRef": "docs/architecture/decisions/ADR-20260720-edge-split-cloud-ingress.md"
+          },
+          {
+            "id": "aiot-pc-web",
+            "script": "_sdkwork:client:browser:standalone",
+            "required": true,
+            "role": "client",
+            "runtimeTargets": [
+              "browser"
+            ],
+            "clientArchitectures": [
+              "pc-web"
+            ]
+          },
+          {
+            "id": "aiot-h5",
+            "script": "_sdkwork:client:h5:standalone",
+            "required": true,
+            "role": "client",
+            "runtimeTargets": [
+              "browser"
+            ],
+            "clientArchitectures": [
+              "h5"
+            ]
+          },
+          {
+            "id": "aiot-mini-program",
+            "script": "_sdkwork:client:mini-program:standalone",
+            "required": true,
+            "role": "client",
+            "runtimeTargets": [
+              "mini-program"
+            ],
+            "clientArchitectures": [
+              "mini-program"
+            ]
           }
         ],
         "healthSurfaces": [
@@ -173,82 +208,58 @@
         ]
       },
       "cloud.development": {
-        "processes": [],
+        "processes": [
+          {
+            "id": "aiot-pc-web",
+            "script": "_sdkwork:client:browser:cloud",
+            "required": true,
+            "role": "client",
+            "runtimeTargets": [
+              "browser"
+            ],
+            "clientArchitectures": [
+              "pc-web"
+            ]
+          },
+          {
+            "id": "aiot-h5",
+            "script": "_sdkwork:client:h5:cloud",
+            "required": true,
+            "role": "client",
+            "runtimeTargets": [
+              "browser"
+            ],
+            "clientArchitectures": [
+              "h5"
+            ]
+          },
+          {
+            "id": "aiot-mini-program",
+            "script": "_sdkwork:client:mini-program:cloud",
+            "required": true,
+            "role": "client",
+            "runtimeTargets": [
+              "mini-program"
+            ],
+            "clientArchitectures": [
+              "mini-program"
+            ]
+          }
+        ],
         "healthSurfaces": [
           "application.public-ingress",
-          "platform.api-gateway"
+          "platform.api-gateway",
+          "edge.device-ingress"
         ]
       },
       "cloud.production": {
-        "processes": [
-          {
-            "id": "application.public-ingress",
-            "crate": "sdkwork-aiot-standalone-gateway",
-            "binary": "sdkwork-aiot-standalone-gateway",
-            "required": true,
-            "role": "api-standalone-gateway"
-          }
-        ],
-        "healthSurfaces": [
-          "application.public-ingress",
-          "edge.device-ingress",
-          "platform.api-gateway"
-        ]
+        "processes": [],
+        "healthSurfaces": []
       },
       "standalone.production": {
-        "processes": [
-          {
-            "id": "application.public-ingress",
-            "crate": "sdkwork-aiot-standalone-gateway",
-            "binary": "sdkwork-aiot-standalone-gateway",
-            "required": true,
-            "role": "api-standalone-gateway"
-          }
-        ],
-        "healthSurfaces": [
-          "application.public-ingress",
-          "edge.device-ingress"
-        ]
+        "processes": [],
+        "healthSurfaces": []
       }
     }
-  },
-  "scripts": {
-    "devOrchestrator": "scripts/aiot-dev.mjs"
-  },
-  "retired": {
-    "envKeys": [
-      "SDKWORK_AIOT_GATEWAY_BIND",
-      "SDKWORK_AIOT_APP_API_BIND",
-      "SDKWORK_AIOT_ADMIN_API_BIND",
-      "SDKWORK_AIOT_XIAOZHI_SIMULATOR_GATEWAY_HTTP",
-      "SDKWORK_AIOT_HOSTING",
-      "VITE_SDKWORK_AIOT_HOSTING"
-    ],
-    "notes": "Delete retired keys from active code paths; list retained here for migration audits only.",
-    "vocabulary": {
-      "hosting": [
-        "self-hosted",
-        "cloud-hosted"
-      ]
-    }
-  },
-  "packaging": {
-    "cloudConfigFiles": [],
-    "targets": [
-      {
-        "id": "container-noarch-cloud-container-config-bundle-tar-gz",
-        "profile": "container",
-        "platform": "container",
-        "architecture": "noarch",
-        "formats": [
-          "tar.gz"
-        ],
-        "runner": "ubuntu-24.04",
-        "outputGlob": "dist/cloud-config/sdkwork-aiot-api-gateway-config-*.tar.gz",
-        "deploymentProfile": "cloud",
-        "runtimeTarget": "container",
-        "variant": "config-bundle"
-      }
-    ]
   }
 }

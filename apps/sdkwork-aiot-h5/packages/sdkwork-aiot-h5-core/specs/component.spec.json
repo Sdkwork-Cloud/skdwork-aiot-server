@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "@sdkwork/aiot-h5-core",
+    "displayName": "SDKWork AIoT H5 Core",
+    "version": "0.1.0",
+    "type": "typescript-package",
+    "root": "apps/sdkwork-aiot-h5/packages/sdkwork-aiot-h5-core",
+    "domain": "aiot",
+    "capability": "h5-core",
+    "surface": "app",
+    "languages": ["typescript"],
+    "generated": false,
+    "manifests": ["package.json"]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "APP_COMPOSITION_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/APP_COMPOSITION_SPEC.md",
+      "purpose": "Core public exports and SDK inventory."
+    },
+    {
+      "file": "APP_H5_ARCHITECTURE_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/APP_H5_ARCHITECTURE_SPEC.md",
+      "purpose": "H5 application package architecture."
+    },
+    {
+      "file": "APP_SDK_INTEGRATION_SPEC.md",
+      "path": "../../../../../../sdkwork-specs/APP_SDK_INTEGRATION_SPEC.md",
+      "purpose": "Injected app SDK clients and TokenManager integration."
+    }
+  ],
+  "contracts": {
+    "layerRole": "frontend-core",
+    "providedPorts": [],
+    "requiredPorts": [],
+    "publicExports": [".", "./sdk", "./modules", "./host", "./session", "./composition"],
+    "sdkDependencies": [
+      { "workspace": "sdkwork-agents-app-sdk", "surface": "app-api", "credentialMode": "authenticated-app-api" },
+      { "workspace": "sdkwork-aiot-app-sdk", "surface": "app-api", "credentialMode": "authenticated-app-api" },
+      { "workspace": "sdkwork-voice-app-sdk", "surface": "app-api", "credentialMode": "authenticated-app-api" }
+    ],
+    "permissionComposition": {
+      "inheritanceMode": "module-catalog-with-overrides",
+      "moduleCatalogRefs": [
+        {
+          "moduleId": "agents",
+          "manifestRef": "../../../../../../sdkwork-agents/specs/iam.module.manifest.json",
+          "inheritPermissions": true,
+          "inheritRoles": true
+        },
+        {
+          "moduleId": "aiot",
+          "manifestRef": "../../../../../specs/iam.module.manifest.json",
+          "inheritPermissions": true,
+          "inheritRoles": true
+        },
+        {
+          "moduleId": "voice",
+          "manifestRef": "../../../../../../sdkwork-voice/specs/iam.module.manifest.json",
+          "inheritPermissions": true,
+          "inheritRoles": true
+        }
+      ],
+      "bootstrapAccessTokenScope": {
+        "inheritFrom": "sdkwork.app.config.json#backend.accessTokenPermissionScope",
+        "supplement": [],
+        "overrideReplace": false
+      },
+      "routePermissionHints": {
+        "inheritFromOpenApi": true,
+        "inheritFromModuleManifests": true,
+        "overrides": []
+      },
+      "consumerPolicy": {
+        "forbidLocalPermissionCatalogForDependencyDomains": true,
+        "allowExplicitOverridesOnly": true,
+        "allowFrontendHintsWithoutServerDuplication": true
+      },
+      "applicationModule": {
+        "manifestRef": "../../../../../specs/iam.module.manifest.json"
+      }
+    }
+  },
+  "verification": {
+    "commands": ["pnpm typecheck"]
+  }
+}

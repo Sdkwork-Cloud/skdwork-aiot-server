@@ -1,8 +1,19 @@
-version: 1
+version: 2
 defaultProfile: cloud.production
 
 profiles:
   cloud.production:
+    deployment:
+      deploymentProfile: cloud
+      environment: production
+      deliveryKind: container-image
+      deploymentDriver: kubernetes
+      managementModel: sdkwork-managed
+      tenancyModel: multi-tenant
+      isolationModel: shared
+      networkExposure: public
+      rolloutStrategy: rolling
+      availabilityMode: high-availability
     install:
       layout: binary-package
     expose:
@@ -10,24 +21,41 @@ profiles:
         tls: sdkwork.com
         mode: web+api
         web: adaptive
-    packages:
-      - server
+        apiPathStyle: full-prefix
+    packages: []
+    overrides:
+      topology:
+        spec: specs/topology.spec.json
+        profile: cloud.production
+        env: etc/topology/cloud.production.env
 
   standalone.production:
+    deployment:
+      deploymentProfile: standalone
+      environment: production
+      deliveryKind: host-package
+      deploymentDriver: nginx
+      managementModel: customer-managed
+      tenancyModel: single-tenant
+      isolationModel: dedicated
+      networkExposure: private
+      rolloutStrategy: recreate
+      availabilityMode: single-instance
     install:
       layout: binary-package
     expose:
-      - domain: aiot.local
-        tls: off
+      - domain: aiot.internal.example
+        tls: managed
         mode: web+api
         web: adaptive
-    packages:
-      - server
-
-  standalone.development:
-    expose:
-      - domain: localhost
-        tls: off
-        mode: web+api
-        web: adaptive
+        apiPathStyle: full-prefix
     packages: []
+    overrides:
+      topology:
+        spec: specs/topology.spec.json
+        profile: standalone.production
+        env: etc/topology/standalone.production.env
+      proxy:
+        upstreams:
+          application.public-ingress: http://127.0.0.1:3900
+          platform.api-gateway: http://127.0.0.1:3900

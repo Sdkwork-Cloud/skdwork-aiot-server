@@ -5,15 +5,15 @@
     "key": "sdkwork-aiot",
     "name": "SDKWork AIoT",
     "displayName": "SDKWork AIoT",
-    "description": "SDKWork IoT device gateway, protocol adapters, and platform APIs.",
+    "description": "SDKWork IoT device edge runtime, protocol adapters, platform APIs, and operator clients.",
     "vendor": "SDKWork",
     "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-aiot",
     "supportUrl": "https://sdkwork.com/support",
     "privacyPolicyUrl": "https://sdkwork.com/privacy",
     "termsOfServiceUrl": "https://sdkwork.com/terms",
     "iconUrl": "https://cdn.sdkwork.com/apps/sdkwork-aiot/assets/icon-1024.png",
-    "appType": "APP_SERVICE",
-    "versionSource": "Cargo.toml",
+    "appType": "APP_REACT",
+    "versionSource": "package.json",
     "identifiers": {
       "packageName": null,
       "bundleId": null,
@@ -37,18 +37,33 @@
     ]
   },
   "runtime": {
-    "family": "server",
-    "framework": "rust-axum",
+    "family": "web",
+    "framework": "react-vite-rust-axum",
     "runtimes": [
-      "SERVER",
-      "CONTAINER"
+      "WEB",
+      "H5",
+      "MP_WEIXIN",
+      "API"
     ],
     "deliveryModes": [
-      "CONTAINER_IMAGE",
-      "DIRECT_DOWNLOAD"
+      "WEB_URL",
+      "DIRECT_DOWNLOAD",
+      "CONTAINER_IMAGE"
     ],
-    "defaultPlatform": "SERVER",
+    "defaultPlatform": "WEB",
     "defaultArchitecture": "x64",
+    "targetPlatforms": [
+      "web",
+      "h5",
+      "mp-weixin",
+      "linux",
+      "windows"
+    ],
+    "clientArchitectures": [
+      "pc-web",
+      "h5",
+      "mini-program"
+    ],
     "supportedDeploymentProfiles": [
       "standalone",
       "cloud"
@@ -62,7 +77,7 @@
         "type": "ICON",
         "purpose": "PRIMARY",
         "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/assets/icon-1024.png",
-        "platform": "SERVER",
+        "platform": "APP",
         "locale": "en-US",
         "width": 1024,
         "height": 1024,
@@ -77,7 +92,7 @@
       },
       "platform": [],
       "metadata": {
-        "generatedBy": "sdkwork-aiot"
+        "generatedPlaceholder": true
       }
     },
     "screenshots": [],
@@ -88,84 +103,165 @@
     }
   },
   "publish": {
-    "status": "ACTIVE",
+    "status": "DRAFT",
     "platforms": [
-      "SERVER",
-      "CONTAINER"
+      "WEB",
+      "H5",
+      "MP_WEIXIN",
+      "API"
     ],
     "installPlatforms": [
-      "SERVER",
-      "CONTAINER"
+      "WEB",
+      "H5",
+      "MP_WEIXIN",
+      "API"
     ],
-    "defaultPackageId": "linux-x64-standalone-server-tar-gz",
+    "defaultPackageId": "web-universal-cloud-browser-zip",
     "storeUrl": "https://sdkwork.com/apps/sdkwork-aiot",
     "stores": [],
     "config": {
       "workspaceRoot": ".",
-      "framework": "rust-axum",
+      "framework": "react-vite-rust-axum",
       "managedBy": "sdkwork-aiot"
-    }
-  },
-  "environments": {
-    "development": {
-      "accessUrl": "http://127.0.0.1:8080",
-      "deployUrl": "http://127.0.0.1:8080",
-      "deployEnv": "dev"
-    },
-    "test": {
-      "accessUrl": "https://api-test.sdkwork.com/apps/sdkwork-aiot",
-      "deployUrl": "https://api-test.sdkwork.com/apps/sdkwork-aiot",
-      "deployEnv": "test"
-    },
-    "production": {
-      "accessUrl": "https://api.sdkwork.com/apps/sdkwork-aiot",
-      "deployUrl": "https://api.sdkwork.com/apps/sdkwork-aiot",
-      "deployEnv": "production"
     }
   },
   "artifacts": {
     "installConfig": {
-      "defaultPackageId": "linux-x64-standalone-server-tar-gz",
+      "defaultPackageId": "web-universal-cloud-browser-zip",
       "installCommand": "sdkwork install sdkwork-aiot",
       "launchCommand": "sdkwork open sdkwork-aiot",
       "uninstallCommand": "sdkwork uninstall sdkwork-aiot",
       "packages": [
         {
+          "id": "web-universal-cloud-browser-zip",
+          "name": "SDKWork AIoT PC Web Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "ZIP",
+          "platform": "WEB",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-web-universal-cloud-browser-zip-0.1.0.zip",
+          "enabled": false,
+          "metadata": {
+            "workflowPlatform": "web",
+            "packageProfile": "browser",
+            "releaseBuildDeferred": true
+          },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "browser",
+          "profileBinding": "fixed",
+          "targetPlatform": "web",
+          "clientArchitecture": "pc-web"
+        },
+        {
+          "id": "h5-universal-cloud-mobile-zip",
+          "name": "SDKWork AIoT H5 Web Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "ZIP",
+          "platform": "H5",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-h5-universal-cloud-mobile-zip-0.1.0.zip",
+          "enabled": false,
+          "metadata": {
+            "workflowPlatform": "h5",
+            "packageProfile": "mobile",
+            "releaseBuildDeferred": true
+          },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "browser",
+          "profileBinding": "fixed",
+          "targetPlatform": "h5",
+          "clientArchitecture": "h5"
+        },
+        {
+          "id": "mp-weixin-universal-cloud-mini-program-mini-program-package",
+          "name": "SDKWork AIoT WeChat Mini Program Package",
+          "sourceType": "MINI_PROGRAM",
+          "packageFormat": "MINI_PROGRAM_PACKAGE",
+          "platform": "MP_WEIXIN",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-mp-weixin-universal-cloud-mini-program-mini-program-package-0.1.0.zip",
+          "enabled": false,
+          "metadata": {
+            "workflowPlatform": "mp-weixin",
+            "packageProfile": "mini-program",
+            "releaseBuildDeferred": true,
+            "requiresWeChatDevTools": true,
+            "requiresStoreApproval": true
+          },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "mini-program",
+          "profileBinding": "fixed",
+          "targetPlatform": "mp-weixin",
+          "clientArchitecture": "mini-program"
+        },
+        {
           "id": "linux-x64-standalone-server-tar-gz",
-          "name": "SDKWork AIoT Linux Server Bundle",
+          "name": "SDKWork AIoT Linux x64 Standalone Server",
           "sourceType": "BINARY_URL",
           "packageFormat": "TAR_GZ",
-          "platform": "SERVER",
-          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/linux/x64/server.tar.gz",
-          "enabled": true,
-          "metadata": {},
-          "architecture": "x64",
+          "platform": "API",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-linux-x64-standalone-server-tar-gz-0.1.0.tar.gz",
+          "enabled": false,
+          "metadata": {
+            "workflowPlatform": "linux",
+            "packageProfile": "server",
+            "releaseBuildDeferred": true
+          },
           "checksumAlgorithm": "SHA-256",
-          "checksum": "4d8ed33438e7025c076b0d0b6ba24950057e854025365f2ac4937a4c8822ceb5",
+          "architecture": "x64",
           "deploymentProfile": "standalone",
-          "runtimeTarget": "server"
+          "runtimeTarget": "server",
+          "profileBinding": "fixed"
         },
         {
           "id": "windows-x64-standalone-server-zip",
-          "name": "SDKWork AIoT Windows Server Bundle",
+          "name": "SDKWork AIoT Windows x64 Standalone Server",
           "sourceType": "BINARY_URL",
           "packageFormat": "ZIP",
-          "platform": "SERVER",
-          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/windows/x64/server.zip",
-          "enabled": true,
-          "metadata": {},
-          "architecture": "x64",
+          "platform": "API",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-windows-x64-standalone-server-zip-0.1.0.zip",
+          "enabled": false,
+          "metadata": {
+            "workflowPlatform": "windows",
+            "packageProfile": "server",
+            "releaseBuildDeferred": true
+          },
           "checksumAlgorithm": "SHA-256",
-          "checksum": "2b3e84531880dcd6b1a57c2eb39f15cb80bb4f26d01b16e2dac48c115a36ea54",
+          "architecture": "x64",
           "deploymentProfile": "standalone",
-          "runtimeTarget": "server"
+          "runtimeTarget": "server",
+          "profileBinding": "fixed"
+        },
+        {
+          "id": "container-x64-cloud-container-kubernetes-tar-gz",
+          "name": "SDKWork AIoT Cloud Kubernetes Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "TAR_GZ",
+          "platform": "API",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-container-x64-cloud-container-kubernetes-tar-gz-0.1.0.tar.gz",
+          "enabled": false,
+          "metadata": {
+            "workflowPlatform": "container",
+            "packageProfile": "container",
+            "packageVariant": "kubernetes",
+            "releaseBuildDeferred": true,
+            "requiresImmutableImageLock": true
+          },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "x64",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "container",
+          "profileBinding": "fixed"
         }
       ],
       "metadata": {
         "workspaceRoot": ".",
-        "framework": "rust-axum",
-        "packageManager": "cargo",
-        "migratedFromLegacyConfig": true
+        "framework": "react-vite-rust-axum",
+        "packageManager": "pnpm",
+          "configurationAuthority": "sdkwork.app.config.json"
       }
     }
   },
@@ -180,36 +276,44 @@
         "version": "0.1.0",
         "releaseChannel": "STABLE",
         "title": "SDKWork AIoT 0.1.0",
-        "summary": "SDKWork AIoT server foundation release.",
-        "content": "Rust workspace for device gateway, protocol adapters, and platform APIs.",
+        "summary": "SDKWork AIoT draft release inventory.",
+        "content": "Draft release inventory for the AIoT clients, standalone server, and cloud deployment bundle.",
         "highlights": [
-          "sdkwork-web-framework integration for app/backend APIs",
-          "sdkwork-database bootstrap for device persistence",
-          "Topology-aware split-service development profile"
+          "PC Web and H5 operator clients",
+          "WeChat Mini Program source surface",
+          "Canonical standalone HTTP ingress and remote-client cloud profile"
         ],
         "packageIds": [
+          "web-universal-cloud-browser-zip",
+          "h5-universal-cloud-mobile-zip",
+          "mp-weixin-universal-cloud-mini-program-mini-program-package",
           "linux-x64-standalone-server-tar-gz",
-          "windows-x64-standalone-server-zip"
+          "windows-x64-standalone-server-zip",
+          "container-x64-cloud-container-kubernetes-tar-gz"
         ],
         "publishedAt": "2026-05-07T00:00:00Z",
         "current": true,
         "forceUpdate": false,
         "minSupportedVersion": "0.1.0",
-        "metadata": {}
+        "metadata": {
+          "commercialReleaseDeferred": true
+        }
       }
     ]
   },
   "security": {
     "checksumRequired": true,
-    "signatureRequired": false,
+    "signatureRequired": true,
     "sbomRequired": true
   },
   "devApp": {
     "build": {
       "targets": [
-        "sdkwork-aiot-cloud-gateway",
-        "sdkwork-aiot-app-api",
-        "sdkwork-aiot-admin-api"
+        "sdkwork-api-aiot-standalone-gateway",
+        "sdkwork-aiot-device-edge-runtime",
+        "sdkwork-aiot-pc",
+        "sdkwork-aiot-h5",
+        "sdkwork-aiot-mini-program"
       ]
     },
     "sourceRoot": "."
@@ -217,6 +321,9 @@
   "metadata": {
     "standardOwner": "sdkwork-platform",
     "initializedAt": "2026-05-07T00:00:00Z",
-    "alignedToSdkworkSpecs": "2026-06-18"
+    "alignedToSdkworkSpecs": "2026-07-20",
+    "deploymentConfig": "etc/sdkwork.deployment.config.json",
+    "topologySpec": "specs/topology.spec.json",
+    "workflowManifest": "sdkwork.workflow.json"
   }
 }

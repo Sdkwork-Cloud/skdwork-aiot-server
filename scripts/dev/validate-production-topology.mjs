@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-const topologyDir = path.join(repoRoot, 'configs', 'topology');
+const topologyDir = path.join(repoRoot, 'etc', 'topology');
 
 const MIN_SECRET_LENGTH = 32;
 const FORBIDDEN_LEGACY_DEVICE_TOKEN = 'device-token';
@@ -114,7 +114,7 @@ function validateProductionProfile(fileName, values) {
   assert.equal(
     values.get('SDKWORK_AIOT_OUTBOX_DISPATCHER_ENABLED'),
     '1',
-    `${fileName} must enable outbox dispatch on edge gateway`,
+    `${fileName} must enable outbox dispatch on the device edge runtime`,
   );
 
   requireDeployInjectPlaceholder(fileName, values, 'SDKWORK_AIOT_INTERNAL_TOKEN');

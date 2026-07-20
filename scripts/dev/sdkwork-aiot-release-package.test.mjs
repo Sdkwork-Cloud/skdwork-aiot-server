@@ -17,15 +17,19 @@ test('release package script resolves platform-specific release binaries', async
     resolveReleaseBinaryPath,
   } = await import(moduleUrl);
 
-  assert.equal(SERVER_BINARIES.length, 3);
+  assert.equal(SERVER_BINARIES.length, 2);
   assert.equal(RELEASE_PACKAGE_TARGETS.length, 2);
   assert.match(
     resolveReleaseBinaryPath(SERVER_BINARIES[0], 'win32'),
-    /sdkwork-aiot-cloud-gateway\.exe$/u,
+    /sdkwork-api-aiot-standalone-gateway\.exe$/u,
   );
   assert.match(
     resolveReleaseBinaryPath(SERVER_BINARIES[0], 'linux'),
-    /sdkwork-aiot-cloud-gateway$/u,
+    /sdkwork-api-aiot-standalone-gateway$/u,
+  );
+  assert.match(
+    resolveReleaseBinaryPath(SERVER_BINARIES[1], 'linux'),
+    /sdkwork-aiot-device-edge-runtime$/u,
   );
 });
 
@@ -52,11 +56,11 @@ test('release package targets align with sdkwork.app.config.json package ids', (
   const linuxPackage = (appConfig.artifacts?.installConfig?.packages ?? []).find(
     (pkg) => pkg.id === 'linux-x64-standalone-server-tar-gz',
   );
-  assert.ok(linuxPackage?.url?.endsWith('linux/x64/server.tar.gz'));
+  assert.match(linuxPackage?.url ?? '', /linux-x64-standalone-server-tar-gz/u);
   const windowsPackage = (appConfig.artifacts?.installConfig?.packages ?? []).find(
     (pkg) => pkg.id === 'windows-x64-standalone-server-zip',
   );
-  assert.ok(windowsPackage?.url?.endsWith('windows/x64/server.zip'));
+  assert.match(windowsPackage?.url ?? '', /windows-x64-standalone-server-zip/u);
   assert.match(releaseScript, /linux\/x64\/server\.tar\.gz/u);
   assert.match(releaseScript, /windows\/x64\/server\.zip/u);
 });

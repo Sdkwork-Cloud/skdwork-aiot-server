@@ -23,7 +23,7 @@ fn sensitive_headers_are_redacted() {
 
 #[test]
 fn runtime_metric_fields_cover_capacity_and_backpressure_without_payloads() {
-    let fields = RuntimeMetricFields::new("sdkwork-aiot-cloud-gateway")
+    let fields = RuntimeMetricFields::new("sdkwork-aiot-device-edge-runtime")
         .tenant("t1")
         .protocol("xiaozhi.websocket")
         .node("node-a")
@@ -33,7 +33,7 @@ fn runtime_metric_fields_cover_capacity_and_backpressure_without_payloads() {
         .outbox_lag(100_000)
         .backpressure("slow_down");
 
-    assert_eq!(fields.component, "sdkwork-aiot-cloud-gateway");
+    assert_eq!(fields.component, "sdkwork-aiot-device-edge-runtime");
     assert_eq!(fields.tenant_id.as_deref(), Some("t1"));
     assert_eq!(fields.protocol_id.as_deref(), Some("xiaozhi.websocket"));
     assert_eq!(fields.node_id.as_deref(), Some("node-a"));
@@ -64,7 +64,7 @@ fn structured_trace_event_json_omits_empty_optional_fields() {
 #[test]
 fn structured_runtime_metric_json_includes_numeric_fields() {
     let line = sdkwork_aiot_observability::format_runtime_metric(
-        &RuntimeMetricFields::new("sdkwork-aiot-cloud-gateway")
+        &RuntimeMetricFields::new("sdkwork-aiot-device-edge-runtime")
             .node("node-a")
             .connections(42)
             .sessions(7),
@@ -102,11 +102,11 @@ fn otlp_trace_payload_contains_service_name_and_correlation_fields() {
         &TraceFields::new("trace-abc")
             .device("dev-001")
             .protocol("xiaozhi.websocket"),
-        "sdkwork-aiot-cloud-gateway",
+        "sdkwork-aiot-device-edge-runtime",
     );
 
     assert!(payload.contains(r#""service.name""#));
-    assert!(payload.contains(r#""sdkwork-aiot-cloud-gateway""#));
+    assert!(payload.contains(r#""sdkwork-aiot-device-edge-runtime""#));
     assert!(payload.contains(r#""gateway.session.open""#));
     assert!(payload.contains(r#""device.id""#));
     assert!(payload.contains(r#""dev-001""#));
@@ -117,11 +117,11 @@ fn otlp_trace_payload_contains_service_name_and_correlation_fields() {
 #[test]
 fn otlp_runtime_metric_payload_contains_numeric_attributes() {
     let payload = sdkwork_aiot_observability::format_otlp_runtime_metric_payload(
-        &RuntimeMetricFields::new("sdkwork-aiot-cloud-gateway")
+        &RuntimeMetricFields::new("sdkwork-aiot-device-edge-runtime")
             .node("node-a")
             .connections(12)
             .sessions(3),
-        "sdkwork-aiot-cloud-gateway",
+        "sdkwork-aiot-device-edge-runtime",
     );
 
     assert!(payload.contains(r#""runtime.metric""#));

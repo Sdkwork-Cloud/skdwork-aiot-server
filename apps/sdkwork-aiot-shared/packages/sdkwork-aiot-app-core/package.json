@@ -23,6 +23,9 @@
     "@sdkwork/aiot-app-sdk": "workspace:*",
     "@sdkwork/utils": "workspace:*"
   },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  },
   "sdkwork": {
     "workspace": "sdkwork-aiot",
     "product": "sdkwork-aiot",

@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   return {
   plugins: [react(), tailwindcss()],
   define: {
-    'process.env.SDKWORK_ACCESS_TOKEN': JSON.stringify(env.SDKWORK_ACCESS_TOKEN ?? ''),
+    'process.env.SDKWORK_ACCESS_TOKEN': JSON.stringify(env.VITE_ACCESS_TOKEN ?? ''),
   },
   resolve: {
     alias: {

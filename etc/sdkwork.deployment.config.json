@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.deployment-index",
+  "application": "sdkwork-aiot",
+  "defaultProfile": "standalone.development",
+  "environments": {
+    "development": {
+      "applicationOrigin": "http://127.0.0.1:3900/",
+      "cloudApiBaseUrl": "https://api-dev.sdkwork.com/"
+    },
+    "production": {
+      "applicationOrigin": "https://aiot.sdkwork.com/",
+      "cloudApiBaseUrl": "https://api.sdkwork.com/"
+    }
+  },
+  "profiles": {
+    "standalone.development": { "config": "topology/standalone.development.env" },
+    "cloud.development": { "config": "topology/cloud.development.env" },
+    "standalone.production": { "config": "topology/standalone.production.env" },
+    "cloud.production": { "config": "topology/cloud.production.env" }
+  }
+}

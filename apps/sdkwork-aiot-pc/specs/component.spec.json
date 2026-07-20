@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "sdkwork-aiot-pc",
+    "displayName": "SDKWork AIoT PC",
+    "version": "0.1.0",
+    "type": "pc-web-app-root",
+    "root": "apps/sdkwork-aiot-pc",
+    "domain": "aiot",
+    "capability": "operator-console",
+    "surface": "app",
+    "languages": ["typescript"],
+    "generated": false,
+    "manifests": ["package.json", "sdkwork.app.config.json"]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "APP_PC_ARCHITECTURE_SPEC.md",
+      "path": "../../../sdkwork-specs/APP_PC_ARCHITECTURE_SPEC.md",
+      "purpose": "PC Web application architecture."
+    },
+    {
+      "file": "SOURCE_CONFIG_SPEC.md",
+      "path": "../../../sdkwork-specs/SOURCE_CONFIG_SPEC.md",
+      "purpose": "Parent topology delegation and browser runtime config."
+    }
+  ],
+  "contracts": {
+    "layerRole": "frontend-shell",
+    "providedPorts": [],
+    "requiredPorts": [],
+    "sdkDependencies": ["@sdkwork/aiot-app-sdk"]
+  },
+  "verification": { "commands": ["pnpm check", "pnpm test", "pnpm build"] }
+}

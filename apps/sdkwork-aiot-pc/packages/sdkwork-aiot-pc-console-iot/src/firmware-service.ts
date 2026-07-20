@@ -3,12 +3,10 @@ import {
   uploadAiotFirmwareArtifactToDrive,
   type UploadAiotFirmwareArtifactInput,
   type UploadAiotFirmwareArtifactResult,
+  type AiotFirmwareArtifact,
 } from '@sdkwork/aiot-pc-core';
-import type { AiotFirmwareArtifact } from '@sdkwork/aiot-backend-sdk';
 
 import { readRecord } from '@sdkwork/aiot-app-core';
-
-const DEFAULT_FIRMWARE_LIST_PAGE_SIZE = 20;
 
 export interface SdkworkFirmwareService {
   listArtifacts(): Promise<AiotFirmwareArtifact[]>;
@@ -36,7 +34,7 @@ async function fetchFirmwareArtifactPages(
       page,
       pageSize: DEFAULT_FIRMWARE_LIST_PAGE_SIZE,
     });
-    collected.push(...((response.items ?? []) as AiotFirmwareArtifact[]));
+    collected.push(...(response.items ?? []).map((item) => item as unknown as AiotFirmwareArtifact));
     const pageInfo = readRecord(response.pageInfo);
     hasMore = Boolean(pageInfo.hasMore);
     page += 1;

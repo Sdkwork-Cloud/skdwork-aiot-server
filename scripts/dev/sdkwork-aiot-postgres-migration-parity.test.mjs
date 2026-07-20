@@ -26,12 +26,12 @@ test('sqlite and postgres admin-entity baselines stay paired', () => {
 });
 
 test('standalone production topology declares kernel intelligence env', () => {
-  const envText = read('configs/topology/standalone.production.env');
+  const envText = read('etc/topology/standalone.production.env');
   assert.match(envText, /SDKWORK_AIOT_INTELLIGENCE_MODE=kernel/u);
 });
 
 test('cloud production topology declares postgres device database env', () => {
-  const envText = read('configs/topology/cloud.production.env');
+  const envText = read('etc/topology/cloud.production.env');
   assert.match(envText, /SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres/u);
   assert.match(envText, /SDKWORK_AIOT_DEVICE_DATABASE_URL=/u);
   assert.match(envText, /SDKWORK_AIOT_INTELLIGENCE_MODE=kernel/u);

@@ -19,12 +19,8 @@ members = [
     "crates/sdkwork-routes-iot-backend-api",
     "crates/sdkwork-aiot-architecture",
     "crates/sdkwork-aiot-intelligence-bridge",
-    "crates/sdkwork-api-aiot-assembly",
-    "services/sdkwork-aiot-cloud-gateway",
-    "services/sdkwork-aiot-standalone-gateway",
+    "crates/sdkwork-aiot-device-edge-runtime",
     "services/sdkwork-aiot-xiaozhi-simulator-ui",
-    "services/sdkwork-aiot-admin-api",
-    "services/sdkwork-aiot-app-api",
 ]
 resolver = "2"
 
@@ -62,6 +58,7 @@ sdkwork-routes-iot-backend-api = { path = "crates/sdkwork-routes-iot-backend-api
 sdkwork-aiot-architecture = { path = "crates/sdkwork-aiot-architecture" }
 sdkwork-aiot-intelligence-bridge = { path = "crates/sdkwork-aiot-intelligence-bridge" }
 sdkwork-api-aiot-assembly = { path = "crates/sdkwork-api-aiot-assembly" }
+sdkwork-aiot-device-edge-runtime = { path = "crates/sdkwork-aiot-device-edge-runtime" }
 clawrouter-open-sdk = { path = "../sdkwork-clawrouter/sdks/clawrouter-open-sdk/clawrouter-open-sdk-rust/generated/server-openapi" }
 
 sdkwork-database-config = { path = "../sdkwork-database/crates/sdkwork-database-config" }

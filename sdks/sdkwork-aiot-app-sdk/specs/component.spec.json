@@ -62,6 +62,7 @@
     }
   ],
   "contracts": {
+    "layerRole": "sdk-facade",
     "apiAuthority": "sdkwork-aiot-app-api",
     "sdkOwner": "sdkwork-aiot",
     "sdkFamily": "sdkwork-aiot-app-sdk",

@@ -31,9 +31,10 @@ fn strip_utf8_bom(text: &str) -> &str {
 fn topology_retired_env_keys(document: &str) -> Vec<String> {
     let parsed: serde_json::Value = serde_json::from_str(strip_utf8_bom(document))
         .expect("topology.spec.json must be valid JSON");
-    parsed["retired"]["envKeys"]
-        .as_array()
-        .expect("topology.spec.json retired.envKeys must be an array")
+    let Some(entries) = parsed["retired"]["envKeys"].as_array() else {
+        return Vec::new();
+    };
+    entries
         .iter()
         .map(|entry| {
             entry
@@ -184,29 +185,19 @@ fn apis_authority_inputs_exist_and_sdk_assemblies_reference_them() {
 }
 
 #[test]
-fn service_shells_bootstrap_shared_device_database() {
+fn api_assembly_bootstraps_shared_device_database() {
     let root = workspace_root();
+    let assembly_path = "crates/sdkwork-api-aiot-assembly/src/bootstrap.rs";
+    let source = fs::read_to_string(root.join(assembly_path)).expect(assembly_path);
 
-    for (service, bootstrap_fn) in [
-        (
-            "services/sdkwork-aiot-app-api/src/main.rs",
-            "open_app_service_stores",
-        ),
-        (
-            "services/sdkwork-aiot-admin-api/src/main.rs",
-            "open_admin_service_stores",
-        ),
-    ] {
-        let source = fs::read_to_string(root.join(service)).expect(service);
+    for bootstrap_fn in ["open_app_service_stores", "open_admin_service_stores"] {
         assert!(
             source.contains(bootstrap_fn),
-            "{service} must bootstrap persistence through {bootstrap_fn}"
-        );
-        assert!(
-            !source.contains("open_device_repository("),
-            "{service} must not open separate device repository pools"
+            "API assembly must bootstrap persistence through {bootstrap_fn}"
         );
     }
+    assert!(!source.contains("open_device_repository("));
+    assert!(source.contains("SDKWORK_AIOT_DEVICE_DB_PATH"));
 }
 
 #[test]
@@ -368,33 +359,21 @@ fn standards_alignment_roadmap_is_documented() {
 }
 
 #[test]
-fn service_shells_mount_sdkwork_web_framework_routers() {
+fn api_assembly_mounts_sdkwork_web_framework_routers() {
     let root = workspace_root();
+    let assembly_path = "crates/sdkwork-api-aiot-assembly/src/bootstrap.rs";
+    let source = fs::read_to_string(root.join(assembly_path)).expect(assembly_path);
 
-    for (service, router_crate) in [
-        (
-            "services/sdkwork-aiot-app-api/src/main.rs",
-            "sdkwork_routes_iot_app_api",
-        ),
-        (
-            "services/sdkwork-aiot-admin-api/src/main.rs",
-            "sdkwork_routes_iot_backend_api",
-        ),
+    for router_crate in [
+        "sdkwork_routes_iot_app_api",
+        "sdkwork_routes_iot_backend_api",
     ] {
-        let source = fs::read_to_string(root.join(service)).expect(service);
         assert!(
             source.contains(router_crate),
-            "{service} must mount HTTP APIs through {router_crate}"
-        );
-        assert!(
-            source.contains("tokio::main") || source.contains("#[tokio::main]"),
-            "{service} must use async Tokio runtime for sdkwork-web-framework"
-        );
-        assert!(
-            !source.contains("sdkwork_aiot_transport::serve_http_concurrent"),
-            "{service} must not use legacy transport server"
+            "API assembly must mount HTTP APIs through {router_crate}"
         );
     }
+    assert!(!source.contains("TcpListener"));
 }
 
 #[test]
@@ -512,13 +491,14 @@ fn workspace_does_not_use_forbidden_crate_names() {
 }
 
 #[test]
-fn app_manifest_declares_server_rust_workspace() {
+fn app_manifest_declares_multi_surface_rust_workspace() {
     let manifest =
         fs::read_to_string(workspace_root().join("sdkwork.app.config.json")).expect("app manifest");
 
-    assert!(manifest.contains(r#""appType": "APP_SERVICE""#));
-    assert!(manifest.contains(r#""family": "server""#));
-    assert!(manifest.contains(r#""framework": "rust-axum""#));
+    assert!(manifest.contains(r#""appType": "APP_REACT""#));
+    assert!(manifest.contains(r#""family": "web""#));
+    assert!(manifest.contains(r#""framework": "react-vite-rust-axum""#));
+    assert!(manifest.contains(r#""API""#));
     assert!(manifest.contains(r#""workspaceRoot": ".""#));
     assert!(
         !manifest.contains("apps/sdkwork-aiot-pc"),
@@ -536,49 +516,15 @@ fn workspace_does_not_create_parallel_aiot_iam_component() {
 }
 
 #[test]
-fn service_shells_reuse_runtime_builder_instead_of_owning_domain_logic() {
+fn device_edge_runtime_reuses_runtime_builder_instead_of_owning_domain_logic() {
     let root = workspace_root();
+    let runtime = "crates/sdkwork-aiot-device-edge-runtime/src/main.rs";
+    let source = fs::read_to_string(root.join(runtime)).expect(runtime);
 
-    for service in [
-        "services/sdkwork-aiot-cloud-gateway/src/main.rs",
-        "services/sdkwork-aiot-admin-api/src/main.rs",
-        "services/sdkwork-aiot-app-api/src/main.rs",
-    ] {
-        let source = fs::read_to_string(root.join(service)).expect(service);
-
-        assert!(
-            source.contains("standard_aiot_runtime")
-                || source.contains("standard_standalone")
-                || source.contains("standard_gateway_server")
-                || source.contains("standard_admin_api_server")
-                || source.contains("standard_app_api_server"),
-            "{service} must assemble a shared runtime-backed component"
-        );
-        assert!(
-            !source.contains("struct Device") && !source.contains("struct Product"),
-            "{service} must not define domain entities"
-        );
-        assert!(
-            !source.contains("CREATE TABLE"),
-            "{service} must not own database DDL"
-        );
-
-        if service.contains("admin-api") || service.contains("app-api") {
-            assert!(
-                source.contains("sdkwork_iot_platform_service"),
-                "{service} must route through the shared HTTP API component"
-            );
-            assert!(
-                source.contains("sdkwork_routes_iot"),
-                "{service} must mount sdkwork-web-framework routers"
-            );
-            assert!(
-                !source.contains("/backend/v3/api/iot/protocol_adapters")
-                    && !source.contains("/app/v3/api/iot/devices"),
-                "{service} must not inline app/backend API route behavior"
-            );
-        }
-    }
+    assert!(source.contains("standard_device_edge_server"));
+    assert!(!source.contains("struct Device") && !source.contains("struct Product"));
+    assert!(!source.contains("CREATE TABLE"));
+    assert!(!source.contains("sdkwork_routes_iot"));
 }
 
 #[test]
@@ -592,7 +538,7 @@ fn local_component_specs_exist_for_sdkwork_discovery() {
     assert!(manifest.exists(), "specs/component.spec.json is required");
     assert!(manifest_text.contains(r#""kind": "sdkwork.component.spec""#));
     assert!(manifest_text.contains(r#""domain": "iot""#));
-    assert!(manifest_text.contains(r#""type": "rust-crate""#));
+    assert!(manifest_text.contains(r#""type": "app""#));
     assert!(manifest_text.contains(r#""protocolPluginStandard""#));
     assert!(manifest_text.contains(r#""sdkwork_aiot_protocol::ProtocolAdapterManifest""#));
     assert!(manifest_text.contains(r#""codecs""#));
@@ -769,7 +715,7 @@ fn external_xiaozhi_esp32_application_declares_core_server_message_types() {
 }
 
 #[test]
-fn service_shells_read_topology_surface_bind_env_keys() {
+fn runtime_processes_read_topology_surface_bind_env_keys() {
     let root = workspace_root();
     let spec_text =
         fs::read_to_string(root.join("specs/topology.spec.json")).expect("topology spec");
@@ -777,16 +723,12 @@ fn service_shells_read_topology_surface_bind_env_keys() {
 
     let cases = [
         (
-            "services/sdkwork-aiot-cloud-gateway/src/main.rs",
+            "crates/sdkwork-aiot-device-edge-runtime/src/main.rs",
             "SDKWORK_AIOT_EDGE_DEVICE_INGRESS_BIND",
         ),
         (
-            "services/sdkwork-aiot-app-api/src/main.rs",
-            "SDKWORK_AIOT_APPLICATION_APP_HTTP_BIND",
-        ),
-        (
-            "services/sdkwork-aiot-admin-api/src/main.rs",
-            "SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_BIND",
+            "crates/sdkwork-api-aiot-standalone-gateway/src/main.rs",
+            "SDKWORK_AIOT_APPLICATION_PUBLIC_INGRESS_BIND",
         ),
         (
             "services/sdkwork-aiot-xiaozhi-simulator-ui/src/main.rs",
@@ -810,25 +752,27 @@ fn service_shells_read_topology_surface_bind_env_keys() {
 }
 
 #[test]
-fn topology_dev_orchestrator_reads_spec_processes() {
+fn shared_lifecycle_facade_owns_topology_process_orchestration() {
     let root = workspace_root();
-    let dev = fs::read_to_string(root.join("scripts/aiot-dev.mjs")).expect("aiot-dev orchestrator");
+    let package = fs::read_to_string(root.join("package.json")).expect("root package.json");
+    let topology =
+        fs::read_to_string(root.join("specs/topology.spec.json")).expect("topology spec");
 
     assert!(
-        dev.contains("listOrchestrationProcesses"),
-        "scripts/aiot-dev.mjs must spawn processes from topology orchestration"
+        package.contains("pnpm exec sdkwork-app dev --deployment-profile standalone"),
+        "dev:standalone must delegate to the shared sdkwork-app facade"
     );
     assert!(
-        dev.contains("buildProcessEntries"),
-        "scripts/aiot-dev.mjs must centralize process planning"
+        topology.contains("_sdkwork:gateway:standalone"),
+        "topology must declare the canonical standalone gateway hook"
     );
     assert!(
-        dev.contains("resolveDevProfileFromDeploymentProfile"),
-        "scripts/aiot-dev.mjs must resolve profiles from deployment-profile axis"
+        topology.contains("_sdkwork:runtime:device-edge"),
+        "topology must declare the device edge runtime hook"
     );
     assert!(
-        dev.contains("--deployment-profile"),
-        "scripts/aiot-dev.mjs must accept --deployment-profile"
+        !root.join("scripts/aiot-dev.mjs").exists(),
+        "application-local dev orchestration must be removed after shared facade adoption"
     );
 }
 
@@ -1318,32 +1262,32 @@ fn committed_route_manifests_match_http_api_contracts() {
 }
 
 #[test]
-fn gateway_readiness_wires_outbox_and_optional_mqtt_bridge_probes() {
+fn device_edge_readiness_wires_outbox_and_optional_mqtt_bridge_probes() {
     let root = workspace_root();
-    let gateway_lib =
-        fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/lib.rs"))
-            .expect("gateway lib");
-    let gateway_main =
-        fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/main.rs"))
-            .expect("gateway main");
+    let edge_runtime_lib =
+        fs::read_to_string(root.join("crates/sdkwork-aiot-device-edge-runtime/src/lib.rs"))
+            .expect("device edge runtime lib");
+    let edge_runtime_main =
+        fs::read_to_string(root.join("crates/sdkwork-aiot-device-edge-runtime/src/main.rs"))
+            .expect("device edge runtime main");
     let bridge_module =
-        root.join("services/sdkwork-aiot-cloud-gateway/src/mqtt_bridge_readiness.rs");
+        root.join("crates/sdkwork-aiot-device-edge-runtime/src/mqtt_bridge_readiness.rs");
 
     assert!(
         bridge_module.exists(),
-        "gateway must expose mqtt bridge readiness module"
+        "device edge runtime must expose mqtt bridge readiness module"
     );
     assert!(
-        gateway_lib.contains("attach_gateway_readiness_probe"),
-        "gateway lib must attach readiness probes"
+        edge_runtime_lib.contains("attach_device_edge_readiness_probe"),
+        "device edge runtime must attach readiness probes"
     );
     assert!(
-        gateway_lib.contains("mqtt_bridge_readiness_probe"),
-        "gateway lib must chain mqtt bridge readiness"
+        edge_runtime_lib.contains("mqtt_bridge_readiness_probe"),
+        "device edge runtime must chain mqtt bridge readiness"
     );
     assert!(
-        gateway_main.contains("MqttBridgeRuntimeState::from_env"),
-        "gateway main must bootstrap shared mqtt bridge runtime state"
+        edge_runtime_main.contains("MqttBridgeRuntimeState::from_env"),
+        "device edge runtime must bootstrap shared mqtt bridge runtime state"
     );
 }
 
@@ -1425,15 +1369,15 @@ fn xiaozhi_production_intelligence_bridge_is_declared() {
         "adapter-xiaozhi must depend on audiopus for Opus codec ownership"
     );
 
-    let gateway_lib =
-        fs::read_to_string(root.join("services/sdkwork-aiot-cloud-gateway/src/lib.rs"))
-            .expect("gateway lib");
+    let edge_runtime_lib =
+        fs::read_to_string(root.join("crates/sdkwork-aiot-device-edge-runtime/src/lib.rs"))
+            .expect("device edge runtime lib");
     assert!(
-        gateway_lib.contains("mod xiaozhi_ws_media_session"),
-        "gateway must track websocket uplink media sessions"
+        edge_runtime_lib.contains("mod xiaozhi_ws_media_session"),
+        "device edge runtime must track websocket uplink media sessions"
     );
     assert!(
-        gateway_lib.contains("kernel_stack_from_env"),
-        "gateway must wire kernel intelligence stack from env"
+        edge_runtime_lib.contains("kernel_stack_from_env"),
+        "device edge runtime must wire kernel intelligence stack from env"
     );
 }

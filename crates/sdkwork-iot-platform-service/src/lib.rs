@@ -1291,20 +1291,20 @@ fn auth_critical_rate_limit_tier(operation_id: &str) -> Option<&'static str> {
 pub fn standard_route_manifest_document(surface: AiotApiSurface) -> serde_json::Value {
     let (package_name, api_surface, prefix, api_authority, sdk_family, crate_root) = match surface {
         AiotApiSurface::App => (
-            "sdkwork-aiot-app-api",
+            "sdkwork-routes-iot-app-api",
             "app-api",
             "/app/v3/api",
             "sdkwork-aiot-app-api",
             "sdkwork-aiot-app-sdk",
-            "services/sdkwork-aiot-app-api",
+            "crates/sdkwork-routes-iot-app-api",
         ),
         AiotApiSurface::Admin => (
-            "sdkwork-aiot-admin-api",
+            "sdkwork-routes-iot-backend-api",
             "backend-api",
             "/backend/v3/api",
             "sdkwork-aiot-backend-api",
             "sdkwork-aiot-backend-sdk",
-            "services/sdkwork-aiot-admin-api",
+            "crates/sdkwork-routes-iot-backend-api",
         ),
     };
 

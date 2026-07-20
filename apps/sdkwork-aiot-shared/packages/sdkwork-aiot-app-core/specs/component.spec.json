@@ -17,6 +17,9 @@
     "manifests": ["package.json"]
   },
   "contracts": {
+    "layerRole": "frontend-core",
+    "providedPorts": [],
+    "requiredPorts": [],
     "publicExports": ["."],
     "sdkClients": ["@sdkwork/aiot-app-sdk"],
     "runtimeEntrypoints": ["package.json#scripts.typecheck"],

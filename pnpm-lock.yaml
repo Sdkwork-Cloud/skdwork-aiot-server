@@ -670,6 +670,8 @@ importers:
         specifier: ^18.0.0 || ^19.0.0
         version: 19.2.4
 
+  apps/sdkwork-aiot-mini-program: {}
+
   apps/sdkwork-aiot-pc:
     dependencies:
       '@tailwindcss/vite':
@@ -856,6 +858,10 @@ importers:
       '@sdkwork/utils':
         specifier: workspace:*
         version: link:../../../../../sdkwork-utils/packages/sdkwork-utils-typescript
+    devDependencies:
+      typescript:
+        specifier: ^6.0.2
+        version: 6.0.3
 
   sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript:
     dependencies:

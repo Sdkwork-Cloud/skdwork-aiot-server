@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 3,
+  "kind": "sdkwork.app",
+  "app": {
+    "key": "sdkwork-aiot-h5",
+    "name": "SDKWork AIoT H5",
+    "displayName": "SDKWork AIoT H5",
+    "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-aiot",
+    "appType": "APP_REACT"
+  },
+  "backend": {},
+  "runtime": {
+    "family": "web",
+    "framework": "react-vite-h5",
+    "supportedDeploymentProfiles": ["standalone", "cloud"],
+    "defaultDeploymentProfile": "standalone"
+  },
+  "media": {
+    "icons": {
+      "primary": {
+        "id": "sdkwork-aiot-h5-primary-icon",
+        "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/assets/icon-1024.png",
+        "metadata": { "generatedPlaceholder": true }
+      },
+      "platform": []
+    },
+    "screenshots": [],
+    "previews": []
+  },
+  "publish": {
+    "status": "DRAFT",
+    "platforms": ["H5"],
+    "installPlatforms": ["H5"],
+    "defaultPackageId": "h5-universal-standalone-mobile-zip",
+    "stores": []
+  },
+  "artifacts": {
+    "installConfig": {
+      "defaultPackageId": "h5-universal-standalone-mobile-zip",
+      "packages": [
+        {
+          "id": "h5-universal-standalone-mobile-zip",
+          "name": "SDKWork AIoT H5 Standalone Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "ZIP",
+          "platform": "H5",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-h5-universal-standalone-mobile-zip-0.1.0.zip",
+          "enabled": false,
+          "metadata": { "releaseBuildDeferred": true, "releaseAuthority": "sdkwork-aiot" },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "profileBinding": "fixed",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "browser",
+          "targetPlatform": "h5",
+          "clientArchitecture": "h5"
+        },
+        {
+          "id": "h5-universal-cloud-mobile-zip",
+          "name": "SDKWork AIoT H5 Cloud Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "ZIP",
+          "platform": "H5",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-h5-universal-cloud-mobile-zip-0.1.0.zip",
+          "enabled": false,
+          "metadata": { "releaseBuildDeferred": true, "releaseAuthority": "sdkwork-aiot" },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "profileBinding": "fixed",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "browser",
+          "targetPlatform": "h5",
+          "clientArchitecture": "h5"
+        }
+      ]
+    }
+  },
+  "release": {
+    "currentVersion": "0.1.0",
+    "defaultChannel": "STABLE",
+    "latest": { "STABLE": "0.1.0" },
+    "notes": [
+      {
+        "version": "0.1.0",
+        "packageIds": ["h5-universal-standalone-mobile-zip", "h5-universal-cloud-mobile-zip"],
+        "current": true
+      }
+    ]
+  },
+  "security": {
+    "checksumRequired": true,
+    "signatureRequired": true,
+    "sbomRequired": true
+  },
+  "metadata": {
+    "standardOwner": "sdkwork-aiot",
+    "deploymentConfig": "etc/sdkwork.deployment.config.json"
+  }
+}

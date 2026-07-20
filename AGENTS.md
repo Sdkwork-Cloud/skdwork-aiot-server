@@ -15,6 +15,7 @@ Canonical SDKWORK specs path from this root:
 - `../sdkwork-specs/AGENTS_SPEC.md`
 - `../sdkwork-specs/PNPM_SCRIPT_SPEC.md`
 - `../sdkwork-specs/GITHUB_WORKFLOW_SPEC.md`
+- `../sdkwork-specs/SOURCE_CONFIG_SPEC.md`
 - `../sdkwork-specs/CODE_STYLE_SPEC.md`
 - `../sdkwork-specs/NAMING_SPEC.md`
 
@@ -39,7 +40,7 @@ Read `sdkwork.app.config.json` only when the task touches AIoT application behav
 - `services/`: runnable AIoT server binaries.
 - `sdks/`: SDK families, SDK generation manifests, route manifests, and generated SDK artifacts.
 - `database/`: sdkwork-database assets and lifecycle inputs.
-- `configs/`: safe checked-in runtime config templates.
+- `etc/`: typed source configuration and topology profile templates.
 - `scripts/`, `tools/`, `docs/`, `tests/`: thin command entrypoints, validators, documentation, and verification assets.
 - `package.json`, `Cargo.toml`: language/build manifests.
 
@@ -73,7 +74,7 @@ Do not load the whole repository or every root spec before identifying the task 
 - Frontend/UI code: `../sdkwork-specs/FRONTEND_CODE_SPEC.md`, `../sdkwork-specs/FRONTEND_SPEC.md`, `../sdkwork-specs/UI_ARCHITECTURE_SPEC.md`, and exactly one detailed UI architecture spec.
 - API/SDK changes: `../sdkwork-specs/API_SPEC.md`, `../sdkwork-specs/WEB_FRAMEWORK_SPEC.md`, `../sdkwork-specs/WEB_BACKEND_SPEC.md`, `../sdkwork-specs/SDK_SPEC.md`, `../sdkwork-specs/SDK_WORKSPACE_GENERATION_SPEC.md`, and `../sdkwork-specs/TEST_SPEC.md`.
 - Database changes: `../sdkwork-specs/DATABASE_SPEC.md` and the local `database/` assets.
-- Runtime/deployment/release changes: `../sdkwork-specs/CONFIG_SPEC.md`, `../sdkwork-specs/ENVIRONMENT_SPEC.md`, `../sdkwork-specs/DEPLOYMENT_SPEC.md`, `../sdkwork-specs/RELEASE_SPEC.md`, `../sdkwork-specs/SUPPLY_CHAIN_SECURITY_SPEC.md`, and `../sdkwork-specs/GITHUB_WORKFLOW_SPEC.md`.
+- Runtime/deployment/release changes: `../sdkwork-specs/SOURCE_CONFIG_SPEC.md`, `../sdkwork-specs/CONFIG_SPEC.md`, `../sdkwork-specs/ENVIRONMENT_SPEC.md`, `../sdkwork-specs/DEPLOYMENT_SPEC.md`, `../sdkwork-specs/RELEASE_SPEC.md`, `../sdkwork-specs/SUPPLY_CHAIN_SECURITY_SPEC.md`, and `../sdkwork-specs/GITHUB_WORKFLOW_SPEC.md`.
 - Security/auth changes: `../sdkwork-specs/SECURITY_SPEC.md` and `../sdkwork-specs/PRIVACY_SPEC.md`.
 
 Language-specific specs are on-demand; do not load Rust, Java, TypeScript, and frontend specs for unrelated tasks.
@@ -88,8 +89,9 @@ Build scripts, dev runners, and `pnpm clean` must follow `CODE_STYLE_SPEC.md` §
 
 Use canonical root package scripts from `PNPM_SCRIPT_SPEC.md`:
 
-- `pnpm dev`: default SQLite workflow with `--deployment-profile standalone`.
-- `pnpm dev:server:cloud`: cloud deployment profile dev workflow.
+- `pnpm dev`: delegates exactly to `pnpm dev:standalone`.
+- `pnpm dev:standalone`: one application standalone gateway, the device edge runtime, and the selected client.
+- `pnpm dev:cloud`: selected local client only, consuming deployed cloud URLs.
 - `pnpm build`, `pnpm test`, `pnpm check`, `pnpm verify`, `pnpm clean`: standard root lifecycle commands.
 - `pnpm check:pnpm-script-standard`: validate package script standardization.
 - `pnpm check:agent-workflow-standard`: validate AGENTS and GitHub packaging workflow standardization.

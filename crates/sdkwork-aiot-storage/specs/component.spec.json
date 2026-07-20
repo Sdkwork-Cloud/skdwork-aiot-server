@@ -55,6 +55,7 @@
     }
   ],
   "contracts": {
+    "layerRole": "backend-domain",
     "publicExports": [
       "."
     ],

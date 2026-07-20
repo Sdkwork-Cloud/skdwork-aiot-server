@@ -65,6 +65,9 @@
     }
   ],
   "contracts": {
+    "layerRole": "sdk-facade",
+    "providedPorts": [],
+    "requiredPorts": [],
     "apiAuthority": "sdkwork-aiot-app-api",
     "sdkOwner": "sdkwork-aiot",
     "sdkFamily": "sdkwork-aiot-app-sdk",

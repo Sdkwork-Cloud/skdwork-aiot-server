@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.component.spec",
+  "component": {
+    "name": "sdkwork-aiot-device-edge-runtime",
+    "displayName": "SDKWork AIoT Device Edge Runtime",
+    "version": "0.1.0",
+    "type": "rust-crate",
+    "root": "sdkwork-aiot/crates/sdkwork-aiot-device-edge-runtime",
+    "domain": "iot",
+    "capability": "device-edge-ingress",
+    "surface": "device-edge-ingress",
+    "languages": [
+      "rust"
+    ],
+    "generated": false,
+    "manifests": [
+      "Cargo.toml"
+    ]
+  },
+  "canonicalSpecs": [
+    {
+      "file": "COMPONENT_SPEC.md",
+      "path": "../../../sdkwork-specs/COMPONENT_SPEC.md",
+      "purpose": "Component-local contract and discovery rules."
+    },
+    {
+      "file": "CODE_STYLE_SPEC.md",
+      "path": "../../../sdkwork-specs/CODE_STYLE_SPEC.md",
+      "purpose": "Authored source structure and generated code boundaries."
+    },
+    {
+      "file": "NAMING_SPEC.md",
+      "path": "../../../sdkwork-specs/NAMING_SPEC.md",
+      "purpose": "Canonical SDKWork naming rules."
+    },
+    {
+      "file": "MODULE_SPEC.md",
+      "path": "../../../sdkwork-specs/MODULE_SPEC.md",
+      "purpose": "Reusable module and package boundary rules."
+    },
+    {
+      "file": "TEST_SPEC.md",
+      "path": "../../../sdkwork-specs/TEST_SPEC.md",
+      "purpose": "Verification and contract testing expectations."
+    },
+    {
+      "file": "RUST_CODE_SPEC.md",
+      "path": "../../../sdkwork-specs/RUST_CODE_SPEC.md",
+      "purpose": "Rust crate and module rules."
+    },
+    {
+      "file": "APPLICATION_GATEWAY_SPEC.md",
+      "path": "../../../sdkwork-specs/APPLICATION_GATEWAY_SPEC.md",
+      "purpose": "Separates device protocol ingress from application and platform HTTP gateway roles."
+    },
+    {
+      "file": "APP_RUNTIME_TOPOLOGY_SPEC.md",
+      "path": "../../../sdkwork-specs/APP_RUNTIME_TOPOLOGY_SPEC.md",
+      "purpose": "Edge connectivity plane and profile orchestration rules."
+    },
+    {
+      "file": "DOMAIN_SPEC.md",
+      "path": "../../../sdkwork-specs/DOMAIN_SPEC.md",
+      "purpose": "Domain and capability boundary rules."
+    },
+    {
+      "file": "SECURITY_SPEC.md",
+      "path": "../../../sdkwork-specs/SECURITY_SPEC.md",
+      "purpose": "Protected backend behavior rules."
+    }
+  ],
+  "contracts": {
+    "layerRole": "runtime-service-host",
+    "publicExports": [
+      "."
+    ],
+    "runtimeEntrypoints": [
+      "src/main.rs",
+      "standard_device_edge_server",
+      "standard_device_edge_server_and_session_options"
+    ],
+    "routeManifest": null,
+    "sdkClients": [],
+    "events": [],
+    "configKeys": [
+      "SDKWORK_AIOT_EDGE_DEVICE_INGRESS_BIND",
+      "SDKWORK_AIOT_DEVICE_EDGE_NO_LISTEN",
+      "SDKWORK_AIOT_DEVICE_EDGE_UDP_BIND",
+      "SDKWORK_AIOT_DEVICE_EDGE_MQTT_BRIDGE_ENABLE",
+      "SDKWORK_AIOT_DEVICE_DATABASE_URL",
+      "SDKWORK_AIOT_DEVICE_DB_PATH"
+    ]
+  },
+  "verification": {
+    "commands": [
+      "cargo test -p sdkwork-aiot-device-edge-runtime --test device_edge_runtime_standard"
+    ]
+  }
+}

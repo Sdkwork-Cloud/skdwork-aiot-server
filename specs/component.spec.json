@@ -2,15 +2,16 @@
   "schemaVersion": 1,
   "kind": "sdkwork.component.spec",
   "component": {
-    "name": "sdkwork-aiot-server",
-    "displayName": "SDKWork AIoT Server",
+    "name": "sdkwork-aiot",
+    "displayName": "SDKWork AIoT Application",
     "version": "0.1.0",
-    "type": "rust-crate",
-    "root": "sdkwork-aiot-server",
+    "type": "app",
+    "root": ".",
     "domain": "iot",
     "capability": "device-platform",
     "languages": [
-      "rust"
+      "rust",
+      "typescript"
     ],
     "generated": false,
     "manifests": [
@@ -119,6 +120,16 @@
       "purpose": "Application runtime connectivity topology and dev orchestration profiles."
     },
     {
+      "file": "API_ASSEMBLY_SPEC.md",
+      "path": "../sdkwork-specs/API_ASSEMBLY_SPEC.md",
+      "purpose": "Canonical host-neutral application HTTP API composition."
+    },
+    {
+      "file": "APPLICATION_GATEWAY_SPEC.md",
+      "path": "../sdkwork-specs/APPLICATION_GATEWAY_SPEC.md",
+      "purpose": "Canonical standalone gateway and platform cloud gateway ownership boundaries."
+    },
+    {
       "file": "DRIVE_SPEC.md",
       "path": "../sdkwork-specs/DRIVE_SPEC.md",
       "purpose": "Drive Uploader, client upload SDK, and Drive-backed MediaResource ownership."
@@ -130,6 +141,7 @@
     }
   ],
   "contracts": {
+    "layerRole": "runtime-composition",
     "iamModuleManifest": "specs/iam.module.manifest.json",
     "publicExports": [
       "crates/sdkwork-aiot-contract",
@@ -143,14 +155,16 @@
       "crates/sdkwork-aiot-adapter-xiaozhi",
       "crates/sdkwork-iot-platform-service",
       "crates/sdkwork-routes-iot-app-api",
-      "crates/sdkwork-routes-iot-backend-api"
+      "crates/sdkwork-routes-iot-backend-api",
+      "crates/sdkwork-api-aiot-assembly"
     ],
     "runtimeEntrypoints": [
       "sdkwork_aiot_service_host::AiotRuntime::builder",
       "sdkwork_aiot_service_host::standard_aiot_runtime",
-      "services/sdkwork-aiot-cloud-gateway",
-      "services/sdkwork-aiot-admin-api",
-      "services/sdkwork-aiot-app-api"
+      "crates/sdkwork-api-aiot-assembly",
+      "crates/sdkwork-api-aiot-standalone-gateway",
+      "crates/sdkwork-aiot-device-edge-runtime",
+      "services/sdkwork-aiot-xiaozhi-simulator-ui"
     ],
     "sdkClients": [
       "@sdkwork/aiot-app-sdk",

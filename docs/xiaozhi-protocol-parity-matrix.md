@@ -70,7 +70,7 @@ git submodule update --init external/xiaozhi-esp32
 | UDP AES-CTR payload encryption/decryption | Implemented | Key/nonce hex profile, deterministic tests; server outbound encoding via `XiaozhiMqttUdpSession::encode_outbound_audio`. |
 | UDP server→device downlink (MQTT path) | Implemented (simulator grade) | `MqttSessionReply.outbound_udp_packets` + bridge shared UDP socket sends encrypted Opus to learned peer address. |
 | Replay/stale sequence rejection | Implemented | `decode_audio_packet_with_min_sequence(...)`. |
-| Main-process MQTT bridge loop | Implemented (optional) | `SDKWORK_AIOT_GATEWAY_MQTT_BRIDGE_ENABLE=1` starts MQTT+UDP worker threads. |
+| Main-process MQTT bridge loop | Implemented (optional) | `SDKWORK_AIOT_DEVICE_EDGE_MQTT_BRIDGE_ENABLE=1` starts MQTT+UDP worker threads. |
 | MQTT reconnect and backoff policy | Implemented | Exponential reconnect backoff with env-configurable base/max window. |
 | UDP session idle cleanup | Implemented | Idle sessions are purged by timeout to avoid stale audio decoding state. |
 | Bridge observability counters | Implemented (lightweight) | Periodic stats logs + pull endpoints (`GET /internal/bridge/health`, `GET /internal/bridge/stats`, `GET /internal/bridge/metrics`) expose runtime state, reconnects, event errors, publish retries/failures, dropped outbound events, UDP decode failures, and idle purges. |
@@ -87,14 +87,14 @@ git submodule update --init external/xiaozhi-esp32
 | Pluggable activation verifier | Implemented | `XiaozhiActivationVerifier` trait + assembly injection. |
 | Pluggable OTA profile provider | Implemented | `XiaozhiOtaProfileProvider` trait + assembly injection. |
 | Pluggable simulator MCP tool provider | Implemented (simulator grade) | `XiaozhiSimulatorMcpToolProvider` + env/file override + composite bootstrap entrypoints for server-only and server+session-options assembly. |
-| Session-scoped MCP provider reuse for WS/MQTT loops | Implemented | `XiaozhiSessionOptions` allows one-time provider load/injection and is wired into gateway main loop + option-aware session reply APIs. |
+| Session-scoped MCP provider reuse for WS/MQTT loops | Implemented | `XiaozhiSessionOptions` allows one-time provider load/injection and is wired into the device edge runtime loop plus option-aware session reply APIs. |
 | Pluggable MCP tool execution layer | Implemented (simulator grade) | `XiaozhiSimulatorMcpToolInvoker` decouples tool catalog from execution, supports invocation context (`transport/session/device/client`), and preserves external error envelope semantics. |
 | Pluggable MCP tool authorization policy | Implemented | `XiaozhiSimulatorMcpToolPolicy` adds pre-invocation allow/deny hooks; policy rejections use the external-style MCP error envelope. Rule engine (`SDKWORK_AIOT_XIAOZHI_MCP_POLICY_RULES`) supports first-match predicates on tool/transport/device/client prefixes plus numeric/string/boolean argument conditions. Production profiles set `SDKWORK_AIOT_XIAOZHI_MCP_POLICY_DENY_BY_DEFAULT=1` (also auto-enabled when `SDKWORK_AIOT_INTELLIGENCE_MODE=kernel` in production). Observability: structured `mcp_policy_decision` logs and `GET /internal/xiaozhi/mcp-policy/stats`. |
-| MCP policy runtime stats endpoint | Implemented | Gateway exposes `GET /internal/xiaozhi/mcp-policy/stats` for in-process rule-based policy counters (`allow_by_rule_matches`, `allow_no_rule_matches`, `deny_by_rule_matches`). If custom policy injection is used and stats are unsupported, endpoint returns `stats_available:false`. |
-| Activation registry runtime stats endpoint | Implemented | Gateway exposes `GET /internal/xiaozhi/activation-registry/stats` for backend kind (`in_memory`/`file`/`sqlite`) and counters (`register_total`, `consume_total`, `consume_hits`, `consume_misses`, `pruned_entries`) to support operational monitoring of challenge lifecycle health. |
-| Activation registry runtime metrics endpoint | Implemented | Gateway exposes `GET /internal/xiaozhi/activation-registry/metrics` (Prometheus text format) with activation lifecycle counters and backend label gauge (`sdkwork_aiot_xiaozhi_activation_registry_backend{backend=\"...\"} 1`) for direct scrape integration. The same activation metrics are also included in `GET /internal/bridge/metrics` for single-endpoint scrape compatibility. |
+| MCP policy runtime stats endpoint | Implemented | The device edge runtime exposes `GET /internal/xiaozhi/mcp-policy/stats` for in-process rule-based policy counters (`allow_by_rule_matches`, `allow_no_rule_matches`, `deny_by_rule_matches`). If custom policy injection is used and stats are unsupported, endpoint returns `stats_available:false`. |
+| Activation registry runtime stats endpoint | Implemented | The device edge runtime exposes `GET /internal/xiaozhi/activation-registry/stats` for backend kind (`in_memory`/`file`/`sqlite`) and counters (`register_total`, `consume_total`, `consume_hits`, `consume_misses`, `pruned_entries`) to support operational monitoring of challenge lifecycle health. |
+| Activation registry runtime metrics endpoint | Implemented | The device edge runtime exposes `GET /internal/xiaozhi/activation-registry/metrics` (Prometheus text format) with activation lifecycle counters and backend label gauge (`sdkwork_aiot_xiaozhi_activation_registry_backend{backend=\"...\"} 1`) for direct scrape integration. The same activation metrics are also included in `GET /internal/bridge/metrics` for single-endpoint scrape compatibility. |
 | Transport compatibility route closure injection | Implemented | Arc closure handlers in transport server. |
-| Cross-platform simulator UI | Implemented | `sdkwork-aiot-xiaozhi-simulator-ui` provides terminal UI controls for connect/hello/listen/abort/MCP operations; legacy `/simulators/xiaozhi` browser page is retired. |
+| Cross-platform simulator UI | Implemented | `sdkwork-aiot-xiaozhi-simulator-ui` provides terminal UI controls for connect/hello/listen/abort/MCP operations. |
 
 ## App-API / Backend-API Contract Parity
 
@@ -133,7 +133,7 @@ Prometheus scrape example:
 
 ```yaml
 scrape_configs:
-  - job_name: sdkwork-aiot-cloud-gateway
+  - job_name: sdkwork-aiot-device-edge-runtime
     static_configs:
       - targets: ['127.0.0.1:18080']
     metrics_path: /internal/bridge/metrics
@@ -154,7 +154,7 @@ scrape_configs:
 Enable the bridge worker threads:
 
 ```bash
-SDKWORK_AIOT_GATEWAY_MQTT_BRIDGE_ENABLE=1 cargo run -p sdkwork-aiot-cloud-gateway
+SDKWORK_AIOT_DEVICE_EDGE_MQTT_BRIDGE_ENABLE=1 cargo run -p sdkwork-aiot-device-edge-runtime
 ```
 
 List active bridge sessions (internal route; requires `SDKWORK_AIOT_DEV_MODE=1` or `SDKWORK_AIOT_INTERNAL_TOKEN`):
@@ -172,5 +172,5 @@ curl -X DELETE http://127.0.0.1:18080/internal/bridge/sessions/{session_id}
 Responses:
 
 - `204 No Content` when the session was disconnected.
-- `404` with `gateway.bridge.session.not_found` when the session is unknown.
-- `503` with `gateway.bridge.disabled` when the bridge is not enabled.
+- `404` with `iot.device-edge.bridge.session.not_found` when the session is unknown.
+- `503` with `iot.device-edge.bridge.disabled` when the bridge is not enabled.

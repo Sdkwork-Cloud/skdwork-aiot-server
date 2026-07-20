@@ -1,4 +1,4 @@
-//! Rollout-aware firmware OTA resolution for edge gateway device polls.
+//! Rollout-aware firmware OTA resolution for device edge runtime polls.
 
 use std::sync::Arc;
 

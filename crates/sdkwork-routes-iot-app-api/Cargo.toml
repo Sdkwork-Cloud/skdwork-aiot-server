@@ -16,7 +16,6 @@ sdkwork-iam-web-adapter.workspace = true
 sdkwork-web-axum.workspace = true
 sdkwork-web-contract.workspace = true
 sdkwork-web-core.workspace = true
-tokio.workspace = true
 tower.workspace = true
 
 [build-dependencies]

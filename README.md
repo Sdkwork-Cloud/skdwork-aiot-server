@@ -1,4 +1,4 @@
-# sdkwork-aiot-server
+# sdkwork-aiot
 repository-kind: application
 
 ## SDKWork Standards Alignment
@@ -14,7 +14,9 @@ pnpm deploy:validate
 pnpm release:preflight
 ```
 
-Production release: [docs/runbooks/production-release.md](docs/runbooks/production-release.md). Unified preflight gate: `pnpm release:preflight` (deploy + release + optional CDN publish).
+Production release: [docs/runbooks/production-release.md](docs/runbooks/production-release.md).
+The application remains `DRAFT`; release phases require an explicit target or deployment profile,
+and publish/deploy stay fail-closed without immutable artifact evidence and approvals.
 
 Root directory dictionary (active capabilities):
 
@@ -23,11 +25,11 @@ Root directory dictionary (active capabilities):
 | `apis/` | HTTP API contract index and regeneration notes |
 | `apps/` | PC, H5, mini program, and shared client surfaces |
 | `crates/` | Rust libraries and HTTP API component |
-| `services/` | Runnable gateway and app/backend API binaries |
+| `services/` | Device protocol edge runtime and development simulator |
 | `sdks/` | OpenAPI authorities, route manifests, generated SDK families |
-| `configs/` | Topology profile env templates |
+| `etc/` | Source configuration and topology profile env templates |
 | `deployments/` | Deployment profiles and release handoff (`deploy.yaml`) |
-| `scripts/` | Dev orchestration and contract tests |
+| `scripts/` | Contract, release, and verification tooling |
 | `docs/` | ADRs, topology, production readiness |
 | `specs/` | Component and topology contracts |
 | `tests/` | Cross-package test index |
@@ -35,7 +37,7 @@ Root directory dictionary (active capabilities):
 
 Inactive standard directories are documented rather than omitted without explanation.
 
-## Development (topology v2)
+## Development
 
 Default profile: `standalone.development` (`specs/topology.spec.json`).
 
@@ -46,24 +48,25 @@ pnpm dev
 Cloud development profile:
 
 ```bash
-pnpm dev:server:cloud
+pnpm dev:cloud
 ```
 
-Include the Xiaozhi simulator UI:
+Run the Xiaozhi simulator UI in a second terminal when needed:
 
 ```bash
-node scripts/dev-with-simulator.mjs
+cargo run -p sdkwork-aiot-xiaozhi-simulator-ui
 ```
 
-See `docs/topology-standard.md` and `configs/topology/README.md`.
+See `docs/topology-standard.md` and `specs/topology.spec.json`.
 
 ## Xiaozhi Gateway Simulator
 
-The standalone gateway includes a cross-platform terminal UI simulator for
-local Xiaozhi compatibility checks.
+The repository includes a cross-platform terminal UI simulator for local
+Xiaozhi compatibility checks.
 
-`pnpm dev` starts app-api, admin-api, and edge gateway from the active
-topology profile. Use `node scripts/dev-with-simulator.mjs` to also launch the simulator UI.
+`pnpm dev` starts the canonical standalone API gateway, device edge runtime,
+and client surfaces from `standalone.development`. The simulator remains an
+explicit development process.
 
 The simulator exercises the same compatibility surface used by ESP32 firmware:
 
@@ -75,7 +78,7 @@ The simulator exercises the same compatibility surface used by ESP32 firmware:
   frames
 - Server-to-device responses: server `hello`, `stt`, `llm`, `tts`, MCP
   `initialize`, MCP `tools/list`
-  
+
 Default simulator env overrides:
 
 - `SDKWORK_AIOT_EDGE_DEVICE_INGRESS_HTTP_URL`
@@ -84,12 +87,9 @@ Default simulator env overrides:
 - `SDKWORK_AIOT_XIAOZHI_SIMULATOR_CLIENT_ID`
 - `SDKWORK_AIOT_XIAOZHI_SIMULATOR_TOKEN`
 
-The legacy browser path `GET /simulators/xiaozhi` now returns migration JSON and
-is no longer the primary simulator surface.
-
 ## Xiaozhi Activation + MCP Config
 
-The gateway now supports a restart-safe activation challenge registry and
+The device edge runtime supports a restart-safe activation challenge registry and
 optional simulator MCP tool catalog override.
 
 Activation challenge registry:
@@ -112,8 +112,8 @@ Activation challenge registry:
 
 Optional integration test with real Redis:
 
-- Set `SDKWORK_AIOT_GATEWAY_TEST_REDIS_URL=redis://127.0.0.1:6379/0` before
-  running `cargo test -p sdkwork-aiot-cloud-gateway -- --nocapture --test-threads=1`
+- Set `SDKWORK_AIOT_DEVICE_EDGE_TEST_REDIS_URL=redis://127.0.0.1:6379/0` before
+  running `cargo test -p sdkwork-aiot-device-edge-runtime -- --nocapture --test-threads=1`
   to enable the Redis-backed end-to-end activation registry test.
 
 Simulator MCP tool catalog:
@@ -134,7 +134,7 @@ Simulator MCP tool catalog:
   - array root: `[ ... ]`
 - Tool entry fields: `name`, `description`, `inputSchema`, `userOnly`,
   optional `resultText`.
-- If loading fails or file is empty, gateway falls back to built-in tools.
+- If loading fails or the file is empty, the device edge runtime falls back to built-in tools.
 
 Policy rule format:
 
@@ -165,17 +165,17 @@ Numeric threshold example:
 deny|tool=self.audio_speaker.set_volume|transport=websocket|arg_volume_gt=80
 ```
 
-For explicit assembly in custom bootstraps/tests, gateway now exposes
-`standard_gateway_server_with_plugins_activation_registry_and_mcp_tools(...)`
+For explicit assembly in custom bootstraps/tests, the device edge runtime exposes
+`standard_device_edge_server_with_plugins_activation_registry_and_mcp_tools(...)`
 to inject OTA provider, activation verifier, activation registry, and MCP tool
 provider together.
 
 When the bootstrap also needs to reuse the exact injected MCP provider across
 long-running session loops, use
-`standard_gateway_server_and_session_options_with_plugins_activation_registry_and_mcp_tools(...)`
+`standard_device_edge_server_and_session_options_with_plugins_activation_registry_and_mcp_tools(...)`
 and pass the returned session options into the option-aware WS/MQTT helpers.
 
-For long-running websocket/MQTT loops, gateway session handlers can also reuse a
+For long-running WebSocket/MQTT loops, device edge session handlers can also reuse a
 preloaded provider via `XiaozhiSessionOptions`:
 
 - `XiaozhiSessionOptions::from_env()`: load once from env/file fallback.
@@ -205,27 +205,27 @@ Gateway process endpoint for runtime visibility:
 
 ## MQTT + UDP Bridge (Optional)
 
-The gateway can run an optional MQTT+UDP compatibility bridge for
+The device edge runtime can run an optional MQTT+UDP compatibility bridge for
 `xiaozhi.mqtt_udp` flows.
 
 Enable it:
 
 ```powershell
-$env:SDKWORK_AIOT_GATEWAY_MQTT_BRIDGE_ENABLE='1'
-cargo run -p sdkwork-aiot-cloud-gateway
+$env:SDKWORK_AIOT_DEVICE_EDGE_MQTT_BRIDGE_ENABLE='1'
+cargo run -p sdkwork-aiot-device-edge-runtime
 ```
 
 Key runtime knobs:
 
-- `SDKWORK_AIOT_GATEWAY_MQTT_HOST` / `SDKWORK_AIOT_GATEWAY_MQTT_PORT`
-- `SDKWORK_AIOT_GATEWAY_MQTT_SUBSCRIBE_TOPIC` / `..._PUBLISH_TOPIC`
-- `SDKWORK_AIOT_GATEWAY_MQTT_RECONNECT_BASE_MILLIS` / `..._MAX_MILLIS`
-- `SDKWORK_AIOT_GATEWAY_MQTT_PUBLISH_RETRY_ATTEMPTS` / `..._RETRY_DELAY_MILLIS`
-- `SDKWORK_AIOT_GATEWAY_MQTT_MAX_OUTBOUND_PER_EVENT`
-- `SDKWORK_AIOT_GATEWAY_MQTT_PUBLISH_DROP_COOLDOWN_MILLIS`
-- `SDKWORK_AIOT_GATEWAY_UDP_BIND`
-- `SDKWORK_AIOT_GATEWAY_SESSION_IDLE_TIMEOUT_SECONDS`
-- `SDKWORK_AIOT_GATEWAY_BRIDGE_STATS_LOG_INTERVAL_SECONDS`
+- `SDKWORK_AIOT_DEVICE_EDGE_MQTT_HOST` / `SDKWORK_AIOT_DEVICE_EDGE_MQTT_PORT`
+- `SDKWORK_AIOT_DEVICE_EDGE_MQTT_SUBSCRIBE_TOPIC` / `..._PUBLISH_TOPIC`
+- `SDKWORK_AIOT_DEVICE_EDGE_MQTT_RECONNECT_BASE_MILLIS` / `..._MAX_MILLIS`
+- `SDKWORK_AIOT_DEVICE_EDGE_MQTT_PUBLISH_RETRY_ATTEMPTS` / `..._RETRY_DELAY_MILLIS`
+- `SDKWORK_AIOT_DEVICE_EDGE_MQTT_MAX_OUTBOUND_PER_EVENT`
+- `SDKWORK_AIOT_DEVICE_EDGE_MQTT_PUBLISH_DROP_COOLDOWN_MILLIS`
+- `SDKWORK_AIOT_DEVICE_EDGE_UDP_BIND`
+- `SDKWORK_AIOT_DEVICE_EDGE_SESSION_IDLE_TIMEOUT_SECONDS`
+- `SDKWORK_AIOT_DEVICE_EDGE_BRIDGE_STATS_LOG_INTERVAL_SECONDS`
 
 Behavior:
 
@@ -258,9 +258,10 @@ Public exports are declared in `specs/component.spec.json` under `contracts.publ
 
 Configuration keys and runtime entrypoints are declared in `specs/component.spec.json`.
 
-### SaaS/Private/Local Behavior
+### Deployment Profile Behavior
 
-This module follows the canonical standards linked from `specs/component.spec.json`, including deployment and runtime configuration rules where applicable.
+This module follows the canonical `standalone` and `cloud` deployment profile rules linked from
+`specs/component.spec.json`.
 
 ### Security
 

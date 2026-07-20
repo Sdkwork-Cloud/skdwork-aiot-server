@@ -4,13 +4,25 @@
   "version": "0.1.0",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
-  "description": "SDKWork AIoT H5 mobile application - devices, IoT fleet, voice dialogue, and agent integration.",
+  "description": "SDKWork AIoT H5 mobile operator application.",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "pnpm -r run typecheck",
-    "test": "pnpm -r run test"
+    "dev": "pnpm dev:standalone",
+    "dev:standalone": "pnpm exec sdkwork-app dev --root ../.. --deployment-profile standalone",
+    "dev:cloud": "pnpm exec sdkwork-app dev --root ../.. --deployment-profile cloud",
+    "stop": "pnpm exec sdkwork-app stop --root ../..",
+    "build": "pnpm exec sdkwork-app build",
+    "test": "pnpm exec sdkwork-app test",
+    "check": "pnpm exec sdkwork-app check",
+    "verify": "pnpm exec sdkwork-app verify",
+    "clean": "pnpm exec sdkwork-app clean",
+    "typecheck": "tsc --noEmit -p tsconfig.base.json",
+    "_sdkwork:client:h5": "vite --host 127.0.0.1 --port 5176",
+    "_sdkwork:build": "vite build",
+    "_sdkwork:test": "vitest run",
+    "_sdkwork:check": "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root . && node ../../../sdkwork-specs/tools/check-source-config-standard.mjs --root . && pnpm typecheck",
+    "_sdkwork:verify": "pnpm run _sdkwork:check && pnpm run _sdkwork:test && pnpm run _sdkwork:build",
+    "_sdkwork:clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@sdkwork/aiot-h5-console-agent": "workspace:*",
@@ -18,11 +30,11 @@
     "@sdkwork/aiot-h5-console-iot": "workspace:*",
     "@sdkwork/aiot-h5-console-voice": "workspace:*",
     "@sdkwork/aiot-h5-core": "workspace:*",
+    "@tailwindcss/vite": "^4.2.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.0",
-    "tailwindcss": "^4.2.2",
-    "@tailwindcss/vite": "^4.2.2"
+    "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

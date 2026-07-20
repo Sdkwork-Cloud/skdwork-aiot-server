@@ -58,6 +58,9 @@
     }
   ],
   "contracts": {
+    "layerRole": "frontend-feature",
+    "providedPorts": [],
+    "requiredPorts": [],
     "publicExports": [
       "."
     ],

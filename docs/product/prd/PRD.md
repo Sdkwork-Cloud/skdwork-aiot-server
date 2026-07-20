@@ -40,16 +40,16 @@ Enterprises need a protocol-neutral IoT control plane that connects edge devices
 
 | Surface | In scope |
 | --- | --- |
-| `sdkwork-aiot-app-api` | Tenant-scoped device/command/event/twin APIs |
-| `sdkwork-aiot-admin-api` | Catalog, credentials, firmware, rollouts |
-| `sdkwork-aiot-cloud-gateway` | Xiaozhi ingress, OTA, protocol ingest, outbox worker |
+| `sdkwork-api-aiot-assembly` app-api surface | Tenant-scoped device/command/event/twin APIs |
+| `sdkwork-api-aiot-assembly` backend-api surface | Catalog, credentials, firmware, rollouts |
+| `sdkwork-aiot-device-edge-runtime` | Xiaozhi ingress, OTA, protocol ingest, outbox worker |
 | PC/H5 consoles | IoT fleet, device ops, agents, voice (via sibling SDKs) |
 
 ## 5. User Scenarios
 
 1. Operator registers a product and firmware artifact (Drive upload + backend registration), creates a rollout, and devices receive OTA offers on reconnect.
 2. Tenant user lists devices with server pagination, sends a command, and polls command status via `devices.commands.retrieve`.
-3. Xiaozhi device connects with per-device credential; gateway persists telemetry through protocol ingest.
+3. Xiaozhi device connects with per-device credential; the device edge runtime persists telemetry through protocol ingest.
 4. Console user runs an agent session (Agents SDK) with device command fallback when cloud agents are unavailable.
 
 ## 6. Success Metrics

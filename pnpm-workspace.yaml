@@ -1,6 +1,7 @@
 packages:
   - "apps/sdkwork-aiot-h5"
   - "apps/sdkwork-aiot-h5/packages/*"
+  - "apps/sdkwork-aiot-mini-program"
   - "apps/sdkwork-aiot-pc"
   - "apps/sdkwork-aiot-pc/packages/*"
   - "apps/sdkwork-aiot-shared"

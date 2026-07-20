@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 3,
+  "kind": "sdkwork.app",
+  "app": {
+    "key": "sdkwork-aiot-pc",
+    "name": "SDKWork AIoT PC",
+    "displayName": "SDKWork AIoT PC",
+    "officialWebsiteUrl": "https://sdkwork.com/apps/sdkwork-aiot",
+    "appType": "APP_REACT"
+  },
+  "backend": {},
+  "runtime": {
+    "family": "web",
+    "framework": "react-vite",
+    "supportedDeploymentProfiles": ["standalone", "cloud"],
+    "defaultDeploymentProfile": "standalone"
+  },
+  "media": {
+    "icons": {
+      "primary": {
+        "id": "sdkwork-aiot-pc-primary-icon",
+        "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/assets/icon-1024.png",
+        "metadata": { "generatedPlaceholder": true }
+      },
+      "platform": []
+    },
+    "screenshots": [],
+    "previews": []
+  },
+  "publish": {
+    "status": "DRAFT",
+    "platforms": ["WEB"],
+    "installPlatforms": ["WEB"],
+    "defaultPackageId": "web-universal-standalone-browser-zip",
+    "stores": []
+  },
+  "artifacts": {
+    "installConfig": {
+      "defaultPackageId": "web-universal-standalone-browser-zip",
+      "packages": [
+        {
+          "id": "web-universal-standalone-browser-zip",
+          "name": "SDKWork AIoT PC Standalone Web Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "ZIP",
+          "platform": "WEB",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-web-universal-standalone-browser-zip-0.1.0.zip",
+          "enabled": false,
+          "metadata": { "releaseBuildDeferred": true, "releaseAuthority": "sdkwork-aiot" },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "profileBinding": "fixed",
+          "deploymentProfile": "standalone",
+          "runtimeTarget": "browser",
+          "targetPlatform": "web",
+          "clientArchitecture": "pc-web"
+        },
+        {
+          "id": "web-universal-cloud-browser-zip",
+          "name": "SDKWork AIoT PC Cloud Web Bundle",
+          "sourceType": "BINARY_URL",
+          "packageFormat": "ZIP",
+          "platform": "WEB",
+          "url": "https://cdn.sdkwork.com/apps/sdkwork-aiot/STABLE/0.1.0/sdkwork-aiot-web-universal-cloud-browser-zip-0.1.0.zip",
+          "enabled": false,
+          "metadata": { "releaseBuildDeferred": true, "releaseAuthority": "sdkwork-aiot" },
+          "checksumAlgorithm": "SHA-256",
+          "architecture": "universal",
+          "profileBinding": "fixed",
+          "deploymentProfile": "cloud",
+          "runtimeTarget": "browser",
+          "targetPlatform": "web",
+          "clientArchitecture": "pc-web"
+        }
+      ]
+    }
+  },
+  "release": {
+    "currentVersion": "0.1.0",
+    "defaultChannel": "STABLE",
+    "latest": { "STABLE": "0.1.0" },
+    "notes": [
+      {
+        "version": "0.1.0",
+        "packageIds": ["web-universal-standalone-browser-zip", "web-universal-cloud-browser-zip"],
+        "current": true
+      }
+    ]
+  },
+  "security": {
+    "checksumRequired": true,
+    "signatureRequired": true,
+    "sbomRequired": true
+  },
+  "metadata": {
+    "standardOwner": "sdkwork-aiot",
+    "deploymentConfig": "etc/sdkwork.deployment.config.json"
+  }
+}

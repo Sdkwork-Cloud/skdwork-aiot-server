@@ -86,9 +86,9 @@ jobs:
       architecture: ${{ github.event.inputs.architecture || 'all' }}
       profile: ${{ github.event.inputs.profile || 'all' }}
       format: ${{ github.event.inputs.format || 'all' }}
-      publish_release: true
+      publish_release: false
       upload_artifact: true
-      deploy: ${{ github.event.inputs.deploy == 'true' || github.event_name == 'release' }}
+      deploy: ${{ github.event.inputs.deploy == 'true' }}
       retention_days: 30
       framework_ref: b0829529b9277a3da32b90c2d36ff34ff09fa832
       dependency_refs_json: >-

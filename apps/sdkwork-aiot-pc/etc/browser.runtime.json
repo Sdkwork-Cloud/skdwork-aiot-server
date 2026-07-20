@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.browser-runtime",
+  "renderer": "pc",
+  "devServer": { "bind": "127.0.0.1", "port": 5175 },
+  "runtimeBindings": {
+    "deploymentProfile": "VITE_SDKWORK_AIOT_DEPLOYMENT_PROFILE",
+    "environment": "VITE_SDKWORK_AIOT_ENVIRONMENT",
+    "applicationHttp": "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL",
+    "sdkGatewayHttp": "VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL"
+  }
+}

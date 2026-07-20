@@ -29,7 +29,7 @@ The AIoT server aligns on API contracts, SDK workspaces, topology, security post
 5. Integrate `sdkwork-utils` for cross-language value parsing, string normalization, identifiers, and datetime helpers; consolidate duplicated client-side readers in `@sdkwork/aiot-app-core`.
 6. Do not integrate `sdkwork-discovery` until the repository exposes RPC/gRPC services.
 7. Integrate `sdkwork-drive` for all client-side file uploads through `@sdkwork/drive-app-sdk client.uploader.*`; business APIs accept Drive-backed `MediaResource` references only.
-8. Keep `sdkwork-aiot-cloud-gateway` device ingress on the minimal transport stack documented in ADR 002; it is not an HTTP `*-api` surface and therefore does not require `sdkwork-web-framework` integration.
+8. Keep `sdkwork-aiot-device-edge-runtime` device ingress on the minimal transport stack documented in ADR 002; it is not an HTTP `*-api` surface and therefore does not require `sdkwork-web-framework` integration.
 9. Add GitHub packaging through `sdkwork.workflow.json` and `.github/workflows/package.yml` immediately.
 10. Require route manifests and OpenAPI authorities to declare `WebRequestContext` and `apiSurface` metadata immediately.
 11. Expose repository-root scripts through the standard `dev`, `api`, `sdk`, `gateway`, `release`, `deploy`, `topology`, and `sbom` command families without application-code prefixes.

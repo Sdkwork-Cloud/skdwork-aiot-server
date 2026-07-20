@@ -20,19 +20,14 @@ const manifestPath = path.join(releaseDir, 'release-packages.manifest.json');
 
 export const SERVER_BINARIES = [
   {
-    crate: 'sdkwork-aiot-cloud-gateway',
-    unix: 'sdkwork-aiot-cloud-gateway',
-    windows: 'sdkwork-aiot-cloud-gateway.exe',
+    crate: 'sdkwork-api-aiot-standalone-gateway',
+    unix: 'sdkwork-api-aiot-standalone-gateway',
+    windows: 'sdkwork-api-aiot-standalone-gateway.exe',
   },
   {
-    crate: 'sdkwork-aiot-app-api',
-    unix: 'sdkwork-aiot-app-api',
-    windows: 'sdkwork-aiot-app-api.exe',
-  },
-  {
-    crate: 'sdkwork-aiot-admin-api',
-    unix: 'sdkwork-aiot-admin-api',
-    windows: 'sdkwork-aiot-admin-api.exe',
+    crate: 'sdkwork-aiot-device-edge-runtime',
+    unix: 'sdkwork-aiot-device-edge-runtime',
+    windows: 'sdkwork-aiot-device-edge-runtime.exe',
   },
 ];
 
@@ -145,27 +140,6 @@ async function packageReleaseTargets() {
   return packages;
 }
 
-function syncAppConfigPackages(releasedPackages) {
-  const appConfigPath = path.join(root, 'sdkwork.app.config.json');
-  const appConfig = JSON.parse(readFileSync(appConfigPath, 'utf8'));
-  const packages = appConfig.artifacts?.installConfig?.packages ?? [];
-
-  for (const released of releasedPackages) {
-    const target = packages.find((pkg) => pkg.id === released.id);
-    if (!target) {
-      continue;
-    }
-    target.checksum = released.checksum;
-    target.checksumAlgorithm = released.checksumAlgorithm;
-    target.enabled = released.enabled ?? true;
-    if (target.metadata?.checksumPendingReleaseBuild) {
-      delete target.metadata.checksumPendingReleaseBuild;
-    }
-  }
-
-  writeFileSync(appConfigPath, `${JSON.stringify(appConfig, null, 2)}\n`);
-}
-
 async function main() {
   const packages = await packageReleaseTargets();
   const manifest = {
@@ -175,12 +149,11 @@ async function main() {
     packages,
   };
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  syncAppConfigPackages(packages);
   const sbomOutputs = generateReleaseSboms();
   for (const sbomPath of sbomOutputs) {
     console.log(`[release:package] wrote ${path.relative(root, sbomPath)}`);
   }
-  console.log('[release:package] synced checksum into sdkwork.app.config.json');
+  console.log('[release:package] legacy archive output is isolated from sdkwork.app.config.json');
 }
 
 const isMain =

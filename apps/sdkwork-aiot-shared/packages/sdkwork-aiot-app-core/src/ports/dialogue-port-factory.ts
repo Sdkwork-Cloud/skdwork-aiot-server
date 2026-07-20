@@ -1,3 +1,5 @@
+import { uuid } from '@sdkwork/utils';
+
 import {
   extractSdkItems,
   extractSdkResourceRecord,
@@ -21,7 +23,7 @@ export interface AiotAgentsSdkBridge {
   sendChatSync(
     agentId: string,
     remoteSessionId: string,
-    input: { content: string; contentType: string; requestedAt: string },
+    input: { content: string; contentType: string; idempotencyKey: string; requestedAt: string },
   ): Promise<unknown>;
 }
 
@@ -31,14 +33,14 @@ export interface AiotVoiceSdkBridge {
   createTranscription(input: {
     file: {
       fileName: string;
-      kind: string;
+      kind: 'audio';
       mimeType: string;
-      source: string;
+      source: 'data_url';
       url: string;
     };
     language: string;
     model: string;
-    responseFormat: string;
+    responseFormat: 'json';
   }): Promise<unknown>;
   listAudioAssets(input: { page: number; pageSize: number; taskId: string }): Promise<unknown>;
   retrieveAudioAsset(assetId: string): Promise<unknown>;
@@ -113,6 +115,7 @@ export function createAiotAgentsDialoguePortFromSdk(
       const response = await bridge.sendChatSync(agentId, remoteSessionId, {
         content: text.trim(),
         contentType: 'text/plain',
+        idempotencyKey: uuid(),
         requestedAt: new Date().toISOString(),
       });
       const completion = extractSdkResourceRecord(response);

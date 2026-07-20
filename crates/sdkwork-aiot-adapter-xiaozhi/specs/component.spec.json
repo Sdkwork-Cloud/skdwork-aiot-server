@@ -50,6 +50,7 @@
     }
   ],
   "contracts": {
+    "layerRole": "backend-provider",
     "publicExports": [
       "."
     ],

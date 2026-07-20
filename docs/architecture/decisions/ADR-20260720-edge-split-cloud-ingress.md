@@ -9,25 +9,25 @@ Specs: APP_RUNTIME_TOPOLOGY_SPEC.md, APPLICATION_GATEWAY_SPEC.md, ARCHITECTURE_D
 ## Context
 
 AIoT has two distinct cloud connectivity planes. Application HTTP APIs are
-consumed through the SDKWork platform gateway, while WebSocket, MQTT, UDP, OTA,
-and device protocol traffic is owned by `sdkwork-aiot-cloud-gateway`. Historical
+hosted from the platform side by the canonical platform cloud gateway, while WebSocket, MQTT, UDP, OTA,
+and device protocol traffic is owned by `sdkwork-aiot-device-edge-runtime`. Historical
 ADR 002 retains the specialized transport and ADR 003 defines horizontal
 scaling for stateful device sessions.
 
 Topology v5 requires this non-collapsed edge boundary and its governing
 decision to be explicit. Cloud development must consume deployed endpoints and
-must not start local API, database, platform gateway, or edge gateway services.
+must not start local API, database, platform gateway, or device edge runtime processes.
 
 ## Decision
 
 Use the `edge-split` cloud ingress strategy.
 
-- `sdkwork-api-cloud-gateway` owns platform and application API ingress.
-- `sdkwork-aiot-cloud-gateway` owns device and edge protocol ingress.
+- The platform gateway repository owns `sdkwork-api-cloud-gateway` and consumes `sdkwork-api-aiot-assembly`.
+- `sdkwork-aiot-device-edge-runtime` owns device and edge protocol ingress.
 - Cloud development uses `https://api-dev.sdkwork.com` for platform/application
   HTTP access and `https://edge-dev.aiot.sdkwork.com` for edge HTTP/WebSocket
   access.
-- Standalone profiles continue to run the standalone gateway and edge gateway
+- Standalone profiles run `sdkwork-api-aiot-standalone-gateway` and the device edge runtime
   locally as declared by topology.
 
 ## Alternatives
@@ -35,7 +35,7 @@ Use the `edge-split` cloud ingress strategy.
 - Collapse device traffic into the platform gateway: rejected because the
   platform gateway does not own WebSocket session affinity, MQTT/UDP bridging,
   OTA, or device protocol handling.
-- Use a dedicated application HTTP gateway in addition to the edge gateway:
+- Use a dedicated application HTTP gateway in addition to the device edge runtime:
   rejected because application APIs already compose through the platform
   gateway and would create a redundant ingress layer.
 - Start cloud services locally during cloud development: rejected by the
@@ -52,7 +52,7 @@ decision. The platform gateway remains free of device protocol ownership.
 
 - `node ../sdkwork-specs/tools/check-topology-deployment-profiles.mjs --workspace .. --repo sdkwork-aiot`
 - `pnpm topology:validate`
-- `pnpm gateway:validate:cloud`
+- `pnpm gateway:validate:standalone`
 - Gateway transport and horizontal scaling tests named by historical ADR 002
   and ADR 003 remain required.
 

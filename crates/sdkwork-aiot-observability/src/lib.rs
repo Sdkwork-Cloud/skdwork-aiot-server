@@ -153,7 +153,7 @@ pub fn structured_trace_enabled() -> bool {
 }
 
 pub fn configured_node_id() -> Option<String> {
-    std::env::var("SDKWORK_AIOT_GATEWAY_NODE_ID")
+    std::env::var("SDKWORK_AIOT_DEVICE_EDGE_NODE_ID")
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
@@ -186,7 +186,7 @@ pub fn emit_api_request_trace(method: &str, path: &str, status: u16) {
     otlp::export_api_request_trace(method, path, status);
 }
 
-pub fn emit_gateway_lifecycle(event: &str, fields: &TraceFields) {
+pub fn emit_device_edge_lifecycle(event: &str, fields: &TraceFields) {
     emit_trace_event(event, fields);
 }
 

@@ -79,7 +79,7 @@ When neither is configured, dev processes use shared in-memory SQLite (`file:sdk
 | --- | --- | --- |
 | `sdkwork-appbase` IAM | Proxy-terminated auth with internal proxy token | `docs/adr/001-iam-via-appbase-proxy.md` |
 | Axum/Tokio HTTP stack | Gateway minimal transport; APIs use `sdkwork-web-framework` | `docs/adr/002-http-transport-evolution.md` |
-| Horizontal clustering | Sticky sessions + `SDKWORK_AIOT_GATEWAY_NODE_ID` | `docs/adr/003-gateway-horizontal-scaling.md` |
+| Horizontal clustering | Sticky sessions + `SDKWORK_AIOT_DEVICE_EDGE_NODE_ID` | `docs/adr/003-device-edge-horizontal-scaling.md` |
 
 ## Planned (post-launch)
 
@@ -104,7 +104,7 @@ node ../sdkwork-specs/tools/check-pagination.mjs --workspace .
 node ../sdkwork-specs/tools/check-api-response-envelope.mjs --workspace .
 node ../sdkwork-specs/tools/check-app-sdk-consumer-imports.mjs --workspace .
 cargo test -p sdkwork-iot-platform-service --test http_api_standard
-cargo test -p sdkwork-aiot-cloud-gateway --test gateway_standard
+cargo test -p sdkwork-aiot-device-edge-runtime --test device_edge_runtime_standard
 ```
 
 Optional Postgres smoke (requires running database):
@@ -130,4 +130,4 @@ $env:SDKWORK_AIOT_TRUST_PROXY_HEADERS='1'   # appbase must send x-sdkwork-proxy-
 # Do NOT set SDKWORK_AIOT_DEV_MODE in production
 ```
 
-For cloud Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `configs/topology/cloud.production.env`).
+For cloud Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `etc/topology/cloud.production.env`).
