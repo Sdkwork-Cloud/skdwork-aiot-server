@@ -15,7 +15,7 @@ pnpm dev
 Cloud development profile:
 
 ```bash
-pnpm dev:server:sqlite:cloud
+pnpm dev:server:cloud
 ```
 
 ## Surfaces

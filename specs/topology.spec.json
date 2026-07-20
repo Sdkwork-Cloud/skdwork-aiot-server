@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "kind": "sdkwork.app.topology",
   "appId": "sdkwork-aiot",
   "archetype": "application-rest-edge-device",
@@ -41,8 +41,6 @@
   "envKeys": {
     "environment": "SDKWORK_AIOT_ENVIRONMENT",
     "profileId": "SDKWORK_AIOT_PROFILE_ID",
-    "gatewayAutostart": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_AUTOSTART",
-    "cloudGatewayBind": "SDKWORK_API_CLOUD_GATEWAY_BIND",
     "apiGatewayBaseUrl": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL",
     "clientApiGatewayBaseUrl": "VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL",
     "deploymentProfile": "SDKWORK_AIOT_DEPLOYMENT_PROFILE",
@@ -95,11 +93,8 @@
       "protocols": [
         "http"
       ],
-      "owner": "sdkwork-api-cloud-gateway",
-      "bindEnv": "SDKWORK_API_CLOUD_GATEWAY_BIND",
       "httpUrlEnv": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL",
-      "clientHttpEnv": "VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL",
-      "autostartEnv": "SDKWORK_AIOT_PLATFORM_API_GATEWAY_AUTOSTART"
+      "clientHttpEnv": "VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL"
     }
   },
   "cloudPublicHosts": {
@@ -114,6 +109,9 @@
     },
     "platform.api-gateway": {
       "httpHost": "api.sdkwork.com"
+    },
+    "application.public-ingress": {
+      "httpHost": "aiot.sdkwork.com"
     }
   },
   "database": {
@@ -155,11 +153,6 @@
     "standaloneGateway": {
       "crate": "sdkwork-aiot-standalone-gateway",
       "binary": "sdkwork-aiot-standalone-gateway"
-    },
-    "cloudGateway": {
-      "crate": "sdkwork-api-cloud-gateway",
-      "binary": "sdkwork-api-cloud-gateway",
-      "repository": "sdkwork-api-cloud-gateway"
     }
   },
   "orchestration": {
@@ -170,20 +163,8 @@
             "id": "application.public-ingress",
             "crate": "sdkwork-aiot-standalone-gateway",
             "binary": "sdkwork-aiot-standalone-gateway",
-            "required": true
-          },
-          {
-            "id": "edge.device-ingress",
-            "crate": "sdkwork-aiot-cloud-gateway",
-            "binary": "sdkwork-aiot-cloud-gateway",
-            "required": true
-          },
-          {
-            "id": "platform.api-gateway",
-            "crate": "sdkwork-api-cloud-gateway",
-            "binary": "sdkwork-api-cloud-gateway",
-            "repository": "sdkwork-api-cloud-gateway",
-            "required": false
+            "required": true,
+            "role": "api-standalone-gateway"
           }
         ],
         "healthSurfaces": [
@@ -192,31 +173,10 @@
         ]
       },
       "cloud.development": {
-        "processes": [
-          {
-            "id": "platform.api-gateway",
-            "crate": "sdkwork-api-cloud-gateway",
-            "binary": "sdkwork-api-cloud-gateway",
-            "repository": "sdkwork-api-cloud-gateway",
-            "required": true
-          },
-          {
-            "id": "application.public-ingress",
-            "crate": "sdkwork-aiot-standalone-gateway",
-            "binary": "sdkwork-aiot-standalone-gateway",
-            "required": true
-          },
-          {
-            "id": "edge.device-ingress",
-            "crate": "sdkwork-aiot-cloud-gateway",
-            "binary": "sdkwork-aiot-cloud-gateway",
-            "required": true
-          }
-        ],
+        "processes": [],
         "healthSurfaces": [
-          "platform.api-gateway",
           "application.public-ingress",
-          "edge.device-ingress"
+          "platform.api-gateway"
         ]
       },
       "cloud.production": {
@@ -225,20 +185,8 @@
             "id": "application.public-ingress",
             "crate": "sdkwork-aiot-standalone-gateway",
             "binary": "sdkwork-aiot-standalone-gateway",
-            "required": true
-          },
-          {
-            "id": "edge.device-ingress",
-            "crate": "sdkwork-aiot-cloud-gateway",
-            "binary": "sdkwork-aiot-cloud-gateway",
-            "required": true
-          },
-          {
-            "id": "platform.api-gateway",
-            "crate": "sdkwork-api-cloud-gateway",
-            "binary": "sdkwork-api-cloud-gateway",
-            "repository": "sdkwork-api-cloud-gateway",
-            "required": false
+            "required": true,
+            "role": "api-standalone-gateway"
           }
         ],
         "healthSurfaces": [
@@ -253,20 +201,8 @@
             "id": "application.public-ingress",
             "crate": "sdkwork-aiot-standalone-gateway",
             "binary": "sdkwork-aiot-standalone-gateway",
-            "required": true
-          },
-          {
-            "id": "edge.device-ingress",
-            "crate": "sdkwork-aiot-cloud-gateway",
-            "binary": "sdkwork-aiot-cloud-gateway",
-            "required": true
-          },
-          {
-            "id": "platform.api-gateway",
-            "crate": "sdkwork-api-cloud-gateway",
-            "binary": "sdkwork-api-cloud-gateway",
-            "repository": "sdkwork-api-cloud-gateway",
-            "required": false
+            "required": true,
+            "role": "api-standalone-gateway"
           }
         ],
         "healthSurfaces": [
@@ -297,10 +233,7 @@
     }
   },
   "packaging": {
-    "cloudConfigFiles": [
-      "sdkwork-api-cloud-gateway.aiot.development.toml",
-      "sdkwork-api-cloud-gateway.aiot.production.toml"
-    ],
+    "cloudConfigFiles": [],
     "targets": [
       {
         "id": "container-noarch-cloud-container-config-bundle-tar-gz",

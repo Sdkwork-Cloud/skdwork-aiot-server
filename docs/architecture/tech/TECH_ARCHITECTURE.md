@@ -2,7 +2,7 @@
 
 Status: active
 Owner: SDKWork maintainers
-Updated: 2026-06-24
+Updated: 2026-07-20
 Specs: ARCHITECTURE_DECISION_SPEC.md, DOCUMENTATION_SPEC.md
 
 ## Document Map
@@ -37,5 +37,9 @@ Architecture detail lives in the linked TECH shards below.
 ## 7. Deployment And Runtime Topology
 
 ## 8. Architecture Decision Index
+
+- [ADR-20260720 edge-split cloud ingress](../decisions/ADR-20260720-edge-split-cloud-ingress.md)
+- Historical ADR 002 and ADR 003 remain the transport and gateway scaling
+  authorities under the retired `docs/adr/` layout.
 
 ## 9. Verification

@@ -9,7 +9,7 @@ Platform standard: `../../sdkwork-specs/APP_RUNTIME_TOPOLOGY_ADOPTION.md`
 | Profile id | Command |
 | --- | --- |
 | `standalone.development` | `pnpm dev` |
-| `cloud.development` | `pnpm dev:server:sqlite:cloud` |
+| `cloud.development` | `pnpm dev:server:cloud` |
 | `standalone.production` | on-prem release wiring |
 | `cloud.production` | SaaS release wiring |
 

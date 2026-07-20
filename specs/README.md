@@ -81,7 +81,7 @@ Client firmware and media uploads use `@sdkwork/drive-app-sdk` (`client.uploader
 ## Build, Test, and Development Commands
 
 - `pnpm dev`: topology-aware dev entry for the default `standalone.development` profile.
-- `pnpm dev:server:sqlite:cloud`: cloud deployment profile dev workflow.
+- `pnpm dev:server:cloud`: cloud deployment profile dev workflow.
 - `pnpm check`: workspace standard, database, API, SDK, topology, drive, api-envelope, pagination, app-sdk-consumer-imports, Rust fmt, and clippy gates.
 - `pnpm verify`: `pnpm check` plus `cargo test --workspace`.
 - `pnpm release:build` / `pnpm release:package` / `pnpm release:validate` / `pnpm release:publish` / `pnpm release:preflight`: server release binaries, CDN-aligned archives, SBOM evidence, and unified preflight gate.
