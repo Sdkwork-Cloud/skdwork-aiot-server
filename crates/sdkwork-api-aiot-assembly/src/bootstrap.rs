@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use axum::Router;
 
-pub struct ApplicationAssembly {
+pub struct ApiAssembly {
     pub router: Router,
 }
 
@@ -13,7 +13,7 @@ pub struct ApplicationAssembly {
 /// This function bootstraps the aiot device database from environment variables,
 /// creates the app and admin API servers, and builds wrapped routers for both
 /// the app-api and backend-api surfaces.
-pub async fn assemble_application_router() -> Result<ApplicationAssembly, String> {
+pub async fn assemble_api_router() -> Result<ApiAssembly, String> {
     sdkwork_iot_platform_service::assert_production_environment_safety();
     let device_db_path = sdkwork_iot_platform_service::configured_device_db_path(
         "SDKWORK_AIOT_APPLICATION_GATEWAY_DEVICE_DB_PATH",
@@ -55,7 +55,7 @@ pub async fn assemble_application_router() -> Result<ApplicationAssembly, String
         sdkwork_routes_iot_backend_api::build_wrapped_backend_api_router(admin_server).await;
     let router = compose_application_router(app_router, backend_router);
 
-    Ok(ApplicationAssembly { router })
+    Ok(ApiAssembly { router })
 }
 
 fn compose_application_router(app_router: Router, backend_router: Router) -> Router {

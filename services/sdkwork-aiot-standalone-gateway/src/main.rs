@@ -4,7 +4,7 @@ const DEFAULT_BIND_ADDR: &str = "127.0.0.1:18082";
 
 #[tokio::main]
 async fn main() {
-    let assembly = sdkwork_api_aiot_assembly::assemble_application_router()
+    let assembly = sdkwork_api_aiot_assembly::assemble_api_router()
         .await
         .expect("assemble aiot application gateway");
 

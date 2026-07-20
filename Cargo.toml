@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/sdkwork-api-aiot-standalone-gateway",
     "crates/sdkwork-api-aiot-assembly",
     "crates/sdkwork-aiot-contract",
     "crates/sdkwork-iot-device-service",
