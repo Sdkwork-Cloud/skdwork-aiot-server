@@ -2081,19 +2081,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sdkwork-aiot-gateway-assembly"
-version = "0.1.0"
-dependencies = [
- "axum",
- "http-body-util",
- "sdkwork-iot-platform-service",
- "sdkwork-routes-iot-app-api",
- "sdkwork-routes-iot-backend-api",
- "tokio",
- "tower",
-]
-
-[[package]]
 name = "sdkwork-aiot-intelligence-bridge"
 version = "0.1.0"
 dependencies = [
@@ -2143,7 +2130,7 @@ name = "sdkwork-aiot-standalone-gateway"
 version = "0.1.0"
 dependencies = [
  "axum",
- "sdkwork-aiot-gateway-assembly",
+ "sdkwork-api-aiot-assembly",
  "tokio",
 ]
 
@@ -2191,6 +2178,26 @@ dependencies = [
  "sdkwork-aiot-adapter-xiaozhi",
  "serde_json",
  "tungstenite 0.24.0",
+]
+
+[[package]]
+name = "sdkwork-api-aiot-assembly"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "sdkwork-iot-platform-service",
+ "sdkwork-routes-iot-app-api",
+ "sdkwork-routes-iot-backend-api",
+ "tokio",
+]
+
+[[package]]
+name = "sdkwork-api-aiot-standalone-gateway"
+version = "0.1.0"
+dependencies = [
+ "sdkwork-api-aiot-assembly",
+ "sdkwork-web-bootstrap",
+ "tokio",
 ]
 
 [[package]]

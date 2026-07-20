@@ -1,9 +1,10 @@
 [package]
 name = "sdkwork-api-aiot-standalone-gateway"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
-axum = "0.8"
-tokio = { version = "1.48", features = ["macros", "net", "rt-multi-thread"] }
-sdkwork-api-aiot-assembly = { path = "../sdkwork-api-aiot-assembly" }
+sdkwork-api-aiot-assembly.workspace = true
+sdkwork-web-bootstrap.workspace = true
+tokio.workspace = true
