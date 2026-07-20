@@ -1,0 +1,32 @@
+{
+  "kind": "sdkwork.api.assembly",
+  "schemaVersion": 1,
+  "applicationCode": "aiot",
+  "apiMode": "served",
+  "packageName": "sdkwork-api-aiot-assembly",
+  "crateDir": "crates/sdkwork-api-aiot-assembly",
+  "routeCrates": [
+    {
+      "packageName": "sdkwork-routes-iot-app-api",
+      "memberDir": "crates/sdkwork-routes-iot-app-api",
+      "libName": "sdkwork_routes_iot_app_api",
+      "surface": "app-api",
+      "pathPrefix": null,
+      "mountOrder": 0,
+      "componentRef": "crates/sdkwork-routes-iot-app-api/specs/component.spec.json",
+      "routeManifestRef": "crates/sdkwork-routes-iot-app-api/sdks/_route-manifests/app-api/sdkwork-routes-iot-app-api.route-manifest.json",
+      "sourceRef": "crates/sdkwork-routes-iot-app-api/Cargo.toml"
+    },
+    {
+      "packageName": "sdkwork-routes-iot-backend-api",
+      "memberDir": "crates/sdkwork-routes-iot-backend-api",
+      "libName": "sdkwork_routes_iot_backend_api",
+      "surface": "backend-api",
+      "pathPrefix": null,
+      "mountOrder": 1,
+      "componentRef": "crates/sdkwork-routes-iot-backend-api/specs/component.spec.json",
+      "routeManifestRef": "crates/sdkwork-routes-iot-backend-api/sdks/_route-manifests/backend-api/sdkwork-routes-iot-backend-api.route-manifest.json",
+      "sourceRef": "crates/sdkwork-routes-iot-backend-api/Cargo.toml"
+    }
+  ]
+}

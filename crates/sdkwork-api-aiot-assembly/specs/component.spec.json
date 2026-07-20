@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "kind": "sdkwork.component.spec",
   "component": {
-    "name": "sdkwork-aiot-gateway-assembly",
+    "name": "sdkwork-api-aiot-assembly",
     "displayName": "SDKWork aiot Gateway Assembly",
     "version": "0.1.0",
-    "type": "rust-crate",
-    "root": "sdkwork-aiot/crates/sdkwork-aiot-gateway-assembly",
+    "type": "rust-api-assembly",
+    "root": "crates/sdkwork-api-aiot-assembly",
     "domain": "application",
-    "capability": "aiot-gateway-assembly",
-    "surface": "assembly",
+    "capability": "api-assembly",
+    "surface": "api-assembly",
     "languages": [
       "rust"
     ],
@@ -47,12 +47,13 @@
     "dependencyApiExports": [],
     "dependencyApiSurfaces": [],
     "events": [],
-    "configKeys": []
+    "configKeys": [],
+    "layerRole": "runtime-composition"
   },
   "verification": {
     "commands": [
       "pnpm run api:assembly:validate",
-      "cargo check -p sdkwork-aiot-gateway-assembly"
+      "cargo check -p sdkwork-api-aiot-assembly"
     ]
   }
 }

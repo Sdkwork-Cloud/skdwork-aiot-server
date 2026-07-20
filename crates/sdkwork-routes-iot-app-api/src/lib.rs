@@ -87,3 +87,7 @@ async fn shutdown_signal() {
         () = terminate => {},
     }
 }
+
+pub fn gateway_mount(server: Arc<AiotApiServer>) -> axum::Router {
+    build_sdkwork_iot_app_api_router(server)
+}

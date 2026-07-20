@@ -1,12 +1,12 @@
 [package]
-name = "sdkwork-aiot-gateway-assembly"
+name = "sdkwork-api-aiot-assembly"
 edition.workspace = true
 license.workspace = true
 version.workspace = true
-description = "Generated gateway assembly for sdkwork-aiot application HTTP plane."
+description = "Generated API assembly for sdkwork-aiot application HTTP plane."
 
 [lib]
-name = "sdkwork_aiot_gateway_assembly"
+name = "sdkwork_api_aiot_assembly"
 path = "src/lib.rs"
 
 [dependencies]
@@ -15,7 +15,3 @@ tokio.workspace = true
 sdkwork-iot-platform-service = { workspace = true }
 sdkwork-routes-iot-app-api.workspace = true
 sdkwork-routes-iot-backend-api.workspace = true
-
-[dev-dependencies]
-http-body-util.workspace = true
-tower.workspace = true

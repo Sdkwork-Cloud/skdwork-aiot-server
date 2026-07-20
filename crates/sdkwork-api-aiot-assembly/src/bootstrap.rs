@@ -21,11 +21,11 @@ pub async fn assemble_application_router() -> Result<ApplicationAssembly, String
 
     let app_stores = sdkwork_iot_platform_service::open_app_service_stores(
         device_db_path.as_deref(),
-        "sdkwork-aiot-gateway-assembly",
+        "sdkwork-api-aiot-assembly",
     )?;
     let admin_stores = sdkwork_iot_platform_service::open_admin_service_stores(
         device_db_path.as_deref(),
-        "sdkwork-aiot-gateway-assembly",
+        "sdkwork-api-aiot-assembly",
     )?;
 
     let app_server = Arc::new(

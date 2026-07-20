@@ -10,5 +10,5 @@ path = "src/main.rs"
 
 [dependencies]
 axum.workspace = true
-sdkwork-aiot-gateway-assembly.workspace = true
+sdkwork-api-aiot-assembly.workspace = true
 tokio.workspace = true
