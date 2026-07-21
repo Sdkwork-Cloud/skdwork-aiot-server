@@ -1,4 +1,4 @@
-[workspace]
+﻿[workspace]
 members = [
     "crates/sdkwork-api-aiot-standalone-gateway",
     "crates/sdkwork-api-aiot-assembly",
@@ -27,7 +27,7 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 version = "0.1.0"
-license = "Apache-2.0"
+license = "AGPL-3.0-or-later"
 
 [workspace.dependencies]
 sdkwork-web-bootstrap = { path = "../sdkwork-web-framework/crates/sdkwork-web-bootstrap" }
