@@ -6,5 +6,6 @@ license.workspace = true
 
 [dependencies]
 sdkwork-api-aiot-assembly.workspace = true
+sdkwork-aiot-database-host.workspace = true
 sdkwork-web-bootstrap.workspace = true
 tokio.workspace = true

@@ -10,9 +10,9 @@ pub struct ApiAssembly {
 
 /// Assemble the aiot application router from environment variables.
 ///
-/// This function bootstraps the aiot device database from environment variables,
-/// creates the app and admin API servers, and builds wrapped routers for both
-/// the app-api and backend-api surfaces.
+/// This function opens lifecycle-prepared AIoT persistence, creates the app and
+/// admin API servers, and builds wrapped routers for both the app-api and
+/// backend-api surfaces.
 pub async fn assemble_api_router() -> Result<ApiAssembly, String> {
     sdkwork_iot_platform_service::assert_production_environment_safety();
     let device_db_path =
