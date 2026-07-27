@@ -51,10 +51,15 @@ export function readMediaResourceUrl(mediaResource: unknown): { url?: string; mi
 }
 
 export function readAssistantMessageText(completion: Record<string, unknown>): string | null {
-  const assistantRecord = readRecord(completion.assistantMessage)
-    ?? readRecord(completion.assistant_message);
-  const text = readString(assistantRecord.content);
-  return text || null;
+  const items = Array.isArray(completion.items) ? completion.items : [];
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    const item = readRecord(items[index]);
+    if (readString(item.kind) === 'assistant_output') {
+      const text = readString(item.content);
+      return text || null;
+    }
+  }
+  return null;
 }
 
 export function readTranscriptText(payload: Record<string, unknown>): string | null {

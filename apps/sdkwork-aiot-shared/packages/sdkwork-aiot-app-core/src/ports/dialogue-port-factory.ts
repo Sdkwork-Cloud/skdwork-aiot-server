@@ -1,4 +1,4 @@
-import { uuid } from '@sdkwork/utils';
+import { sha256Hash, uuid } from '@sdkwork/utils';
 
 import {
   extractSdkItems,
@@ -15,15 +15,31 @@ import type { AiotAgentsDialoguePort, AiotVoiceDialoguePort } from './dialogue-p
 
 export interface AiotAgentsSdkBridge {
   configured: boolean;
+  entrySurface: 'pc' | 'h5';
   resolveAgentId: () => string;
   createSession(
     agentId: string,
-    input: { requestedAt: string; title: string },
+    input: {
+      entrySurface: 'pc' | 'h5';
+      idempotencyKey: string;
+      payloadHash: string;
+      requestedAt: string;
+      sessionKind: 'assistant';
+      title: string;
+    },
   ): Promise<unknown>;
   sendChatSync(
     agentId: string,
     remoteSessionId: string,
-    input: { content: string; contentType: string; idempotencyKey: string; requestedAt: string },
+    input: {
+      clientRequestId: string;
+      content: string;
+      contentType: string;
+      idempotencyKey: string;
+      payloadHash: string;
+      requestedAt: string;
+      turnMode: 'interactive';
+    },
   ): Promise<unknown>;
 }
 
@@ -97,9 +113,21 @@ export function createAiotAgentsDialoguePortFromSdk(
     },
 
     async createRemoteSession(agentId, title) {
+      const entrySurface = bridge.entrySurface;
+      const idempotencyKey = uuid();
+      const normalizedTitle = title?.trim() || 'AIoT Voice Session';
+      const sessionKind = 'assistant' as const;
       const response = await bridge.createSession(agentId, {
+        entrySurface,
+        idempotencyKey,
+        payloadHash: `sha256:${sha256Hash(JSON.stringify({
+          sessionKind,
+          entrySurface,
+          title: normalizedTitle,
+        }))}`,
         requestedAt: new Date().toISOString(),
-        title: title?.trim() || 'AIoT Voice Session',
+        sessionKind,
+        title: normalizedTitle,
       });
       const session = extractSdkResourceRecord(response);
       const sessionId = readString(session.sessionId)
@@ -112,11 +140,22 @@ export function createAiotAgentsDialoguePortFromSdk(
     },
 
     async sendChat({ agentId, remoteSessionId, text }) {
+      const content = text.trim();
+      const contentType = 'text/plain';
+      const idempotencyKey = uuid();
       const response = await bridge.sendChatSync(agentId, remoteSessionId, {
-        content: text.trim(),
-        contentType: 'text/plain',
-        idempotencyKey: uuid(),
+        clientRequestId: idempotencyKey,
+        content,
+        contentType,
+        idempotencyKey,
+        payloadHash: `sha256:${sha256Hash(JSON.stringify({
+          content,
+          contentType,
+          requestedModelId: null,
+          driveRefs: [],
+        }))}`,
         requestedAt: new Date().toISOString(),
+        turnMode: 'interactive',
       });
       const completion = extractSdkResourceRecord(response);
       const reply = readAssistantMessageText(completion);

@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import { sha256Hash } from '@sdkwork/utils';
 
 import {
   createAiotAgentService,
+  createAiotAgentsDialoguePortFromSdk,
   createAiotCommandService,
   createAiotVoiceDialogueService,
   pollCommandResult,
@@ -77,6 +79,58 @@ describe('aiot-app-core command service', () => {
 });
 
 describe('aiot-app-core agent service', () => {
+  it('uses canonical sdkwork-agents session and turn contracts', async () => {
+    const createSession = vi.fn().mockResolvedValue({ sessionId: 'session.aiot.voice' });
+    const sendChatSync = vi.fn().mockResolvedValue({
+      items: [
+        { content: 'user request', kind: 'user_input' },
+        { content: 'agents reply', kind: 'assistant_output' },
+      ],
+    });
+    const port = createAiotAgentsDialoguePortFromSdk({
+      configured: true,
+      createSession,
+      entrySurface: 'pc',
+      resolveAgentId: () => 'agent.aiot.assistant',
+      sendChatSync,
+    });
+
+    await expect(
+      port.createRemoteSession('agent.aiot.assistant', 'Living room assistant'),
+    ).resolves.toBe('session.aiot.voice');
+    await expect(port.sendChat({
+      agentId: 'agent.aiot.assistant',
+      remoteSessionId: 'session.aiot.voice',
+      text: 'Turn on the lights',
+    })).resolves.toBe('agents reply');
+
+    const sessionInput = createSession.mock.calls[0]?.[1];
+    expect(sessionInput).toMatchObject({
+      entrySurface: 'pc',
+      sessionKind: 'assistant',
+      title: 'Living room assistant',
+    });
+    expect(sessionInput.payloadHash).toBe(`sha256:${sha256Hash(JSON.stringify({
+      sessionKind: 'assistant',
+      entrySurface: 'pc',
+      title: 'Living room assistant',
+    }))}`);
+
+    const turnInput = sendChatSync.mock.calls[0]?.[2];
+    expect(turnInput).toMatchObject({
+      content: 'Turn on the lights',
+      contentType: 'text/plain',
+      turnMode: 'interactive',
+    });
+    expect(turnInput.clientRequestId).toBe(turnInput.idempotencyKey);
+    expect(turnInput.payloadHash).toBe(`sha256:${sha256Hash(JSON.stringify({
+      content: 'Turn on the lights',
+      contentType: 'text/plain',
+      requestedModelId: null,
+      driveRefs: [],
+    }))}`);
+  });
+
   it('uses sdkwork-agents dialogue port when configured', async () => {
     const service = createAiotAgentService({
       agentsDialoguePort: {

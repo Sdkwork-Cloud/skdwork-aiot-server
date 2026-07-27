@@ -1,7 +1,7 @@
 import { readPcReactRuntimeSession } from '@sdkwork/core-pc-react';
 import {
+  completeAgentTurn,
   createClient,
-  sendAgentChatMessageSync,
   type SdkworkAppClient,
   type SdkworkAppConfig,
 } from '@sdkwork/agents-app-sdk';
@@ -15,7 +15,7 @@ export type SdkworkAgentsAppClientConfig = SdkworkAppConfig;
 
 let agentsAppSdkClient: SdkworkAgentsAppClient | null = null;
 
-export { isAgentsAppSdkConfigured, sendAgentChatMessageSync };
+export { completeAgentTurn, isAgentsAppSdkConfigured };
 
 export function createAgentsAppSdkClientConfig(
   session = readPcReactRuntimeSession(),

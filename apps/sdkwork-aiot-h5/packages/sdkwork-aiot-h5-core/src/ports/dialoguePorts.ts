@@ -6,9 +6,9 @@ import {
 } from '@sdkwork/aiot-app-core';
 
 import {
+  completeAgentTurn,
   getAgentsAppSdkClient,
   isAgentsAppSdkConfigured,
-  sendAgentChatMessageSync,
 } from '../sdk/agentsAppSdkClient';
 import { resolveDefaultAiotAgentId } from '../sdk/siblingAppUrls';
 import { getVoiceAppSdkClient, isVoiceAppSdkConfigured } from '../sdk/voiceAppSdkClient';
@@ -16,12 +16,13 @@ import { getVoiceAppSdkClient, isVoiceAppSdkConfigured } from '../sdk/voiceAppSd
 export function createAiotAgentsDialoguePort(): AiotAgentsDialoguePort {
   return createAiotAgentsDialoguePortFromSdk({
     configured: isAgentsAppSdkConfigured(),
+    entrySurface: 'h5',
     resolveAgentId: resolveDefaultAiotAgentId,
     createSession(agentId, input) {
       return getAgentsAppSdkClient().ai.agents.sessions.create(agentId, input);
     },
     sendChatSync(agentId, remoteSessionId, input) {
-      return sendAgentChatMessageSync(getAgentsAppSdkClient(), agentId, remoteSessionId, input);
+      return completeAgentTurn(getAgentsAppSdkClient(), agentId, remoteSessionId, input);
     },
   });
 }
