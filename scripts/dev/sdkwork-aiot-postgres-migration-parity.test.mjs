@@ -13,7 +13,9 @@ function read(relativePath) {
 
 test('sqlite and postgres admin-entity baselines stay paired', () => {
   for (const dialect of ['sqlite', 'postgres']) {
-    const baselinePath = `database/ddl/baseline/${dialect}/0001_aiot_baseline.sql`;
+    const baselinePath = dialect === 'postgres'
+      ? 'database/ddl/baseline/postgres/0001_aiot_baseline.sql'
+      : 'tests/fixtures/database/sqlite/ddl/baseline/0001_aiot_baseline.sql';
     assert.ok(fs.existsSync(path.join(repoRoot, baselinePath)), baselinePath);
 
     const baseline = read(baselinePath);
@@ -30,11 +32,16 @@ test('standalone production topology declares kernel intelligence env', () => {
   assert.match(envText, /SDKWORK_AIOT_INTELLIGENCE_MODE=kernel/u);
 });
 
-test('cloud production topology declares postgres device database env', () => {
-  const envText = read('etc/topology/cloud.production.env');
-  assert.match(envText, /SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres/u);
-  assert.match(envText, /SDKWORK_AIOT_DEVICE_DATABASE_URL=/u);
-  assert.match(envText, /SDKWORK_AIOT_INTELLIGENCE_MODE=kernel/u);
+test('production topologies declare the canonical workspace postgres identity', () => {
+  for (const profile of ['standalone.production.env', 'cloud.production.env']) {
+    const envText = read(`etc/topology/${profile}`);
+    assert.match(envText, /SDKWORK_DATABASE_ENGINE=postgresql/u);
+    assert.match(envText, /SDKWORK_DATABASE_NAME=sdkwork_ai_prod/u);
+    assert.match(envText, /SDKWORK_DATABASE_SCHEMA=sdkwork_ai_prod/u);
+    assert.match(envText, /SDKWORK_DATABASE_USERNAME=sdkwork_ai_prod/u);
+    assert.match(envText, /SDKWORK_AIOT_INTELLIGENCE_MODE=kernel/u);
+    assert.doesNotMatch(envText, /SDKWORK_[A-Z0-9_]+_DATABASE_/u);
+  }
 });
 
 test('OpenAPI list contracts require PageInfo.mode', () => {
@@ -63,7 +70,7 @@ test('backend credential response schema is typed', () => {
 
 test('embedded storage migrations stay aligned with baseline tables', () => {
   const libRs = read('crates/sdkwork-aiot-storage-sqlx/src/lib.rs');
-  const sqliteBaseline = read('database/ddl/baseline/sqlite/0001_aiot_baseline.sql');
+  const sqliteBaseline = read('tests/fixtures/database/sqlite/ddl/baseline/0001_aiot_baseline.sql');
   for (const table of ['iot_device', 'iot_command', 'iot_outbox_event']) {
     assert.match(libRs, new RegExp(`CREATE TABLE ${table}`, 'u'));
     assert.match(sqliteBaseline, new RegExp(`CREATE TABLE ${table}`, 'u'));

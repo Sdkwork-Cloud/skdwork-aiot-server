@@ -36,6 +36,7 @@ const ACTIVATION_REGISTRY_STATS_PATH: &str = "/internal/xiaozhi/activation-regis
 const ACTIVATION_REGISTRY_METRICS_PATH: &str = "/internal/xiaozhi/activation-registry/metrics";
 
 fn main() {
+    sdkwork_database_sqlx::enable_process_shared_database_pool();
     sdkwork_aiot_device_edge_runtime::assert_production_environment_safety();
     if sdkwork_aiot_device_edge_runtime::dev_mode_enabled() {
         eprintln!(

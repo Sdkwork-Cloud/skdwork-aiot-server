@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.process-database-pool",
+  "profile": {
+    "exampleFile": ".env.postgres.example",
+    "database": "sdkwork_ai_dev",
+    "schema": "sdkwork_ai_dev"
+  },
+  "processes": [
+    {
+      "id": "sdkwork-api-aiot-standalone-gateway",
+      "entrypoint": "crates/sdkwork-api-aiot-standalone-gateway/src/main.rs",
+      "poolOwner": "crates/sdkwork-api-aiot-standalone-gateway/src/main.rs",
+      "driver": "sqlx::PgPool",
+      "poolCount": 1,
+      "databaseUrlEnv": "SDKWORK_DATABASE_URL",
+      "schemaEnv": "SDKWORK_DATABASE_SCHEMA",
+      "maxConnectionsEnv": "SDKWORK_DATABASE_MAX_CONNECTIONS",
+      "productionSourceRoots": [
+        "crates/sdkwork-api-aiot-standalone-gateway/src",
+        "crates/sdkwork-api-aiot-assembly/src",
+        "crates/sdkwork-aiot-database-host/src",
+        "crates/sdkwork-aiot-storage-sqlx/src",
+        "crates/sdkwork-iot-platform-service/src"
+      ],
+      "consumers": [
+        {
+          "module": "sdkwork-aiot database lifecycle",
+          "poolMode": "installed-process-pool",
+          "evidence": [
+            "crates/sdkwork-aiot-database-host/src/lib.rs"
+          ]
+        },
+        {
+          "module": "sdkwork-aiot app and backend routes",
+          "poolMode": "installed-process-pool",
+          "evidence": [
+            "crates/sdkwork-api-aiot-assembly/src/bootstrap.rs"
+          ]
+        }
+      ],
+      "temporaryDriverExceptions": []
+    },
+    {
+      "id": "sdkwork-aiot-device-edge-runtime",
+      "entrypoint": "crates/sdkwork-aiot-device-edge-runtime/src/main.rs",
+      "poolOwner": "crates/sdkwork-aiot-device-edge-runtime/src/main.rs",
+      "driver": "sqlx::PgPool",
+      "poolCount": 1,
+      "databaseUrlEnv": "SDKWORK_DATABASE_URL",
+      "schemaEnv": "SDKWORK_DATABASE_SCHEMA",
+      "maxConnectionsEnv": "SDKWORK_DATABASE_MAX_CONNECTIONS",
+      "productionSourceRoots": [
+        "crates/sdkwork-aiot-device-edge-runtime/src",
+        "crates/sdkwork-aiot-storage-sqlx/src"
+      ],
+      "consumers": [
+        {
+          "module": "sdkwork-aiot device credentials, protocol ingest, command delivery, and outbox",
+          "poolMode": "installed-process-pool",
+          "evidence": [
+            "crates/sdkwork-aiot-device-edge-runtime/src/lib.rs",
+            "crates/sdkwork-aiot-device-edge-runtime/src/command_delivery_worker.rs"
+          ]
+        }
+      ],
+      "temporaryDriverExceptions": []
+    }
+  ],
+  "verification": [
+    "node ../sdkwork-specs/tools/check-process-shared-database-pool.mjs --root .",
+    "cargo check -p sdkwork-api-aiot-standalone-gateway",
+    "cargo check -p sdkwork-aiot-device-edge-runtime"
+  ]
+}

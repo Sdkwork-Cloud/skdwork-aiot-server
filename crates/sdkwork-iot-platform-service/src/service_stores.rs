@@ -1,11 +1,9 @@
 //! Shared persistence bootstrap for AIoT HTTP services.
 
-use std::path::Path;
 use std::sync::Arc;
 
 use sdkwork_aiot_storage_sqlx::{
-    open_aiot_device_database, resolve_device_database_config_from_env,
-    DEFAULT_SHARED_SQLITE_MEMORY_URI,
+    open_aiot_device_database_from_env, resolve_device_database_config_from_env,
 };
 use sdkwork_database_config::DatabaseEngine;
 
@@ -27,23 +25,9 @@ pub struct AiotAdminServiceStores {
     pub firmware_repository: Arc<AiotFirmwareRepositoryHandle>,
 }
 
-pub fn configured_device_db_path(service_env_key: &str) -> Option<String> {
-    std::env::var(service_env_key)
-        .ok()
-        .or_else(|| std::env::var("SDKWORK_AIOT_DEVICE_DB_PATH").ok())
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-}
-
-pub fn open_app_service_stores(
-    device_db_path: Option<&str>,
-    service_label: &str,
-) -> Result<AiotAppServiceStores, String> {
-    log_device_database_target(device_db_path, service_label);
-    if let Some(path) = device_db_path {
-        ensure_parent_directory_exists(path);
-    }
-    let database = open_aiot_device_database(device_db_path).map_err(|error| error.to_string())?;
+pub fn open_app_service_stores(service_label: &str) -> Result<AiotAppServiceStores, String> {
+    log_device_database_target(service_label);
+    let database = open_aiot_device_database_from_env().map_err(|error| error.to_string())?;
     let entity_store = Arc::new(
         database
             .persisted_entity_repository()
@@ -65,15 +49,9 @@ pub fn open_app_service_stores(
     })
 }
 
-pub fn open_admin_service_stores(
-    device_db_path: Option<&str>,
-    service_label: &str,
-) -> Result<AiotAdminServiceStores, String> {
-    log_device_database_target(device_db_path, service_label);
-    if let Some(path) = device_db_path {
-        ensure_parent_directory_exists(path);
-    }
-    let database = open_aiot_device_database(device_db_path).map_err(|error| error.to_string())?;
+pub fn open_admin_service_stores(service_label: &str) -> Result<AiotAdminServiceStores, String> {
+    log_device_database_target(service_label);
+    let database = open_aiot_device_database_from_env().map_err(|error| error.to_string())?;
     let entity_store = Arc::new(
         database
             .persisted_entity_repository()
@@ -100,11 +78,8 @@ pub fn open_admin_service_stores(
     })
 }
 
-fn log_device_database_target(device_db_path: Option<&str>, service_label: &str) {
-    match resolve_device_database_config_from_env(device_db_path) {
-        Ok(config) if config.url.contains("mode=memory") => {
-            println!("{service_label} device-db=sqlite mode=memory uri={DEFAULT_SHARED_SQLITE_MEMORY_URI}");
-        }
+fn log_device_database_target(service_label: &str) {
+    match resolve_device_database_config_from_env(None) {
         Ok(config) => {
             let engine = match config.engine {
                 DatabaseEngine::Sqlite => "sqlite",
@@ -114,15 +89,6 @@ fn log_device_database_target(device_db_path: Option<&str>, service_label: &str)
         }
         Err(error) => {
             eprintln!("{service_label} device-db=error={error}");
-        }
-    }
-}
-
-fn ensure_parent_directory_exists(path: &str) {
-    let parent = Path::new(path).parent();
-    if let Some(parent) = parent {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent).expect("create sqlite parent directory");
         }
     }
 }

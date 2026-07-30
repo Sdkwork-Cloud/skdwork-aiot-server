@@ -63,8 +63,8 @@ mod sqlite_admin;
 
 use serde_json::{Map as JsonMap, Value as JsonValue};
 pub use service_stores::{
-    configured_device_db_path, open_admin_service_stores, open_app_service_stores,
-    AiotAdminServiceStores, AiotAppServiceStores,
+    open_admin_service_stores, open_app_service_stores, AiotAdminServiceStores,
+    AiotAppServiceStores,
 };
 pub use sqlite_admin::{AiotCatalogRepositoryHandle, AiotFirmwareRepositoryHandle};
 
@@ -320,9 +320,9 @@ pub fn assert_production_environment_safety() {
         std::process::exit(1);
     }
 
-    if !sdkwork_aiot_storage_sqlx::device_database_config_is_durable_from_env() {
+    if !sdkwork_aiot_storage_sqlx::device_database_config_is_authoritative_postgres_from_env() {
         eprintln!(
-            "FATAL: production requires durable device persistence via SDKWORK_AIOT_DEVICE_DB_PATH or SDKWORK_AIOT_DEVICE_DATABASE_* env keys"
+            "FATAL: production requires authoritative PostgreSQL persistence through SDKWORK_DATABASE_*"
         );
         std::process::exit(1);
     }

@@ -1,4 +1,4 @@
-﻿{
+{
   "license": "AGPL-3.0-or-later",
   "name": "sdkwork-aiot",
   "private": true,
@@ -54,7 +54,9 @@
     "test:app-openapi-context": "node --test scripts/dev/sdkwork-aiot-app-openapi-context.test.mjs",
     "test:openapi-web-context": "node --test scripts/dev/sdkwork-aiot-openapi-web-context.test.mjs",
     "test:topology-validate": "node ../sdkwork-app-topology/scripts/sdkwork-topology.mjs validate --root .",
-    "db:materialize:contract": "node ../sdkwork-specs/tools/materialize-database-contract-from-baseline.mjs --root . --baseline database/ddl/baseline/postgres/0001_aiot_baseline.sql --module-id aiot --owner aiot-platform --prefixes iot_ --engines postgres,sqlite",
+    "db:materialize:contract": "node ../sdkwork-specs/tools/materialize-database-contract-from-baseline.mjs --root . --baseline database/ddl/baseline/postgres/0001_aiot_baseline.sql --module-id aiot --owner aiot-platform --prefixes iot_ --engines postgres",
+    "db:postgres:init": "node ../sdkwork-specs/tools/postgres/postgres-db-cli.mjs --mode init --config .env.postgres --app-root .",
+    "db:postgres:plan": "node ../sdkwork-specs/tools/postgres/postgres-db-cli.mjs --mode plan --config .env.postgres --app-root . --dry-run",
     "db:validate": "node ../sdkwork-specs/tools/check-database-framework-standard.mjs --root .",
     "db:plan": "cargo run --manifest-path ../sdkwork-database/Cargo.toml -p sdkwork-database-cli -- --app-root . plan",
     "db:init": "cargo run --manifest-path ../sdkwork-database/Cargo.toml -p sdkwork-database-cli -- --app-root . init",

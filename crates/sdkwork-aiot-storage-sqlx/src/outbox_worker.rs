@@ -7,13 +7,13 @@ use sdkwork_aiot_service_host::{
     outbox_publisher_from_env, AiotOutboxDispatcher, AiotOutboxDispatcherConfig,
 };
 use sdkwork_aiot_storage::OutboxEventRepository;
+use sdkwork_database_config::workspace_database::workspace_database_env_is_configured;
 
 use crate::database_bootstrap::aiot_device_blocking_pool_from_env;
 use crate::outbox::SqliteOutboxEventRepository;
 use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
 use crate::BlockingDevicePool;
 
-pub const ENV_DEVICE_DB_PATH: &str = "SDKWORK_AIOT_DEVICE_DB_PATH";
 pub const ENV_OUTBOX_DISPATCH_INTERVAL_MS: &str = "SDKWORK_AIOT_OUTBOX_DISPATCH_INTERVAL_MS";
 pub const ENV_OUTBOX_LAG_READY_THRESHOLD: &str = "SDKWORK_AIOT_OUTBOX_LAG_READY_THRESHOLD";
 pub const ENV_OUTBOX_DISPATCHER_ENABLED: &str = "SDKWORK_AIOT_OUTBOX_DISPATCHER_ENABLED";
@@ -40,19 +40,8 @@ pub fn outbox_dispatcher_enabled_from_env(default_when_unset: bool) -> bool {
     }
 }
 
-pub fn configured_device_db_path_from_env() -> Option<String> {
-    std::env::var(ENV_DEVICE_DB_PATH)
-        .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-}
-
 fn device_database_configured_from_env() -> bool {
-    configured_device_db_path_from_env().is_some()
-        || std::env::var("SDKWORK_AIOT_DEVICE_DATABASE_URL")
-            .ok()
-            .filter(|value| !value.is_empty())
-            .is_some()
+    workspace_database_env_is_configured()
 }
 
 pub fn device_storage_ready_from_env() -> bool {
@@ -173,20 +162,19 @@ mod outbox_worker_tests {
     use crate::test_env::{lock_env_tests, EnvGuard};
 
     const OUTBOX_TEST_ENV_KEYS: &[&str] = &[
-        ENV_DEVICE_DB_PATH,
-        "SDKWORK_AIOT_DEVICE_DATABASE_URL",
-        "SDKWORK_AIOT_DEVICE_DATABASE_ENGINE",
-        "SDKWORK_AIOT_DEVICE_DATABASE_MODE",
-        "SDKWORK_AIOT_DEVICE_DATABASE_TABLE_PREFIX",
+        "SDKWORK_DATABASE_URL",
+        "SDKWORK_DATABASE_ENGINE",
+        "SDKWORK_DATABASE_FILE",
         ENV_OUTBOX_DISPATCHER_ENABLED,
         ENV_OUTBOX_LAG_READY_THRESHOLD,
     ];
 
     #[test]
-    fn outbox_dispatcher_defaults_to_gateway_only_when_db_path_is_set() {
+    fn outbox_dispatcher_defaults_to_gateway_only_when_database_is_configured() {
         let _lock = lock_env_tests();
         let _guard = EnvGuard::clear(OUTBOX_TEST_ENV_KEYS);
-        std::env::set_var(ENV_DEVICE_DB_PATH, "/tmp/aiot-device.db");
+        std::env::set_var("SDKWORK_DATABASE_ENGINE", "sqlite");
+        std::env::set_var("SDKWORK_DATABASE_FILE", "/tmp/aiot-device.db");
 
         assert!(outbox_dispatcher_enabled_from_env(true));
         assert!(!outbox_dispatcher_enabled_from_env(false));
@@ -210,7 +198,11 @@ mod outbox_worker_tests {
         let db_path = std::env::temp_dir().join(format!("aiot-outbox-ready-{unique_suffix}.db"));
         let _ = std::fs::remove_file(&db_path);
 
-        std::env::set_var(ENV_DEVICE_DB_PATH, db_path.to_string_lossy().to_string());
+        std::env::set_var("SDKWORK_DATABASE_ENGINE", "sqlite");
+        std::env::set_var(
+            "SDKWORK_DATABASE_FILE",
+            db_path.to_string_lossy().to_string(),
+        );
         std::env::set_var(ENV_OUTBOX_LAG_READY_THRESHOLD, "0");
 
         assert!(outbox_ready_from_env());

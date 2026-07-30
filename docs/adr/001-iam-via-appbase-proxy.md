@@ -12,7 +12,7 @@ SDKWork AIoT forbids local IAM tables and foreign keys into `iam_*` schemas. Pro
 
 1. Terminate user and service authentication at the **SDKWork AppBase / API gateway** layer using dual-token credentials.
 2. Resolve `WebRequestContext` in-process through the SDKWork web framework and IAM adapter; do not require browsers or generated SDK clients to send `X-Sdkwork-*` projection headers.
-3. Keep device-facing gateway auth separate: SQLite credentials or configured static device token, not AppBase session cookies.
+3. Keep device-facing gateway auth separate: database-backed credentials or a configured static device token, not AppBase session cookies.
 
 ## Consequences
 

@@ -32,7 +32,7 @@ pub use credential::{
 pub use database_bootstrap::{
     aiot_device_blocking_pool, aiot_device_blocking_pool_from_env, aiot_device_pool_from_env,
     aiot_device_sqlite_memory_config, aiot_device_sqlite_memory_pool,
-    device_database_config_is_durable_from_env, resolve_device_database_config,
+    device_database_config_is_authoritative_postgres_from_env, resolve_device_database_config,
     resolve_device_database_config_from_env, AIOT_DEVICE_DATABASE_SERVICE_NAME,
 };
 pub use device_database::{
@@ -50,12 +50,12 @@ pub use framework_bootstrap::{
 };
 pub use outbox::SqliteOutboxEventRepository;
 pub use outbox_worker::{
-    configured_device_db_path_from_env, device_storage_ready_from_env,
-    open_outbox_repository_for_path, open_outbox_repository_for_pool,
-    open_outbox_repository_from_env, outbox_dispatcher_enabled_from_env, outbox_lag_count_from_env,
+    device_storage_ready_from_env, open_outbox_repository_for_path,
+    open_outbox_repository_for_pool, open_outbox_repository_from_env,
+    outbox_dispatcher_enabled_from_env, outbox_lag_count_from_env,
     outbox_lag_ready_threshold_from_env, outbox_readiness_probe, outbox_ready_from_env,
     sqlite_path_ready, start_outbox_dispatcher_worker, DEFAULT_OUTBOX_DISPATCH_INTERVAL_MS,
-    DEFAULT_OUTBOX_LAG_READY_THRESHOLD, ENV_DEVICE_DB_PATH, ENV_OUTBOX_DISPATCHER_ENABLED,
+    DEFAULT_OUTBOX_LAG_READY_THRESHOLD, ENV_OUTBOX_DISPATCHER_ENABLED,
     ENV_OUTBOX_DISPATCH_INTERVAL_MS, ENV_OUTBOX_LAG_READY_THRESHOLD,
 };
 pub use persisted_entity::{
@@ -84,8 +84,7 @@ pub fn schema_version() -> &'static str {
     "0.2.0"
 }
 
-/// Shared in-process SQLite URI so device, credential, and protocol-ingest repositories
-/// observe the same schema when no persistent `SDKWORK_AIOT_DEVICE_DB_PATH` is configured.
+/// Shared in-process SQLite URI for explicit client-local and unit-test repositories.
 pub const DEFAULT_SHARED_SQLITE_MEMORY_URI: &str =
     "file:sdkwork-aiot-device-db?mode=memory&cache=shared";
 

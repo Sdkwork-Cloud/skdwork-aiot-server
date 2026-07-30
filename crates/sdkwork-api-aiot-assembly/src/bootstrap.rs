@@ -15,17 +15,10 @@ pub struct ApiAssembly {
 /// backend-api surfaces.
 pub async fn assemble_api_router() -> Result<ApiAssembly, String> {
     sdkwork_iot_platform_service::assert_production_environment_safety();
-    let device_db_path =
-        sdkwork_iot_platform_service::configured_device_db_path("SDKWORK_AIOT_DEVICE_DB_PATH");
-
-    let app_stores = sdkwork_iot_platform_service::open_app_service_stores(
-        device_db_path.as_deref(),
-        "sdkwork-api-aiot-assembly",
-    )?;
-    let admin_stores = sdkwork_iot_platform_service::open_admin_service_stores(
-        device_db_path.as_deref(),
-        "sdkwork-api-aiot-assembly",
-    )?;
+    let app_stores =
+        sdkwork_iot_platform_service::open_app_service_stores("sdkwork-api-aiot-assembly")?;
+    let admin_stores =
+        sdkwork_iot_platform_service::open_admin_service_stores("sdkwork-api-aiot-assembly")?;
 
     let app_server = Arc::new(
         sdkwork_iot_platform_service::standard_app_api_server()

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use sdkwork_database_config::DatabaseConfig;
+use sdkwork_database_config::{ConfigError, DatabaseConfig};
 use sdkwork_database_lifecycle::{lifecycle_options_from_env, LifecycleOrchestrator};
 use sdkwork_database_spi::{DatabaseAssetProvider, DatabaseManifest, DefaultDatabaseModule};
 use sdkwork_database_sqlx::{create_pool_from_config, DatabasePool};
@@ -9,6 +9,12 @@ use sdkwork_database_sqlx::{create_pool_from_config, DatabasePool};
 pub struct AiotDatabaseHost {
     pool: DatabasePool,
     module: Arc<DefaultDatabaseModule>,
+}
+
+pub fn resolve_aiot_database_config_from_env() -> Result<DatabaseConfig, ConfigError> {
+    let mut config = DatabaseConfig::from_env("AIOT_DEVICE")?;
+    config.table_prefix = "iot_".to_owned();
+    Ok(config)
 }
 
 impl AiotDatabaseHost {
@@ -50,7 +56,7 @@ pub async fn bootstrap_aiot_database(pool: DatabasePool) -> Result<AiotDatabaseH
 
 pub async fn bootstrap_aiot_database_from_env() -> Result<AiotDatabaseHost, String> {
     let _ = dotenvy::dotenv();
-    let config = DatabaseConfig::from_env("AIOT_DEVICE")
+    let config = resolve_aiot_database_config_from_env()
         .map_err(|error| format!("read aiot database config failed: {error}"))?;
     let pool = create_pool_from_config(config)
         .await

@@ -2055,6 +2055,7 @@ dependencies = [
  "sdkwork-aiot-storage",
  "sdkwork-aiot-storage-sqlx",
  "sdkwork-aiot-transport",
+ "sdkwork-database-sqlx",
  "sdkwork-utils-rust",
  "serde_json",
  "sqlx",
@@ -2160,6 +2161,7 @@ dependencies = [
  "sdkwork-iot-platform-service",
  "sdkwork-routes-iot-app-api",
  "sdkwork-routes-iot-backend-api",
+ "sdkwork-web-bootstrap",
  "tokio",
  "tower",
 ]
@@ -2170,6 +2172,7 @@ version = "0.1.0"
 dependencies = [
  "sdkwork-aiot-database-host",
  "sdkwork-api-aiot-assembly",
+ "sdkwork-database-sqlx",
  "sdkwork-web-bootstrap",
  "tokio",
 ]
@@ -2183,6 +2186,7 @@ dependencies = [
  "thiserror 2.0.18",
  "toml",
  "tracing",
+ "url",
 ]
 
 [[package]]

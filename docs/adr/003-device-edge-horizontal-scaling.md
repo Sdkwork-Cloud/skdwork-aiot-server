@@ -13,7 +13,7 @@ runtime replicas require deterministic routing for a given device session.
 
 1. Run multiple device edge runtime instances behind a load balancer with **sticky sessions** (device id or connection cookie).
 2. Set `SDKWORK_AIOT_DEVICE_EDGE_NODE_ID` per replica for structured metrics and trace correlation.
-3. Use shared SQLite (`SDKWORK_AIOT_DEVICE_DB_PATH`) for credentials and protocol ingest; do not replicate in-memory bridge session state across nodes.
+3. Use the environment-wide canonical PostgreSQL profile for credentials and protocol ingest; do not replicate in-memory bridge session state across nodes.
 
 ## Consequences
 

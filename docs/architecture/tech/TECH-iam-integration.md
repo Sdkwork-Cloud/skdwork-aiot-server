@@ -24,4 +24,4 @@ Use bootstrap `Access-Token` from private runtime config (`SDKWORK_ACCESS_TOKEN`
 
 ## Gateway Exception
 
-Device connections authenticate with `Device-Id` and `Authorization: Bearer <device secret>` (SQLite credential or configured static token). AppBase user tokens are not used on the Xiaozhi WebSocket path.
+Device connections authenticate with `Device-Id` and `Authorization: Bearer <device secret>` (database-backed credential or configured static token). AppBase user tokens are not used on the Xiaozhi WebSocket path.

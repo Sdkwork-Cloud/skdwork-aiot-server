@@ -41,44 +41,32 @@ function requireDeployInjectPlaceholder(fileName, values, key) {
   );
 }
 
-function resolveHosting(values) {
-  const deploymentProfile = values.get('SDKWORK_AIOT_DEPLOYMENT_PROFILE');
-  if (deploymentProfile === 'cloud') {
-    return 'cloud-hosted';
-  }
-  if (deploymentProfile === 'standalone') {
-    return 'self-hosted';
-  }
-  return values.get('SDKWORK_AIOT_HOSTING');
-}
-
 function validatePersistence(fileName, values) {
-  const hosting = resolveHosting(values);
-  const devicePath = values.get('SDKWORK_AIOT_DEVICE_DB_PATH');
-  const databaseUrl = values.get('SDKWORK_AIOT_DEVICE_DATABASE_URL');
-  const databaseEngine = values.get('SDKWORK_AIOT_DEVICE_DATABASE_ENGINE');
-
-  if (hosting === 'cloud-hosted') {
-    assert.ok(
-      typeof databaseUrl === 'string' && databaseUrl.length > 0,
-      `${fileName} must set SDKWORK_AIOT_DEVICE_DATABASE_URL for cloud Postgres persistence`,
-    );
-    assert.ok(
-      databaseUrl.includes('DEPLOY_INJECT'),
-      `${fileName} must use DEPLOY_INJECT database credential placeholders in tracked production topology`,
-    );
-    assert.equal(
-      databaseEngine,
-      'postgres',
-      `${fileName} must set SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres for cloud-hosted production`,
-    );
-    return;
+  const expected = new Map([
+    ['SDKWORK_DATABASE_ENGINE', 'postgresql'],
+    ['SDKWORK_DATABASE_PORT', '5432'],
+    ['SDKWORK_DATABASE_NAME', 'sdkwork_ai_prod'],
+    ['SDKWORK_DATABASE_SCHEMA', 'sdkwork_ai_prod'],
+    ['SDKWORK_DATABASE_USERNAME', 'sdkwork_ai_prod'],
+    ['SDKWORK_DATABASE_SSL_MODE', 'require'],
+    ['SDKWORK_DATABASE_MAX_CONNECTIONS', '20'],
+  ]);
+  for (const [key, value] of expected) {
+    assert.equal(values.get(key), value, `${fileName} must set ${key}=${value}`);
   }
-
   assert.ok(
-    typeof devicePath === 'string' && devicePath.length > 0,
-    `${fileName} must set SDKWORK_AIOT_DEVICE_DB_PATH for durable SQLite persistence`,
+    values.get('SDKWORK_DATABASE_HOST')?.startsWith(DEPLOY_INJECT_PREFIX),
+    `${fileName} must inject SDKWORK_DATABASE_HOST at deployment time`,
   );
+  requireDeployInjectPlaceholder(fileName, values, 'SDKWORK_DATABASE_PASSWORD');
+
+  for (const key of values.keys()) {
+    assert.doesNotMatch(
+      key,
+      /^SDKWORK_(?!DATABASE_)[A-Z0-9_]+_DATABASE_/u,
+      `${fileName} must not define module-scoped database key ${key}`,
+    );
+  }
 }
 
 function validateIntelligenceWhenEnabled(fileName, values) {

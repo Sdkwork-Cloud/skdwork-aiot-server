@@ -35,15 +35,15 @@ Current production readiness for the SDKWork AIoT server. Items marked **Done** 
 | Gateway device ingress HTTP | Done | `sdkwork-aiot-transport` |
 | CORS + security headers + rate limiting | Done | Success and error API responses apply security headers; auth rate limits |
 | Production device auth fail-closed | Done | Gateway dev/prod token rules; credential repo required in production |
-| Production durable DB gate (gateway + APIs) | Done | `device_database_config_is_durable_from_env()` in gateway and platform `assert_production_environment_safety()` |
+| Production authoritative DB gate (gateway + APIs) | Done | `device_database_config_is_authoritative_postgres_from_env()` in gateway and platform `assert_production_environment_safety()` |
 | Internal route token auth | Done | `internal_route_authorized`; tests without `DEV_MODE` |
 | MQTT/UDP multi-session bridge | Done | Per-device session map in gateway |
 | Route manifest + OpenAPI alignment | Done | List APIs expose offset `page`/`page_size`; `PageInfo.mode` required |
-| Postgres device persistence (cloud HA) | Done | `BlockingDevicePool` + dialect-aware repos; `row_decode` timestamp helpers; optional `postgres_device_database_round_trip` CRUD test |
+| PostgreSQL device persistence (standalone + cloud) | Done | `BlockingDevicePool` + dialect-aware repos; `row_decode` timestamp helpers; optional `postgres_device_database_round_trip` CRUD test |
 | Drive Uploader (PC firmware upload) | Done | `@sdkwork/drive-app-sdk` |
 | Store pagination + API governance CI | Done | `pnpm check:api-envelope`, `check:pagination`, `check:app-sdk-consumer-imports` |
 | SDK manifest contract | Done | `sdk-manifest.json` per SDK family |
-| Gateway WS command delivery | Done | Runs on shared device DB (SQLite file, Postgres, or dev memory); tenant-aware association from WS registration |
+| Gateway WS command delivery | Done | Runs on the process-shared canonical PostgreSQL pool; tenant-aware association from WS registration |
 | Interactive console list pagination | Done | PC/H5 use server pagination with load-more |
 | PC IoT fleet alerts | Done | Derived from live device health/offline state |
 | Agents + Voice dialogue (PC/H5) | Done | `@sdkwork/agents-app-sdk` + `@sdkwork/voice-app-sdk` when configured |
@@ -56,12 +56,9 @@ Current production readiness for the SDKWork AIoT server. Items marked **Done** 
 
 ## Durable Persistence
 
-Production deployments **must** set one of:
+Production deployments must provide the canonical `SDKWORK_DATABASE_*` PostgreSQL profile. Both standalone and cloud deployments use database, schema, and username `sdkwork_ai_prod`; table ownership remains isolated by the module-owned `iot_` prefix and migrations. Production startup fails closed when the canonical profile is absent or resolves to SQLite.
 
-- `SDKWORK_AIOT_DEVICE_DB_PATH` (SQLite file), or
-- `SDKWORK_AIOT_DEVICE_DATABASE_URL` + `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres` (cloud Postgres HA)
-
-When neither is configured, dev processes use shared in-memory SQLite (`file:sdkwork-aiot-device-db?mode=memory&cache=shared`). Setting `SDKWORK_AIOT_ENVIRONMENT=production` without durable persistence causes startup to fail fast on gateway and HTTP APIs.
+Development server processes use `sdkwork_ai_dev` through the same canonical keys. In-memory and file SQLite implementations remain explicit client-local/test adapters and do not satisfy server readiness or production evidence.
 
 ## Required Sibling Services (commercial topology)
 
@@ -110,7 +107,7 @@ cargo test -p sdkwork-aiot-device-edge-runtime --test device_edge_runtime_standa
 Optional Postgres smoke (requires running database):
 
 ```powershell
-$env:SDKWORK_AIOT_POSTGRES_TEST_URL='postgres://user:pass@localhost:5432/aiot_test'
+$env:SDKWORK_DATABASE_URL='postgres://sdkwork_ai_test:<test-password>@localhost:5432/sdkwork_ai_test'
 cargo test -p sdkwork-aiot-storage-sqlx postgres_device_database_round_trip -- --ignored
 ```
 
@@ -118,7 +115,15 @@ cargo test -p sdkwork-aiot-storage-sqlx postgres_device_database_round_trip -- -
 
 ```powershell
 $env:SDKWORK_AIOT_ENVIRONMENT='production'
-$env:SDKWORK_AIOT_DEVICE_DB_PATH='D:\data\aiot-device.db'   # or Postgres env keys
+$env:SDKWORK_DATABASE_ENGINE='postgresql'
+$env:SDKWORK_DATABASE_HOST='<database-host>'
+$env:SDKWORK_DATABASE_PORT='5432'
+$env:SDKWORK_DATABASE_NAME='sdkwork_ai_prod'
+$env:SDKWORK_DATABASE_SCHEMA='sdkwork_ai_prod'
+$env:SDKWORK_DATABASE_USERNAME='sdkwork_ai_prod'
+$env:SDKWORK_DATABASE_PASSWORD='<database-password>'
+$env:SDKWORK_DATABASE_SSL_MODE='require'
+$env:SDKWORK_DATABASE_MAX_CONNECTIONS='20'
 $env:SDKWORK_AIOT_INTERNAL_TOKEN='<random-internal-token-at-least-32-chars>'
 $env:SDKWORK_AIOT_CREDENTIAL_PEPPER='<random-pepper-at-least-32-chars>'
 $env:SDKWORK_AIOT_CORS_ALLOWED_ORIGINS='https://console.example.com'
@@ -130,4 +135,4 @@ $env:SDKWORK_AIOT_TRUST_PROXY_HEADERS='1'   # appbase must send x-sdkwork-proxy-
 # Do NOT set SDKWORK_AIOT_DEV_MODE in production
 ```
 
-For cloud Postgres HA, set `SDKWORK_AIOT_DEVICE_DATABASE_URL`, `SDKWORK_AIOT_DEVICE_DATABASE_ENGINE=postgres`, and related `SDKWORK_AIOT_DEVICE_DATABASE_*` keys (see `etc/topology/cloud.production.env`).
+Use the same `SDKWORK_DATABASE_*` identity for every AIoT module in the process. See `etc/topology/cloud.production.env` and `etc/topology/standalone.production.env`.

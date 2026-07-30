@@ -24,12 +24,15 @@ function parseEnv(relativePath) {
   );
 }
 
-test('standalone topology declares one shared durable SQLite device database', () => {
+test('standalone topology declares the unified workspace PostgreSQL profile', () => {
   const env = parseEnv('etc/topology/standalone.development.env');
 
-  assert.equal(env.get('SDKWORK_AIOT_DEVICE_DB_PATH'), '.sdkwork/dev/aiot-device.db');
+  assert.equal(env.get('SDKWORK_DATABASE_ENGINE'), 'postgresql');
+  assert.equal(env.get('SDKWORK_DATABASE_NAME'), 'sdkwork_ai_dev');
+  assert.equal(env.get('SDKWORK_DATABASE_SCHEMA'), 'sdkwork_ai_dev');
+  assert.equal(env.get('SDKWORK_DATABASE_USERNAME'), 'sdkwork_ai_dev');
   assert.equal(env.get('SDKWORK_AIOT_OUTBOX_DISPATCHER_ENABLED'), '1');
-  assert.equal(env.has('SDKWORK_AIOT_DEVICE_DATABASE_URL'), false);
+  assert.equal(env.has('SDKWORK_DATABASE_URL'), false);
   assert.equal(env.has('SDKWORK_AIOT_APPLICATION_APP_HTTP_BIND'), false);
   assert.equal(env.has('SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_BIND'), false);
 });
@@ -44,9 +47,11 @@ test('device edge runtime uses the shared database environment resolver', () => 
   );
 });
 
-test('API assembly reads the same canonical device database path key', () => {
+test('API assembly relies on the canonical database resolver', () => {
   const assembly = read('crates/sdkwork-api-aiot-assembly/src/bootstrap.rs');
 
-  assert.match(assembly, /SDKWORK_AIOT_DEVICE_DB_PATH/u);
+  assert.match(assembly, /open_app_service_stores/u);
+  assert.match(assembly, /open_admin_service_stores/u);
+  assert.doesNotMatch(assembly, /SDKWORK_[A-Z0-9_]+_DATABASE_/u);
   assert.doesNotMatch(assembly, /APPLICATION_GATEWAY_DEVICE_DB_PATH/u);
 });

@@ -1,13 +1,13 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "sdkwork.database.module",
+  "databaseRole": "authoritative-server",
   "moduleId": "aiot",
   "serviceCode": "AIOT_DEVICE",
   "displayName": "AIOT_DEVICE Database",
   "owner": "aiot-platform",
   "engines": [
-    "postgres",
-    "sqlite"
+    "postgres"
   ],
   "defaultEngine": "postgres",
   "tablePrefix": "iot_",
@@ -15,7 +15,7 @@
   "baselineStrategy": "baseline-plus-migrations",
   "modules": [],
   "lifecycle": {
-    "autoMigrate": true,
+    "autoMigrate": false,
     "seedOnBoot": false,
     "defaultSeedLocale": "zh-CN",
     "defaultSeedProfile": "standard",

@@ -45,6 +45,14 @@ const bannedPatterns = [
     id: 'retired simulator gateway http env',
     pattern: /SDKWORK_AIOT_XIAOZHI_SIMULATOR_GATEWAY_HTTP/u,
   },
+  {
+    id: 'module-scoped database env',
+    pattern: /SDKWORK_(?!DATABASE_)[A-Z0-9_]+_DATABASE_/u,
+  },
+  {
+    id: 'invalid generic database mode or table prefix',
+    pattern: /SDKWORK_DATABASE_(?:MODE|TABLE_PREFIX)/u,
+  },
 ];
 
 function slash(value) {

@@ -1,25 +1,16 @@
 //! AIoT device database bootstrap through `sdkwork-database`.
 
+use sdkwork_database_config::workspace_database::workspace_database_env_is_configured;
 use sdkwork_database_config::{DatabaseConfig, DatabaseEngine, DeploymentMode};
-use sdkwork_database_sqlx::{
-    create_pool_from_config, create_pool_from_env, DatabasePool, PoolError,
-};
+use sdkwork_database_sqlx::{create_pool_from_config, DatabasePool, PoolError};
 
 use crate::blocking_device_pool::BlockingDevicePool;
-use crate::outbox_worker::configured_device_db_path_from_env;
 use crate::postgres_sync::BlockingPostgresPool;
 use crate::sqlite_sync::BlockingSqlitePool;
 
 pub const AIOT_DEVICE_DATABASE_SERVICE_NAME: &str = "AIOT_DEVICE";
 
-const EXPLICIT_DEVICE_DATABASE_ENV_KEYS: &[&str] = &[
-    "SDKWORK_AIOT_DEVICE_DATABASE_URL",
-    "SDKWORK_AIOT_DEVICE_DATABASE_ENGINE",
-    "SDKWORK_AIOT_DEVICE_DATABASE_MODE",
-    "SDKWORK_AIOT_DEVICE_DATABASE_TABLE_PREFIX",
-];
-
-/// Canonical SQLite memory configuration for tests and default dev processes.
+/// Canonical SQLite memory configuration for explicit client-local tests.
 pub fn aiot_device_sqlite_memory_config() -> DatabaseConfig {
     DatabaseConfig {
         engine: DatabaseEngine::Sqlite,
@@ -45,52 +36,31 @@ pub fn aiot_device_sqlite_file_config(path: &str) -> DatabaseConfig {
     }
 }
 
-/// Resolves the active device database config from explicit path or shared memory default.
+/// Resolves the active device database config from an explicit client-local path or canonical env.
 pub fn resolve_device_database_config(device_db_path: Option<&str>) -> DatabaseConfig {
     resolve_device_database_config_from_env(device_db_path)
         .expect("device database config must resolve for sqlite-backed callers")
 }
 
-/// Resolves device database config honoring file path, env path, explicit SDKWork database env, or memory default.
+/// Resolves device database config from an explicit client-local path or `SDKWORK_DATABASE_*`.
 pub fn resolve_device_database_config_from_env(
     device_db_path: Option<&str>,
 ) -> Result<DatabaseConfig, PoolError> {
     if let Some(path) = device_db_path {
         return Ok(aiot_device_sqlite_file_config(path));
     }
-    if let Some(path) = configured_device_db_path_from_env() {
-        return Ok(aiot_device_sqlite_file_config(&path));
-    }
-    if explicit_device_database_env_configured() {
-        let config = DatabaseConfig::from_env(AIOT_DEVICE_DATABASE_SERVICE_NAME)
-            .map_err(|error| PoolError::DatabaseConfig(error.to_string()))?;
-        return Ok(config);
-    }
-    Ok(aiot_device_sqlite_memory_config())
+    sdkwork_aiot_database_host::resolve_aiot_database_config_from_env()
+        .map_err(|error| PoolError::DatabaseConfig(error.to_string()))
 }
 
-/// Returns true when env resolves to a durable SQLite file or explicit Postgres config.
-pub fn device_database_config_is_durable_from_env() -> bool {
-    if configured_device_db_path_from_env().is_some() {
-        return true;
-    }
-    if !explicit_device_database_env_configured() {
+/// Returns true when an explicit canonical profile resolves to authoritative PostgreSQL.
+pub fn device_database_config_is_authoritative_postgres_from_env() -> bool {
+    if !workspace_database_env_is_configured() {
         return false;
     }
-    DatabaseConfig::from_env(AIOT_DEVICE_DATABASE_SERVICE_NAME)
+    sdkwork_aiot_database_host::resolve_aiot_database_config_from_env()
         .ok()
-        .is_some_and(|config| {
-            config.engine != DatabaseEngine::Sqlite || !config.url.contains("mode=memory")
-        })
-}
-
-fn explicit_device_database_env_configured() -> bool {
-    EXPLICIT_DEVICE_DATABASE_ENV_KEYS.iter().any(|key| {
-        std::env::var(key)
-            .ok()
-            .filter(|value| !value.is_empty())
-            .is_some()
-    })
+        .is_some_and(|config| config.engine == DatabaseEngine::Postgres)
 }
 
 /// Returns the SQLite URL from a validated SDKWork database config.
@@ -109,9 +79,10 @@ pub async fn aiot_device_sqlite_memory_pool() -> Result<DatabasePool, PoolError>
     create_pool_from_config(aiot_device_sqlite_memory_config()).await
 }
 
-/// Loads a device database pool from `SDKWORK_AIOT_DEVICE_DATABASE_*` environment variables.
+/// Loads a device database pool from canonical `SDKWORK_DATABASE_*` variables.
 pub async fn aiot_device_pool_from_env() -> Result<Option<DatabasePool>, PoolError> {
-    create_pool_from_env(AIOT_DEVICE_DATABASE_SERVICE_NAME).await
+    let config = resolve_device_database_config_from_env(None)?;
+    create_pool_from_config(config).await.map(Some)
 }
 
 /// Opens a synchronous SQLite pool through `sdkwork-database-sqlx` for legacy sync repositories.
@@ -121,7 +92,7 @@ pub fn aiot_device_blocking_pool(
     aiot_device_blocking_pool_from_env(device_db_path)
 }
 
-/// Opens a synchronous device pool from path, env path, explicit database env, or memory default.
+/// Opens a synchronous device pool from an explicit path or canonical database env.
 pub fn aiot_device_blocking_pool_from_env(
     device_db_path: Option<&str>,
 ) -> Result<BlockingDevicePool, PoolError> {
@@ -162,26 +133,28 @@ mod database_bootstrap_tests {
     use crate::test_env::{lock_env_tests, EnvGuard, DEVICE_DATABASE_ENV_KEYS};
 
     #[test]
-    fn resolve_device_database_config_defaults_to_shared_memory_without_env() {
+    fn resolve_device_database_config_defaults_to_workspace_postgres_without_env() {
         let _lock = lock_env_tests();
         let _guard = EnvGuard::clear(DEVICE_DATABASE_ENV_KEYS);
 
         let config = resolve_device_database_config_from_env(None).expect("config");
-        assert_eq!(config.engine, DatabaseEngine::Sqlite);
-        assert!(config.url.contains("mode=memory"));
+        assert_eq!(config.engine, DatabaseEngine::Postgres);
+        assert!(config.url.contains("/sdkwork_ai_dev"));
+        assert_eq!(config.table_prefix, "iot_");
     }
 
     #[test]
     fn resolve_device_database_config_from_env_accepts_postgres_engine() {
         let _lock = lock_env_tests();
         let _guard = EnvGuard::clear(DEVICE_DATABASE_ENV_KEYS);
-        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_ENGINE", "postgres");
+        std::env::set_var("SDKWORK_DATABASE_ENGINE", "postgresql");
         std::env::set_var(
-            "SDKWORK_AIOT_DEVICE_DATABASE_URL",
-            "postgres://localhost/aiot",
+            "SDKWORK_DATABASE_URL",
+            "postgres://sdkwork_ai_dev:test@localhost/sdkwork_ai_dev",
         );
 
         let config = resolve_device_database_config_from_env(None).expect("postgres config");
         assert_eq!(config.engine, DatabaseEngine::Postgres);
+        assert_eq!(config.table_prefix, "iot_");
     }
 }

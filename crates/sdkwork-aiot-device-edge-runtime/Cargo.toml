@@ -14,6 +14,7 @@ sdkwork-aiot-storage.workspace = true
 sdkwork-aiot-storage-sqlx.workspace = true
 sdkwork-aiot-transport.workspace = true
 sdkwork-aiot-intelligence-bridge.workspace = true
+sdkwork-database-sqlx.workspace = true
 sdkwork-utils-rust.workspace = true
 rumqttc = "0.24"
 ctrlc = "=3.4.5"

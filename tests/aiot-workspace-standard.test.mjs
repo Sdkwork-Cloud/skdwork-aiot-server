@@ -164,7 +164,7 @@ test('sdkwork-aiot root check script includes sdkwork-spec governance gates', ()
 
 test('sdkwork-aiot firmware rollout OTA alignment artifacts are present', () => {
   for (const relativePath of [
-    'database/ddl/baseline/sqlite/0001_aiot_baseline.sql',
+    'tests/fixtures/database/sqlite/ddl/baseline/0001_aiot_baseline.sql',
     'database/ddl/baseline/postgres/0001_aiot_baseline.sql',
     'database/seeds/common/001_bootstrap.sql',
     'crates/sdkwork-aiot-storage-sqlx/src/firmware_ota_catalog.rs',

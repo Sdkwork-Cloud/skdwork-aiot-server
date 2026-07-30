@@ -91,7 +91,7 @@ Client firmware and media uploads use `@sdkwork/drive-app-sdk` (`client.uploader
 - `pnpm test:topology-baggage`: scan active paths for retired topology vocabulary.
 - `cargo build --workspace`: compile all workspace crates and services.
 - `cargo test -p sdkwork-aiot-device-edge-runtime`: run tests for one package.
-- Optional persistent device DB: `$env:SDKWORK_AIOT_DEVICE_DB_PATH='D:\\data\\aiot-device.db'`.
+- Server development uses the canonical `SDKWORK_DATABASE_*` PostgreSQL profile. SQLite remains available only through explicit client-local and test helpers.
 
 ## Testing Guidelines
 

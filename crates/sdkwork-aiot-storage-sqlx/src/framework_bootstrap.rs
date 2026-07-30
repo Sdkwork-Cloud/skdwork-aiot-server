@@ -1,16 +1,17 @@
 //! SDKWork AIoT database lifecycle bootstrap exports.
 
 pub use sdkwork_aiot_database_host::{
-    bootstrap_aiot_database, bootstrap_aiot_database_from_env, AiotDatabaseHost,
+    bootstrap_aiot_database, bootstrap_aiot_database_from_env,
+    resolve_aiot_database_config_from_env, AiotDatabaseHost,
 };
 
-use sdkwork_database_config::DatabaseConfig;
 use sdkwork_database_sqlx::{create_pool_from_config, DatabasePool, PoolError};
 
 pub type AiotDatabasePool = DatabasePool;
 
 pub async fn connect_aiot_database_pool_from_env() -> Result<AiotDatabasePool, PoolError> {
-    let config = DatabaseConfig::from_env("AIOT_DEVICE")?;
+    let config = resolve_aiot_database_config_from_env()
+        .map_err(|error| PoolError::DatabaseConfig(error.to_string()))?;
     create_pool_from_config(config).await
 }
 

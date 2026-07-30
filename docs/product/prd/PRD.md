@@ -23,7 +23,7 @@ Enterprises need a protocol-neutral IoT control plane that connects edge devices
 
 ### Goals
 
-- Durable device/command/event/twin persistence on SQLite (standalone) and PostgreSQL (cloud HA)
+- Durable device/command/event/twin persistence on the unified PostgreSQL profile for standalone and cloud servers
 - SdkWork v3 API envelopes, store-level offset pagination, and generated composed SDKs
 - Production fail-closed gateway auth, credential verification, and intelligence kernel configuration
 - OTA via Drive-backed `MediaResource` references (no duplicate upload endpoints)

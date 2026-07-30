@@ -69,7 +69,17 @@
     "dependencyApiExports": [],
     "dependencyApiSurfaces": [],
     "events": [],
-    "configKeys": []
+    "configKeys": [
+      "SDKWORK_DATABASE_ENGINE",
+      "SDKWORK_DATABASE_HOST",
+      "SDKWORK_DATABASE_PORT",
+      "SDKWORK_DATABASE_NAME",
+      "SDKWORK_DATABASE_SCHEMA",
+      "SDKWORK_DATABASE_USERNAME",
+      "SDKWORK_DATABASE_PASSWORD",
+      "SDKWORK_DATABASE_SSL_MODE",
+      "SDKWORK_DATABASE_MAX_CONNECTIONS"
+    ]
   },
   "verification": {
     "commands": [

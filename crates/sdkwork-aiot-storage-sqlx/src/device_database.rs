@@ -79,22 +79,16 @@ mod device_database_tests {
         assert!(database.device_repository().expect("repo").storage_ready());
     }
 
-    /// Run with `SDKWORK_AIOT_POSTGRES_TEST_URL=postgres://... cargo test -p sdkwork-aiot-storage-sqlx postgres_device_database_round_trip -- --ignored`
+    /// Run with a canonical `SDKWORK_DATABASE_URL` test profile.
     #[test]
-    #[ignore = "requires SDKWORK_AIOT_POSTGRES_TEST_URL"]
+    #[ignore = "requires SDKWORK_DATABASE_URL"]
     fn postgres_device_database_round_trip() {
         use sdkwork_aiot_storage::{
             AiotCommandCreateCommand, AiotCommandRepository, AiotDeviceCreateCommand,
             AiotDeviceRepository, AiotStorageAssociation, OffsetListPageParams,
         };
 
-        let url = std::env::var("SDKWORK_AIOT_POSTGRES_TEST_URL")
-            .expect("SDKWORK_AIOT_POSTGRES_TEST_URL must be set");
-        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_URL", &url);
-        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_ENGINE", "postgres");
-        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_MODE", "pool");
-        std::env::set_var("SDKWORK_AIOT_DEVICE_DATABASE_TABLE_PREFIX", "iot_");
-        std::env::remove_var("SDKWORK_AIOT_DEVICE_DB_PATH");
+        std::env::var("SDKWORK_DATABASE_URL").expect("SDKWORK_DATABASE_URL must be set");
 
         let database = open_aiot_device_database_from_env().expect("postgres database");
         assert_eq!(database.engine(), crate::DeviceDatabaseEngine::Postgres);

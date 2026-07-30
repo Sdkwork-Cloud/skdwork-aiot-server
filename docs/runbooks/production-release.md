@@ -29,15 +29,25 @@ Upload each archive and SBOM to the URL declared in `sdkwork.app.config.json`.
 
 | Profile | Env template | Database |
 | --- | --- | --- |
-| Standalone production | `etc/topology/standalone.production.env` | SQLite file (`SDKWORK_AIOT_DEVICE_DB_PATH`) |
-| Cloud production | `etc/topology/cloud.production.env` | Postgres (`SDKWORK_AIOT_DEVICE_DATABASE_*`) |
+| Standalone production | `etc/topology/standalone.production.env` | Unified PostgreSQL profile (`sdkwork_ai_prod`) |
+| Cloud production | `etc/topology/cloud.production.env` | Unified managed PostgreSQL profile (`sdkwork_ai_prod`) |
 
 Replace every `DEPLOY_INJECT:` placeholder before starting services.
+Both profiles use only `SDKWORK_DATABASE_*`; database name, schema, and username are all `sdkwork_ai_prod`.
 
 ## Required Production Env
 
 ```powershell
 $env:SDKWORK_AIOT_ENVIRONMENT='production'
+$env:SDKWORK_DATABASE_ENGINE='postgresql'
+$env:SDKWORK_DATABASE_HOST='<database-host>'
+$env:SDKWORK_DATABASE_PORT='5432'
+$env:SDKWORK_DATABASE_NAME='sdkwork_ai_prod'
+$env:SDKWORK_DATABASE_SCHEMA='sdkwork_ai_prod'
+$env:SDKWORK_DATABASE_USERNAME='sdkwork_ai_prod'
+$env:SDKWORK_DATABASE_PASSWORD='<database-password>'
+$env:SDKWORK_DATABASE_SSL_MODE='require'
+$env:SDKWORK_DATABASE_MAX_CONNECTIONS='20'
 $env:SDKWORK_AIOT_INTERNAL_TOKEN='<random-internal-token-at-least-32-chars>'
 $env:SDKWORK_AIOT_CREDENTIAL_PEPPER='<random-pepper-at-least-32-chars>'
 $env:SDKWORK_AIOT_CORS_ALLOWED_ORIGINS='https://console.example.com'

@@ -22,7 +22,7 @@ Database assets live under `database/` and are loaded through `sdkwork-database`
 
 ## SaaS/Private/Local Behavior
 
-SQLite and PostgreSQL engines are supported through shared sdkwork-database assets. Environment selection follows deployment topology and `AIOT_DEVICE_*` lifecycle options rather than crate-local hardcoding.
+Server environments use the workspace-scoped `SDKWORK_DATABASE_*` PostgreSQL profile through shared sdkwork-database assets. SQLite support is limited to explicit client-local and test adapters.
 
 ## Security
 

@@ -197,7 +197,8 @@ fn api_assembly_bootstraps_shared_device_database() {
         );
     }
     assert!(!source.contains("open_device_repository("));
-    assert!(source.contains("SDKWORK_AIOT_DEVICE_DB_PATH"));
+    assert!(!source.contains("SDKWORK_AIOT_DEVICE_"));
+    assert!(source.contains("open_app_service_stores"));
 }
 
 #[test]
@@ -1323,6 +1324,10 @@ fn device_database_supports_postgres_device_repository() {
     assert!(
         !database_bootstrap.contains("POSTGRES_DEVICE_PERSISTENCE_DEFERRED"),
         "database bootstrap must not retain Phase K deferral markers"
+    );
+    assert!(database_bootstrap.contains("resolve_aiot_database_config_from_env"));
+    assert!(
+        database_bootstrap.contains("device_database_config_is_authoritative_postgres_from_env")
     );
 }
 

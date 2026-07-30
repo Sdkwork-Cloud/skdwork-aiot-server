@@ -2684,9 +2684,9 @@ pub fn assert_production_environment_safety() {
         std::process::exit(1);
     }
 
-    if !sdkwork_aiot_storage_sqlx::device_database_config_is_durable_from_env() {
+    if !sdkwork_aiot_storage_sqlx::device_database_config_is_authoritative_postgres_from_env() {
         eprintln!(
-            "FATAL: production requires durable device persistence (SDKWORK_AIOT_DEVICE_DB_PATH or SDKWORK_AIOT_DEVICE_DATABASE_URL)"
+            "FATAL: production requires authoritative PostgreSQL persistence through SDKWORK_DATABASE_*"
         );
         std::process::exit(1);
     }

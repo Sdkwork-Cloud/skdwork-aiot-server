@@ -2765,9 +2765,17 @@ const DEVICE_EDGE_SPAWN_ENV_ISOLATION_KEYS: &[&str] = &[
     "SDKWORK_AIOT_XIAOZHI_ACTIVATION_REGISTRY_KIND",
     "SDKWORK_AIOT_XIAOZHI_ACTIVATION_REGISTRY_REDIS_URL",
     "SDKWORK_AIOT_XIAOZHI_ACTIVATION_REGISTRY_REDIS_PREFIX",
-    "SDKWORK_AIOT_DEVICE_DB_PATH",
-    "SDKWORK_AIOT_DEVICE_DATABASE_URL",
-    "SDKWORK_AIOT_DEVICE_DATABASE_ENGINE",
+    "SDKWORK_DATABASE_URL",
+    "SDKWORK_DATABASE_ENGINE",
+    "SDKWORK_DATABASE_HOST",
+    "SDKWORK_DATABASE_PORT",
+    "SDKWORK_DATABASE_NAME",
+    "SDKWORK_DATABASE_SCHEMA",
+    "SDKWORK_DATABASE_USERNAME",
+    "SDKWORK_DATABASE_PASSWORD",
+    "SDKWORK_DATABASE_PASSWORD_FILE",
+    "SDKWORK_DATABASE_SSL_MODE",
+    "SDKWORK_DATABASE_FILE",
 ];
 
 fn spawn_device_edge_with_env(bind_addr: &str, env_overrides: &[(&str, Option<&str>)]) -> Child {
@@ -2786,6 +2794,10 @@ fn spawn_device_edge_with_env(bind_addr: &str, env_overrides: &[(&str, Option<&s
             command.env_remove(key);
         }
     }
+    command.env("SDKWORK_DATABASE_ENGINE", "sqlite").env(
+        "SDKWORK_DATABASE_URL",
+        "sqlite:file:aiot-edge-runtime-test?mode=memory&cache=shared",
+    );
     for (name, value) in env_overrides {
         match value {
             Some(value) => {
