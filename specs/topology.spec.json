@@ -2,6 +2,7 @@
   "schemaVersion": 5,
   "kind": "sdkwork.app.topology",
   "appId": "sdkwork-aiot",
+  "applicationCode": "aiot",
   "archetype": "application-rest-edge-device",
   "profileRoot": "etc/topology",
   "profilePattern": "{deploymentProfile}.{environment}.env",
@@ -111,21 +112,6 @@
     "application.public-ingress": {
       "httpHost": "api.sdkwork.com"
     }
-  },
-  "database": {
-    "engine": "SDKWORK_DATABASE_ENGINE",
-    "host": "SDKWORK_DATABASE_HOST",
-    "port": "SDKWORK_DATABASE_PORT",
-    "name": "SDKWORK_DATABASE_NAME",
-    "schema": "SDKWORK_DATABASE_SCHEMA",
-    "username": "SDKWORK_DATABASE_USERNAME",
-    "password": "SDKWORK_DATABASE_PASSWORD",
-    "sslMode": "SDKWORK_DATABASE_SSL_MODE",
-    "maxConnections": "SDKWORK_DATABASE_MAX_CONNECTIONS",
-    "outboxDispatcherEnabled": "SDKWORK_AIOT_OUTBOX_DISPATCHER_ENABLED",
-    "outboxDispatchIntervalMs": "SDKWORK_AIOT_OUTBOX_DISPATCH_INTERVAL_MS",
-    "outboxLagReadyThreshold": "SDKWORK_AIOT_OUTBOX_LAG_READY_THRESHOLD",
-    "outboxWebhookUrl": "SDKWORK_AIOT_OUTBOX_WEBHOOK_URL"
   },
   "intelligence": {
     "mode": "SDKWORK_AIOT_INTELLIGENCE_MODE",

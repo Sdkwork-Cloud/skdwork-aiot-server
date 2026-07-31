@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, verify } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import { createSbomAndProvenance, signReleaseArtifact } from './workflow-supply-chain-evidence.mjs';
 
-const root = path.resolve('.runtime', 'tests', 'aiot-supply-chain');
+let root;
 
+test.beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdkwork-aiot-supply-chain-'));
+});
 test.afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
 
 test('creates a verifiable signature plus byte-bound SBOM and provenance', () => {

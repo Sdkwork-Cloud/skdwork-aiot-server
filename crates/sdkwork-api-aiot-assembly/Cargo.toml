@@ -13,6 +13,7 @@ path = "src/lib.rs"
 axum.workspace = true
 tokio.workspace = true
 sdkwork-web-bootstrap.workspace = true
+sdkwork-web-core.workspace = true
 sdkwork-iot-platform-service = { workspace = true }
 sdkwork-routes-iot-app-api.workspace = true
 sdkwork-routes-iot-backend-api.workspace = true
