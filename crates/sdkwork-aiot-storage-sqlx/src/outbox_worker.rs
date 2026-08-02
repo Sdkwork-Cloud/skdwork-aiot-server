@@ -7,7 +7,7 @@ use sdkwork_aiot_service_host::{
     outbox_publisher_from_env, AiotOutboxDispatcher, AiotOutboxDispatcherConfig,
 };
 use sdkwork_aiot_storage::OutboxEventRepository;
-use sdkwork_database_config::workspace_database::workspace_database_env_is_configured;
+use sdkwork_database_config::workspace_database::workspace_postgres_env_is_configured;
 
 use crate::database_bootstrap::aiot_device_blocking_pool_from_env;
 use crate::outbox::SqliteOutboxEventRepository;
@@ -41,7 +41,7 @@ pub fn outbox_dispatcher_enabled_from_env(default_when_unset: bool) -> bool {
 }
 
 fn device_database_configured_from_env() -> bool {
-    workspace_database_env_is_configured()
+    workspace_postgres_env_is_configured()
 }
 
 pub fn device_storage_ready_from_env() -> bool {

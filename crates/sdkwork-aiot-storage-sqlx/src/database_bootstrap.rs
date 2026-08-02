@@ -1,6 +1,6 @@
 //! AIoT device database bootstrap through `sdkwork-database`.
 
-use sdkwork_database_config::workspace_database::workspace_database_env_is_configured;
+use sdkwork_database_config::workspace_database::workspace_postgres_env_is_configured;
 use sdkwork_database_config::{DatabaseConfig, DatabaseEngine, DeploymentMode};
 use sdkwork_database_sqlx::{create_pool_from_config, DatabasePool, PoolError};
 
@@ -55,7 +55,7 @@ pub fn resolve_device_database_config_from_env(
 
 /// Returns true when an explicit canonical profile resolves to authoritative PostgreSQL.
 pub fn device_database_config_is_authoritative_postgres_from_env() -> bool {
-    if !workspace_database_env_is_configured() {
+    if !workspace_postgres_env_is_configured() {
         return false;
     }
     sdkwork_aiot_database_host::resolve_aiot_database_config_from_env()
