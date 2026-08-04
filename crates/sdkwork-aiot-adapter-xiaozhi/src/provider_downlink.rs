@@ -1,4 +1,4 @@
-//! Provider TTS audio ↔ Xiaozhi Opus media (AIoT-owned, not claw-router).
+//! Provider TTS audio ↔ Xiaozhi Opus media (AIoT-owned, not cloud-router).
 
 use crate::opus_codec::encode_pcm16le_mono_to_opus_packets;
 

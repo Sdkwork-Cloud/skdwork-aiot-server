@@ -1,4 +1,4 @@
-//! Opus codec helpers for Xiaozhi device media (AIoT-owned, not claw-router).
+//! Opus codec helpers for Xiaozhi device media (AIoT-owned, not cloud-router).
 
 use audiopus::coder::{Decoder, Encoder};
 use audiopus::{Application, Channels, SampleRate};

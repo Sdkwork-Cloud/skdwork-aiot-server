@@ -20,6 +20,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@sdkwork/aiot-app-core": "workspace:*",
     "@sdkwork/aiot-app-sdk": "workspace:*",
     "@sdkwork/aiot-pc-core": "workspace:*"
   },

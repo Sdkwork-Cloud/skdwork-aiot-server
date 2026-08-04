@@ -30,7 +30,7 @@ Out of current scope:
 The design follows SDKWork standards from:
 
 - `../sdkwork-specs`
-- `../sdkwork-claw-router`
+- `../sdkwork-cloudrouter-router`
 - `../sdkwork-appbase`
 
 Normative constraints:

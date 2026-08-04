@@ -3,10 +3,10 @@ name = "sdkwork-aiot-intelligence-bridge"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Production Xiaozhi intelligence bridge via sdkwork-kernel and sdkwork-claw-router"
+description = "Production Xiaozhi intelligence bridge via sdkwork-kernel and sdkwork-cloudrouter-router"
 
 [dependencies]
-clawrouter-open-sdk.workspace = true
+cloudrouter-open-sdk.workspace = true
 sdkwork-aiot-adapter-xiaozhi.workspace = true
 sdkwork-utils-rust.workspace = true
 serde = { workspace = true }

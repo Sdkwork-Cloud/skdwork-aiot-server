@@ -1,11 +1,11 @@
-use clawrouter_open_sdk::{
+use cloudrouter_open_sdk::{
     OpenAiAudioTranscriptionRequest, OpenAiSpeechCreateRequest, SdkworkAiClient,
 };
 use sdkwork_aiot_adapter_xiaozhi::decode_xiaozhi_opus_uplink_to_wav;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::claw_router::{decode_speech_payload, map_sdk_error};
+use crate::cloud_router::{decode_speech_payload, map_sdk_error};
 use crate::config::IntelligenceConfig;
 use crate::kernel_runtime::KernelRuntimeClient;
 use crate::session_map::SessionMap;
@@ -36,7 +36,7 @@ pub struct SpeechTurnOutput {
 pub struct KernelSpeechPipeline {
     config: IntelligenceConfig,
     kernel: KernelRuntimeClient,
-    claw: Arc<SdkworkAiClient>,
+    cloud: Arc<SdkworkAiClient>,
     session_map: SessionMap,
 }
 
@@ -44,13 +44,13 @@ impl KernelSpeechPipeline {
     pub fn new(
         config: IntelligenceConfig,
         kernel: KernelRuntimeClient,
-        claw_client: crate::claw_router::ClawRouterClient,
+        cloud_client: crate::cloud_router::CloudRouterClient,
         session_map: SessionMap,
     ) -> Self {
         Self {
             config,
             kernel,
-            claw: claw_client.sdk_client(),
+            cloud: cloud_client.sdk_client(),
             session_map,
         }
     }
@@ -151,7 +151,7 @@ impl KernelSpeechPipeline {
             serde_json::Value::String(filename.to_string()),
         );
         let request = OpenAiAudioTranscriptionRequest {
-            file: clawrouter_open_sdk::OpenAiFileReferenceInput {
+            file: cloudrouter_open_sdk::OpenAiFileReferenceInput {
                 additional_properties: file_properties,
             },
             language: None,
@@ -159,10 +159,10 @@ impl KernelSpeechPipeline {
             prompt: None,
             response_format: Some("json".to_string()),
         };
-        let claw = Arc::clone(&self.claw);
+        let cloud = Arc::clone(&self.cloud);
         let transcription = tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current()
-                .block_on(async move { claw.audio().create_transcription(&request).await })
+                .block_on(async move { cloud.audio().create_transcription(&request).await })
         })
         .map_err(map_sdk_error)?;
         let text = transcription.text.trim().to_string();
@@ -175,7 +175,7 @@ impl KernelSpeechPipeline {
     fn synthesize_speech(
         &self,
         text: &str,
-    ) -> Result<crate::claw_router::ProviderTtsAudio, String> {
+    ) -> Result<crate::cloud_router::ProviderTtsAudio, String> {
         let request = OpenAiSpeechCreateRequest {
             input: text.to_string(),
             model: self.config.tts_model.clone(),
@@ -184,13 +184,13 @@ impl KernelSpeechPipeline {
             metadata: None,
             speed: None,
         };
-        let claw = Arc::clone(&self.claw);
+        let cloud = Arc::clone(&self.cloud);
         let raw = tokio::task::block_in_place(|| {
             tokio::runtime::Handle::current()
-                .block_on(async move { claw.audio().create_speech(&request).await })
+                .block_on(async move { cloud.audio().create_speech(&request).await })
         })
         .map_err(map_sdk_error)?;
-        Ok(crate::claw_router::ProviderTtsAudio {
+        Ok(crate::cloud_router::ProviderTtsAudio {
             format: self.config.tts_response_format.clone(),
             sample_rate: self.config.tts_sample_rate,
             bytes: decode_speech_payload(&raw),
@@ -209,8 +209,8 @@ mod tests {
                 mode: crate::config::IntelligenceMode::Kernel,
                 kernel_http_url: "http://127.0.0.1:18280".to_string(),
                 kernel_agent_id: "agent.xiaozhi".to_string(),
-                claw_router_http_url: "http://127.0.0.1:1".to_string(),
-                claw_router_api_key: None,
+                cloud_router_http_url: "http://127.0.0.1:1".to_string(),
+                cloud_router_api_key: None,
                 asr_model: "openai/whisper-1".to_string(),
                 tts_model: "openai/tts-1".to_string(),
                 tts_voice: "alloy".to_string(),
@@ -218,7 +218,7 @@ mod tests {
                 tts_sample_rate: 24_000,
             },
             kernel: KernelRuntimeClient::new("http://127.0.0.1:18280".to_string()).unwrap(),
-            claw: Arc::new(
+            cloud: Arc::new(
                 SdkworkAiClient::new_with_base_url("http://127.0.0.1:1").expect("client"),
             ),
             session_map: SessionMap::new(),
@@ -234,8 +234,8 @@ mod tests {
                 mode: crate::config::IntelligenceMode::Kernel,
                 kernel_http_url: "http://127.0.0.1:18280".to_string(),
                 kernel_agent_id: "agent.xiaozhi".to_string(),
-                claw_router_http_url: "http://127.0.0.1:1".to_string(),
-                claw_router_api_key: None,
+                cloud_router_http_url: "http://127.0.0.1:1".to_string(),
+                cloud_router_api_key: None,
                 asr_model: "openai/whisper-1".to_string(),
                 tts_model: "openai/tts-1".to_string(),
                 tts_voice: "alloy".to_string(),
@@ -243,7 +243,7 @@ mod tests {
                 tts_sample_rate: 24_000,
             },
             kernel: KernelRuntimeClient::new("http://127.0.0.1:18280".to_string()).unwrap(),
-            claw: Arc::new(
+            cloud: Arc::new(
                 SdkworkAiClient::new_with_base_url("http://127.0.0.1:1").expect("client"),
             ),
             session_map: SessionMap::new(),

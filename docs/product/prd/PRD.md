@@ -59,7 +59,7 @@ Enterprises need a protocol-neutral IoT control plane that connects edge devices
 | API contract gates | `pnpm check:api-envelope`, `check:pagination`, `api:check` pass |
 | Persistence | Durable DB required in production; Postgres code path + optional smoke test |
 | Security | No `DEV_MODE` in production; internal routes require token; device auth uses credential store; proxy context requires `x-sdkwork-proxy-auth` in production |
-| Intelligence | Production requires `SDKWORK_AIOT_INTELLIGENCE_MODE=kernel` with claw-router/kernel URLs; speak commands use kernel TTS |
+| Intelligence | Production requires `SDKWORK_AIOT_INTELLIGENCE_MODE=kernel` with cloud-router/kernel URLs; speak commands use kernel TTS |
 | Pagination | List APIs reject `page_size > 200` with HTTP 400 / code `40003` |
 | Release | `pnpm release:preflight` green with SBOM and checksum evidence |
 

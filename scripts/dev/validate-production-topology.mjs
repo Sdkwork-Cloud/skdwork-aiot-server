@@ -76,7 +76,7 @@ function validateIntelligenceWhenEnabled(fileName, values) {
   }
   for (const key of [
     'SDKWORK_AIOT_INTELLIGENCE_KERNEL_HTTP_URL',
-    'SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL',
+    'SDKWORK_CLOUDROUTER_APPLICATION_OPEN_HTTP_URL',
   ]) {
     const value = values.get(key);
     assert.ok(
@@ -84,7 +84,7 @@ function validateIntelligenceWhenEnabled(fileName, values) {
       `${fileName} must set ${key} when SDKWORK_AIOT_INTELLIGENCE_MODE=${mode}`,
     );
   }
-  requireDeployInjectPlaceholder(fileName, values, 'SDKWORK_CLAW_ROUTER_API_KEY');
+  requireDeployInjectPlaceholder(fileName, values, 'SDKWORK_CLOUDROUTER_API_KEY');
 }
 
 function validateProductionProfile(fileName, values) {

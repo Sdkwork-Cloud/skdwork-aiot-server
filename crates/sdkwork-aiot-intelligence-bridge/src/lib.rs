@@ -1,6 +1,6 @@
-//! Production Xiaozhi intelligence bridge: kernel agent runtime + Claw Router speech.
+//! Production Xiaozhi intelligence bridge: kernel agent runtime + Cloud Router speech.
 
-mod claw_router;
+mod cloud_router;
 pub mod config;
 pub mod kernel_runtime;
 mod mcp;
@@ -32,11 +32,11 @@ impl KernelIntelligenceStack {
     pub fn from_config(config: IntelligenceConfig) -> Result<Self, String> {
         let session_map = session_map::SessionMap::new();
         let kernel = kernel_runtime::KernelRuntimeClient::new(config.kernel_http_url.clone())?;
-        let claw = claw_router::ClawRouterClient::from_config(&config)?;
+        let cloud = cloud_router::CloudRouterClient::from_config(&config)?;
         let speech = Arc::new(KernelSpeechPipeline::new(
             config.clone(),
             kernel.clone(),
-            claw.clone(),
+            cloud.clone(),
             session_map.clone(),
         ));
         let mcp_provider = Arc::new(KernelMcpToolProvider::new(

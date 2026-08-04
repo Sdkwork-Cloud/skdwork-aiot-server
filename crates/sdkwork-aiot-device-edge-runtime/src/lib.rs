@@ -2727,8 +2727,8 @@ pub fn assert_production_environment_safety() {
             "kernel runtime HTTP URL",
         ),
         (
-            "SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL",
-            "claw-router open HTTP URL",
+            "SDKWORK_CLOUDROUTER_APPLICATION_OPEN_HTTP_URL",
+            "cloud-router open HTTP URL",
         ),
     ] {
         let value = std::env::var(key).unwrap_or_default();
@@ -2737,10 +2737,10 @@ pub fn assert_production_environment_safety() {
             std::process::exit(1);
         }
     }
-    let claw_key = std::env::var("SDKWORK_CLAW_ROUTER_API_KEY").unwrap_or_default();
-    if claw_key.trim().len() < PRODUCTION_MIN_SECRET_LENGTH {
+    let cloud_key = std::env::var("SDKWORK_CLOUDROUTER_API_KEY").unwrap_or_default();
+    if cloud_key.trim().len() < PRODUCTION_MIN_SECRET_LENGTH {
         eprintln!(
-            "FATAL: SDKWORK_CLAW_ROUTER_API_KEY must be at least {PRODUCTION_MIN_SECRET_LENGTH} characters in production"
+            "FATAL: SDKWORK_CLOUDROUTER_API_KEY must be at least {PRODUCTION_MIN_SECRET_LENGTH} characters in production"
         );
         std::process::exit(1);
     }

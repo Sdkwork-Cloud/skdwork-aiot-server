@@ -23,7 +23,7 @@ Current production readiness for the SDKWork AIoT server. Items marked **Done** 
 | Monotonic row ID allocation | Done | `iot_row_id_allocator` for devices, admin entities, commands, deliveries, credentials, sessions, events, twin properties, protocol ingest/dead-letter/outbox |
 | Command idempotency (DB-only) | Done | `uk_iot_command_tenant_idempotency_key`; no process-local cache |
 | Credential OpenAPI typed schema | Done | `AiotCredentialResponse` with optional `issuedSecret` on create |
-| Production intelligence fail-closed | Done | `SDKWORK_AIOT_INTELLIGENCE_MODE=kernel` required in production; kernel/claw-router URLs validated |
+| Production intelligence fail-closed | Done | `SDKWORK_AIOT_INTELLIGENCE_MODE=kernel` required in production; kernel/cloud-router URLs validated |
 | Gateway speak command kernel TTS | Done | `KernelSpeechPipeline::run_speak` + command delivery worker uses speech pipeline |
 | Production proxy-header hardening | Done | Production requires `x-sdkwork-proxy-auth` matching `SDKWORK_AIOT_INTERNAL_TOKEN` when trusting proxy headers |
 | List API `page_size > 200` rejection | Done | `validated_offset_list_params` → HTTP 400 / code `40003`; `http_api_standard` test |
@@ -68,7 +68,7 @@ Development server processes use `sdkwork_ai_dev` through the same canonical key
 | `@sdkwork/drive-app-sdk` | Firmware and media uploads |
 | `@sdkwork/agents-app-sdk` | Cloud agent dialogue (optional; device fallback remains) |
 | `@sdkwork/voice-app-sdk` | Cloud STT/TTS (optional; browser/device fallbacks in dev) |
-| `sdkwork-kernel` + `sdkwork-claw-router` | **Required** in production (`SDKWORK_AIOT_INTELLIGENCE_MODE=kernel`) |
+| `sdkwork-kernel` + `sdkwork-cloudrouter-router` | **Required** in production (`SDKWORK_AIOT_INTELLIGENCE_MODE=kernel`) |
 
 ## Deployment Architecture Notes
 
@@ -129,8 +129,8 @@ $env:SDKWORK_AIOT_CREDENTIAL_PEPPER='<random-pepper-at-least-32-chars>'
 $env:SDKWORK_AIOT_CORS_ALLOWED_ORIGINS='https://console.example.com'
 $env:SDKWORK_AIOT_INTELLIGENCE_MODE='kernel'
 $env:SDKWORK_AIOT_INTELLIGENCE_KERNEL_HTTP_URL='https://kernel.example.com'
-$env:SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL='https://claw-router.example.com'
-$env:SDKWORK_CLAW_ROUTER_API_KEY='<random-claw-router-key-at-least-32-chars>'
+$env:SDKWORK_CLOUDROUTER_APPLICATION_OPEN_HTTP_URL='https://cloud-router.example.com'
+$env:SDKWORK_CLOUDROUTER_API_KEY='<random-cloud-router-key-at-least-32-chars>'
 $env:SDKWORK_AIOT_TRUST_PROXY_HEADERS='1'   # appbase must send x-sdkwork-proxy-auth
 # Do NOT set SDKWORK_AIOT_DEV_MODE in production
 ```

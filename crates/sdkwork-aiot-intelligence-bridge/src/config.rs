@@ -11,14 +11,14 @@ pub const ENV_INTELLIGENCE_TTS_RESPONSE_FORMAT: &str =
 pub const ENV_INTELLIGENCE_TTS_SAMPLE_RATE: &str = "SDKWORK_AIOT_INTELLIGENCE_TTS_SAMPLE_RATE";
 
 pub const KERNEL_PUBLIC_HTTP_URL_FALLBACK_ENV: &str = "SDKWORK_KERNEL_APPLICATION_PUBLIC_HTTP_URL";
-pub const CLAW_ROUTER_OPEN_HTTP_URL_ENV: &str = "SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL";
-pub const CLAW_ROUTER_API_KEY_ENV: &str = "SDKWORK_CLAW_ROUTER_API_KEY";
+pub const CLOUDROUTER_OPEN_HTTP_URL_ENV: &str = "SDKWORK_CLOUDROUTER_APPLICATION_OPEN_HTTP_URL";
+pub const CLOUDROUTER_API_KEY_ENV: &str = "SDKWORK_CLOUDROUTER_API_KEY";
 
 pub const DEFAULT_KERNEL_AGENT_ID: &str = "agent.xiaozhi";
 pub const DEFAULT_ASR_MODEL: &str = "openai/whisper-1";
 pub const DEFAULT_TTS_MODEL: &str = "openai/tts-1";
 pub const DEFAULT_TTS_VOICE: &str = "alloy";
-/// Claw Router TTS response format (standard provider audio, not Xiaozhi Opus).
+/// Cloud Router TTS response format (standard provider audio, not Xiaozhi Opus).
 pub const DEFAULT_TTS_RESPONSE_FORMAT: &str = "pcm";
 pub const DEFAULT_TTS_SAMPLE_RATE: u32 = 24_000;
 
@@ -36,8 +36,8 @@ pub struct IntelligenceConfig {
     pub mode: IntelligenceMode,
     pub kernel_http_url: String,
     pub kernel_agent_id: String,
-    pub claw_router_http_url: String,
-    pub claw_router_api_key: Option<String>,
+    pub cloud_router_http_url: String,
+    pub cloud_router_api_key: Option<String>,
     pub asr_model: String,
     pub tts_model: String,
     pub tts_voice: String,
@@ -71,16 +71,16 @@ impl IntelligenceConfig {
         }
 
         let kernel_http_url = resolve_kernel_http_url()?;
-        let claw_router_http_url = std::env::var(CLAW_ROUTER_OPEN_HTTP_URL_ENV).map_err(|_| {
-            format!("{CLAW_ROUTER_OPEN_HTTP_URL_ENV} must be set for production intelligence")
+        let cloud_router_http_url = std::env::var(CLOUDROUTER_OPEN_HTTP_URL_ENV).map_err(|_| {
+            format!("{CLOUDROUTER_OPEN_HTTP_URL_ENV} must be set for production intelligence")
         })?;
-        if is_blank(Some(claw_router_http_url.as_str())) {
+        if is_blank(Some(cloud_router_http_url.as_str())) {
             return Err(format!(
-                "{CLAW_ROUTER_OPEN_HTTP_URL_ENV} must not be blank for production intelligence"
+                "{CLOUDROUTER_OPEN_HTTP_URL_ENV} must not be blank for production intelligence"
             ));
         }
 
-        let claw_router_api_key = std::env::var(CLAW_ROUTER_API_KEY_ENV)
+        let cloud_router_api_key = std::env::var(CLOUDROUTER_API_KEY_ENV)
             .ok()
             .filter(|value| !is_blank(Some(value.as_str())));
 
@@ -119,8 +119,8 @@ impl IntelligenceConfig {
             mode,
             kernel_http_url,
             kernel_agent_id,
-            claw_router_http_url,
-            claw_router_api_key,
+            cloud_router_http_url,
+            cloud_router_api_key,
             asr_model,
             tts_model,
             tts_voice,

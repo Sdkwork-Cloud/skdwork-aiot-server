@@ -40,7 +40,7 @@ git submodule update --init external/xiaozhi-esp32
 | MCP payload-only frame handling | Implemented | MCP frames with `jsonrpc`/`id` only (no `method`/`result`/`error`) are ignored without automatic `tools/list` follow-up, aligned with external parser behavior. |
 | ID preservation (numeric + string) | Implemented | Correlation ID and JSON literal preserved (`xiaozhi.mcp.id_json`). |
 | Initialize/tools list/tools call simulator path | Implemented (simulator grade) | Supports `initialize`, `tools/list`, `tools/call`, string/numeric IDs, and unknown-method errors. |
-| Production intelligence bridge (`SDKWORK_AIOT_INTELLIGENCE_MODE=kernel`) | Implemented (integration grade) | `sdkwork-aiot-intelligence-bridge` routes speech via Claw Router ASR/TTS and agent turns via kernel runtime HTTP; MCP `tools/list` + `tools/call` use kernel session tool catalog/execute; Opus codec/uplink owned by `sdkwork-aiot-adapter-xiaozhi`. See [XIAOZHI_INTELLIGENCE_INTEGRATION.md](architecture/XIAOZHI_INTELLIGENCE_INTEGRATION.md). |
+| Production intelligence bridge (`SDKWORK_AIOT_INTELLIGENCE_MODE=kernel`) | Implemented (integration grade) | `sdkwork-aiot-intelligence-bridge` routes speech via Cloud Router ASR/TTS and agent turns via kernel runtime HTTP; MCP `tools/list` + `tools/call` use kernel session tool catalog/execute; Opus codec/uplink owned by `sdkwork-aiot-adapter-xiaozhi`. See [XIAOZHI_INTELLIGENCE_INTEGRATION.md](architecture/XIAOZHI_INTELLIGENCE_INTEGRATION.md). |
 | `tools/list` cursor pagination and `withUserTools` | Implemented (simulator grade) | Cursor-based paging and user-only tool visibility toggling are available in simulator reply path. |
 | Simulator MCP tool provider override | Implemented (simulator grade) | Optional file-driven catalog via `SDKWORK_AIOT_XIAOZHI_SIMULATOR_MCP_TOOLS_PATH`, with built-in fallback. |
 | `tools/call` precondition + argument validation | Implemented (simulator grade) | Precondition errors align with external (`Missing params`, `Missing name`, `Invalid arguments`); required args return `Missing valid argument: <name>` for missing/type mismatch; integer range violations return external-style errors (`Value is below minimum allowed: <min>`, `Value exceeds maximum allowed: <max>`); integer inputs accept JSON numbers and truncate toward int semantics before range checks. |
@@ -121,7 +121,7 @@ git submodule update --init external/xiaozhi-esp32
 2. Multi-node activation challenge coordination hardening for distributed, non-shared-file deployments (managed DB/Redis backend and operational guidance).
 3. Device capability registry for MCP tool exposure (deny-by-default policy presets are implemented; registry-driven allowlists remain optional).
 4. End-to-end integration tests with real MQTT broker and live UDP sockets in CI profile.
-5. CI profile with live kernel agent-server + claw-router for production intelligence smoke tests.
+5. CI profile with live kernel agent-server + cloud-router for production intelligence smoke tests.
 
 ## Operator Notes: Activation Registry Backend & Metrics
 

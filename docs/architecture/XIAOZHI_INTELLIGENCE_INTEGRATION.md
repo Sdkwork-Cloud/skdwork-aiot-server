@@ -9,7 +9,7 @@ capabilities owned by SDKWork platform services:
 
 | Capability | Owner | Transport |
 | --- | --- | --- |
-| ASR / TTS (provider audio) | `sdkwork-claw-router` | `clawrouter-open-sdk` (`/v1/audio/*`) — PCM/MP3, not Opus |
+| ASR / TTS (provider audio) | `sdkwork-cloudrouter-router` | `cloudrouter-open-sdk` (`/v1/audio/*`) — PCM/MP3, not Opus |
 | Opus downlink (Xiaozhi wire) | `sdkwork-aiot-adapter-xiaozhi` | Provider PCM → Opus frames for WebSocket/MQTT-UDP |
 | Agent session / LLM turns | `sdkwork-kernel` | `sdkwork-agent-client` runtime HTTP |
 | MCP tool catalog + invoke | `sdkwork-kernel` | Runtime HTTP `/sessions/{id}/tools*` |
@@ -23,7 +23,7 @@ Xiaozhi device
   → adapter-xiaozhi (codec / message class)
   → gateway (session + listen/mcp routing)
   → sdkwork-aiot-intelligence-bridge
-       ├─ clawrouter_open_sdk  (ASR, TTS)
+       ├─ cloudrouter_open_sdk  (ASR, TTS)
        └─ sdkwork-agent-client (kernel runtime sessions, chat, tools)
 ```
 
@@ -41,8 +41,8 @@ Xiaozhi device
 | `SDKWORK_AIOT_INTELLIGENCE_MODE` | `simulator` or `kernel` |
 | `SDKWORK_AIOT_INTELLIGENCE_KERNEL_HTTP_URL` | Kernel public ingress (`/internal/v3/api/intelligence/runtime`) |
 | `SDKWORK_AIOT_INTELLIGENCE_KERNEL_AGENT_ID` | Kernel agent id for Xiaozhi sessions (default `agent.xiaozhi`) |
-| `SDKWORK_CLAW_ROUTER_APPLICATION_OPEN_HTTP_URL` | Claw Router Open SDK base URL |
-| `SDKWORK_CLAW_ROUTER_API_KEY` | Claw Router bearer token |
+| `SDKWORK_CLOUDROUTER_APPLICATION_OPEN_HTTP_URL` | Cloud Router Open SDK base URL |
+| `SDKWORK_CLOUDROUTER_API_KEY` | Cloud Router bearer token |
 | `SDKWORK_AIOT_INTELLIGENCE_ASR_MODEL` | Optional ASR catalog key |
 | `SDKWORK_AIOT_INTELLIGENCE_TTS_MODEL` | Optional TTS catalog key |
 | `SDKWORK_AIOT_INTELLIGENCE_TTS_VOICE` | TTS voice (default `alloy`) |
@@ -54,7 +54,7 @@ Fallback for kernel URL: `SDKWORK_KERNEL_APPLICATION_PUBLIC_HTTP_URL` when co-de
 1. Resolve user text from `xiaozhi.listen.text` or ASR (`/v1/audio/transcriptions`) when binary audio is present.
 2. Ensure kernel runtime session mapped from Xiaozhi `session_id`.
 3. `POST /sessions/{id}/messages` with user text → assistant reply.
-4. `POST /v1/audio/speech` with assistant text → provider PCM (default) via Claw Router.
+4. `POST /v1/audio/speech` with assistant text → provider PCM (default) via Cloud Router.
 5. `sdkwork-aiot-adapter-xiaozhi` (`opus_codec` + `provider_downlink`) encodes PCM → Opus packets.
 6. Gateway emits Xiaozhi JSON (`stt`, `llm`, `tts`) + one or more binary Opus frames.
 
@@ -62,9 +62,9 @@ Uplink ASR:
 
 1. Device sends Opus uplink packet(s).
 2. Adapter decodes Opus → PCM and wraps WAV locally.
-3. Claw Router ASR receives WAV (not raw Opus).
+3. Cloud Router ASR receives WAV (not raw Opus).
 
-Claw Router must not emit or consume Opus for Xiaozhi; Opus is a device protocol concern owned by AIoT.
+Cloud Router must not emit or consume Opus for Xiaozhi; Opus is a device protocol concern owned by AIoT.
 
 ## MCP (tools/list, tools/call)
 
@@ -74,7 +74,7 @@ Claw Router must not emit or consume Opus for Xiaozhi; Opus is a device protocol
 
 ## Crate boundary
 
-`sdkwork-aiot-intelligence-bridge` owns all kernel/clawrouter HTTP client wiring.
+`sdkwork-aiot-intelligence-bridge` owns all kernel/cloudrouter HTTP client wiring.
 Gateway only selects mode and formats Xiaozhi replies.
 
 ## Verification
@@ -85,4 +85,4 @@ cargo test -p sdkwork-aiot-device-edge-runtime
 pnpm verify
 ```
 
-Production smoke requires running kernel agent-server and claw-router with topology env set.
+Production smoke requires running kernel agent-server and cloud-router with topology env set.

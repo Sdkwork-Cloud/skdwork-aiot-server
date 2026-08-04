@@ -258,8 +258,8 @@ test('sdkwork-aiot production intelligence alignment artifacts are present', () 
     'topology.spec.json must declare intelligence.kernelHttpUrl',
   );
   assert.ok(
-    topologySpec.intelligence?.clawRouterOpenHttpUrl,
-    'topology.spec.json must declare intelligence.clawRouterOpenHttpUrl',
+    topologySpec.intelligence?.cloudRouterOpenHttpUrl,
+    'topology.spec.json must declare intelligence.cloudRouterOpenHttpUrl',
   );
 
   const bridgeLib = read('crates/sdkwork-aiot-intelligence-bridge/src/speech.rs');

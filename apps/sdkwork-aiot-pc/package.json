@@ -41,6 +41,11 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
+    "@sdkwork/aiot-pc-console-agent": "workspace:*",
+    "@sdkwork/aiot-pc-console-device": "workspace:*",
+    "@sdkwork/aiot-pc-console-iot": "workspace:*",
+    "@sdkwork/aiot-pc-console-voice": "workspace:*",
+    "@sdkwork/aiot-pc-core": "workspace:*",
     "@tailwindcss/vite": "^4.2.2",
     "tailwindcss": "^4.2.2"
   },
