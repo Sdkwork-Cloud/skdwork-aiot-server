@@ -37,7 +37,7 @@ axum = "0.8.8"
 http-body-util = "0.1.3"
 tokio = { version = "1.48", features = ["macros", "rt-multi-thread", "net", "signal", "sync"] }
 tower = { version = "0.5.3", features = ["util"] }
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "sqlite", "postgres"] }
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "sqlite", "postgres"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 
 # SDKWork workspace members - declared once at workspace root
@@ -64,7 +64,7 @@ cloudrouter-open-sdk = { path = "../sdkwork-cloudrouter/sdks/cloudrouter-open-sd
 sdkwork-database-config = { path = "../sdkwork-database/crates/sdkwork-database-config" }
 sdkwork-database-lifecycle = { path = "../sdkwork-database/crates/sdkwork-database-lifecycle" }
 sdkwork-database-spi = { path = "../sdkwork-database/crates/sdkwork-database-spi" }
-sdkwork-database-sqlx = { path = "../sdkwork-database/crates/sdkwork-database-sqlx" }
+sdkwork-database-sqlx = { path = "../sdkwork-database/crates/sdkwork-database-sqlx", features = ["postgres", "sqlite"] }
 sdkwork-aiot-database-host = { path = "crates/sdkwork-aiot-database-host" }
 sdkwork-iam-web-adapter = { path = "../sdkwork-iam/crates/sdkwork-iam-web-adapter" }
 sdkwork-web-axum = { path = "../sdkwork-web-framework/crates/sdkwork-web-axum" }

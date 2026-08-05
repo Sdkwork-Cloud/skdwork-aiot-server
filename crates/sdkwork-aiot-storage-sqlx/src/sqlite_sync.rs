@@ -54,7 +54,7 @@ impl BlockingSqlitePool {
 
     pub fn execute_batch_sql(&self, sql: &str) -> Result<(), StorageSqliteError> {
         self.run(async {
-            sqlx::raw_sql(sql).execute(&self.pool).await?;
+            sqlx::raw_sql(sqlx::AssertSqlSafe(sql.to_owned())).execute(&self.pool).await?;
             Ok(())
         })
     }
@@ -109,9 +109,9 @@ pub fn sqlite_connect_url(path_or_uri: impl AsRef<str>) -> String {
 }
 
 pub fn bind_sql_plan<'q>(
-    mut query: sqlx::query::Query<'q, Sqlite, sqlx::sqlite::SqliteArguments<'q>>,
+    mut query: sqlx::query::Query<'q, Sqlite, sqlx::sqlite::SqliteArguments>,
     statement: &'q SqlStatementPlan,
-) -> sqlx::query::Query<'q, Sqlite, sqlx::sqlite::SqliteArguments<'q>> {
+) -> sqlx::query::Query<'q, Sqlite, sqlx::sqlite::SqliteArguments> {
     for bind in &statement.binds {
         query = match bind {
             SqlBindValue::Text(value) => query.bind(value),
@@ -129,7 +129,7 @@ pub async fn execute_sql_plan<'e, E>(
 where
     E: sqlx::Executor<'e, Database = Sqlite>,
 {
-    let query = bind_sql_plan(sqlx::query(&statement.sql), statement);
+    let query = bind_sql_plan(sqlx::query(sqlx::AssertSqlSafe(statement.sql.as_str())), statement);
     Ok(query.execute(executor).await?.rows_affected())
 }
 

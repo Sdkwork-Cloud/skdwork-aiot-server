@@ -44,13 +44,13 @@ pub async fn allocate_row_id(
     let table_name = table_name.to_string();
     match tx {
         DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query_scalar(&sql)
+            sqlx::query_scalar(sqlx::AssertSqlSafe(sql.as_str()))
                 .bind(&table_name)
                 .fetch_one(&mut **connection)
                 .await
         }
         DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query_scalar(&sql)
+            sqlx::query_scalar(sqlx::AssertSqlSafe(sql.as_str()))
                 .bind(&table_name)
                 .fetch_one(&mut **connection)
                 .await

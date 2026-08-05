@@ -210,7 +210,7 @@ impl FirmwareOtaCatalog {
                 let deployment_state = deployment_state.to_string();
                 let device_scope: Option<(i64, i64)> = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let row = sqlx::query(&device_scope_sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(device_scope_sql.as_str()))
                             .bind(&device_id)
                             .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
@@ -223,7 +223,7 @@ impl FirmwareOtaCatalog {
                         })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let row = sqlx::query(&device_scope_sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(device_scope_sql.as_str()))
                             .bind(&device_id)
                             .fetch_optional(pool.postgres_pool().expect("postgres pool"))
                             .await?;
@@ -269,7 +269,7 @@ impl FirmwareOtaCatalog {
                                  ORDER BY entity_key DESC
                                  LIMIT ?6",
                             );
-                            let rows = sqlx::query(&list_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                                 .bind(tenant_id)
                                 .bind(organization_id)
                                 .bind(&entity_kind)
@@ -291,7 +291,7 @@ impl FirmwareOtaCatalog {
                                  ORDER BY entity_key DESC
                                  LIMIT ?4",
                             );
-                            let rows = sqlx::query(&list_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                                 .bind(&entity_kind)
                                 .bind(&device_id)
                                 .bind(&deployment_state)
@@ -316,7 +316,7 @@ impl FirmwareOtaCatalog {
                                  ORDER BY entity_key DESC
                                  LIMIT ?6",
                             );
-                            let rows = sqlx::query(&list_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                                 .bind(tenant_id)
                                 .bind(organization_id)
                                 .bind(&entity_kind)
@@ -347,7 +347,7 @@ impl FirmwareOtaCatalog {
                                  ORDER BY entity_key DESC
                                  LIMIT ?4",
                             );
-                            let rows = sqlx::query(&list_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                                 .bind(&entity_kind)
                                 .bind(&device_id)
                                 .bind(&deployment_state)

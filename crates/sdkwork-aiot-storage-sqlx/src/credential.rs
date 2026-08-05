@@ -131,7 +131,7 @@ impl SqliteSqlxCredentialRepository {
 
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let mut sql_query = sqlx::query(&query)
+                        let mut sql_query = sqlx::query(sqlx::AssertSqlSafe(query.as_str()))
                             .bind(&device_id)
                             .bind(CREDENTIAL_STATUS_ACTIVE)
                             .bind(&now);
@@ -154,7 +154,7 @@ impl SqliteSqlxCredentialRepository {
                         }))
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let mut sql_query = sqlx::query(&query)
+                        let mut sql_query = sqlx::query(sqlx::AssertSqlSafe(query.as_str()))
                             .bind(&device_id)
                             .bind(CREDENTIAL_STATUS_ACTIVE)
                             .bind(&now);
@@ -206,7 +206,7 @@ impl SqliteSqlxCredentialRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let rows = sqlx::query(&sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&device_id)
                             .bind(CREDENTIAL_STATUS_ACTIVE)
                             .bind(&now)
@@ -230,7 +230,7 @@ impl SqliteSqlxCredentialRepository {
                         ))
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let rows = sqlx::query(&sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&device_id)
                             .bind(CREDENTIAL_STATUS_ACTIVE)
                             .bind(&now)
@@ -277,7 +277,7 @@ impl SqliteSqlxCredentialRepository {
                 );
                 let count: i64 = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        sqlx::query_scalar(&sql)
+                        sqlx::query_scalar(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&device_id)
                             .bind(CREDENTIAL_STATUS_ACTIVE)
                             .bind(&now)
@@ -285,7 +285,7 @@ impl SqliteSqlxCredentialRepository {
                             .await?
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        sqlx::query_scalar(&sql)
+                        sqlx::query_scalar(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&device_id)
                             .bind(CREDENTIAL_STATUS_ACTIVE)
                             .bind(&now)
@@ -322,7 +322,7 @@ impl SqliteSqlxCredentialRepository {
                     );
                     match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query(&insert_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                                 .bind(next_id)
                                 .bind(&credential_id)
                                 .bind(command.association.tenant_id)
@@ -340,7 +340,7 @@ impl SqliteSqlxCredentialRepository {
                                 .await?;
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query(&insert_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                                 .bind(next_id)
                                 .bind(&credential_id)
                                 .bind(command.association.tenant_id)
@@ -406,13 +406,13 @@ impl SqliteSqlxCredentialRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
                             .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -429,13 +429,13 @@ impl SqliteSqlxCredentialRepository {
                         })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
                             .fetch_one(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -477,7 +477,7 @@ impl SqliteSqlxCredentialRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -487,7 +487,7 @@ impl SqliteSqlxCredentialRepository {
                         row.as_ref().map(row_to_credential_record).transpose()
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -526,7 +526,7 @@ impl SqliteSqlxCredentialRepository {
                 );
                 let result = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        sqlx::query(&sql)
+                        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(CREDENTIAL_STATUS_REVOKED)
                             .bind(&now)
                             .bind(association.tenant_id)
@@ -538,7 +538,7 @@ impl SqliteSqlxCredentialRepository {
                             .map(|result| result.rows_affected())
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        sqlx::query(&sql)
+                        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(CREDENTIAL_STATUS_REVOKED)
                             .bind(&now)
                             .bind(association.tenant_id)

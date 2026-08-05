@@ -44,13 +44,13 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                 );
                 let count: i64 = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        sqlx::query_scalar(&sql)
+                        sqlx::query_scalar(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(OUTBOX_STATUS_PENDING)
                             .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                             .await?
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        sqlx::query_scalar(&sql)
+                        sqlx::query_scalar(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(OUTBOX_STATUS_PENDING)
                             .fetch_one(pool.postgres_pool().expect("postgres pool"))
                             .await?
@@ -85,7 +85,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                     );
                     match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query(&reclaim_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(reclaim_sql.as_str()))
                                 .bind(OUTBOX_STATUS_PENDING)
                                 .bind(OUTBOX_STATUS_CLAIMED)
                                 .bind(&now)
@@ -93,7 +93,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                                 .await?;
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query(&reclaim_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(reclaim_sql.as_str()))
                                 .bind(OUTBOX_STATUS_PENDING)
                                 .bind(OUTBOX_STATUS_CLAIMED)
                                 .bind(&now)
@@ -105,7 +105,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                     let claim_sql = outbox_claim_sql(dialect);
                     match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query(&claim_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(claim_sql.as_str()))
                                 .bind(OUTBOX_STATUS_CLAIMED)
                                 .bind(&lease_until)
                                 .bind(OUTBOX_STATUS_PENDING)
@@ -115,7 +115,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                                 .await?;
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query(&claim_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(claim_sql.as_str()))
                                 .bind(OUTBOX_STATUS_CLAIMED)
                                 .bind(&lease_until)
                                 .bind(OUTBOX_STATUS_PENDING)
@@ -136,7 +136,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                     );
                     match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            let rows = sqlx::query(&select_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                 .bind(OUTBOX_STATUS_CLAIMED)
                                 .bind(&lease_until)
                                 .bind(limit)
@@ -148,7 +148,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                                 .collect::<Vec<_>>())
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            let rows = sqlx::query(&select_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                 .bind(OUTBOX_STATUS_CLAIMED)
                                 .bind(&lease_until)
                                 .bind(limit)
@@ -183,7 +183,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                      WHERE tenant_id = ?3 AND event_id = ?4 AND status = ?5",
                 );
                 let changed: i64 = match pool.engine() {
-                    DeviceDatabaseEngine::Sqlite => sqlx::query(&sql)
+                    DeviceDatabaseEngine::Sqlite => sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                         .bind(OUTBOX_STATUS_PUBLISHED)
                         .bind(&now)
                         .bind(tenant_id)
@@ -192,7 +192,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                         .execute(pool.sqlite_pool().expect("sqlite pool"))
                         .await?
                         .rows_affected() as i64,
-                    DeviceDatabaseEngine::Postgres => sqlx::query(&sql)
+                    DeviceDatabaseEngine::Postgres => sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                         .bind(OUTBOX_STATUS_PUBLISHED)
                         .bind(&now)
                         .bind(tenant_id)
@@ -230,7 +230,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                     );
                     let attempt_count: i32 = match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            let row = sqlx::query(&select_sql)
+                            let row = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                 .bind(tenant_id)
                                 .bind(&event_id)
                                 .bind(OUTBOX_STATUS_CLAIMED)
@@ -242,7 +242,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                             row.try_get("attempt_count")?
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            let row = sqlx::query(&select_sql)
+                            let row = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                 .bind(tenant_id)
                                 .bind(&event_id)
                                 .bind(OUTBOX_STATUS_CLAIMED)
@@ -272,7 +272,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                          WHERE tenant_id = ?4 AND event_id = ?5 AND status = ?6",
                     );
                     let changed: i64 = match &mut tx {
-                        DeviceDbTransaction::Sqlite(connection) => sqlx::query(&update_sql)
+                        DeviceDbTransaction::Sqlite(connection) => sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                             .bind(next_attempt)
                             .bind(next_attempt_at)
                             .bind(status)
@@ -283,7 +283,7 @@ impl OutboxEventRepository for SqliteOutboxEventRepository {
                             .await?
                             .rows_affected()
                             as i64,
-                        DeviceDbTransaction::Postgres(connection) => sqlx::query(&update_sql)
+                        DeviceDbTransaction::Postgres(connection) => sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                             .bind(next_attempt)
                             .bind(next_attempt_at)
                             .bind(status)

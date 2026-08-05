@@ -117,7 +117,7 @@ impl SqlitePersistedEntityRepository {
                     );
                     let updated = match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query(&update_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                                 .bind(&payload_json)
                                 .bind(&now)
                                 .bind(ENTITY_STATUS_ACTIVE)
@@ -130,7 +130,7 @@ impl SqlitePersistedEntityRepository {
                                 .rows_affected()
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query(&update_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                                 .bind(&payload_json)
                                 .bind(&now)
                                 .bind(ENTITY_STATUS_ACTIVE)
@@ -158,7 +158,7 @@ impl SqlitePersistedEntityRepository {
                     );
                     match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query(&insert_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                                 .bind(next_id)
                                 .bind(&uuid)
                                 .bind(association.tenant_id)
@@ -174,7 +174,7 @@ impl SqlitePersistedEntityRepository {
                                 .await?;
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query(&insert_sql)
+                            sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                                 .bind(next_id)
                                 .bind(&uuid)
                                 .bind(association.tenant_id)
@@ -216,7 +216,7 @@ impl SqlitePersistedEntityRepository {
             );
             match pool.engine() {
                 DeviceDatabaseEngine::Sqlite => {
-                    let row = sqlx::query(&sql)
+                    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                         .bind(association.tenant_id)
                         .bind(association.organization_id)
                         .bind(&entity_kind)
@@ -227,7 +227,7 @@ impl SqlitePersistedEntityRepository {
                     row.as_ref().map(row_to_entity_record).transpose()
                 }
                 DeviceDatabaseEngine::Postgres => {
-                    let row = sqlx::query(&sql)
+                    let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                         .bind(association.tenant_id)
                         .bind(association.organization_id)
                         .bind(&entity_kind)
@@ -273,14 +273,14 @@ impl SqlitePersistedEntityRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&entity_kind)
                             .bind(ENTITY_STATUS_ACTIVE)
                             .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&entity_kind)
@@ -299,14 +299,14 @@ impl SqlitePersistedEntityRepository {
                         })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&entity_kind)
                             .bind(ENTITY_STATUS_ACTIVE)
                             .fetch_one(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&entity_kind)
@@ -387,7 +387,7 @@ impl SqlitePersistedEntityRepository {
                 );
                 let updated: u64 = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        sqlx::query(&sql)
+                        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&now)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
@@ -399,7 +399,7 @@ impl SqlitePersistedEntityRepository {
                             .rows_affected()
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        sqlx::query(&sql)
+                        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&now)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)

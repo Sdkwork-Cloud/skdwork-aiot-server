@@ -156,7 +156,7 @@ impl SqliteSqlxDeviceRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&device_id)
                             .fetch_optional(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
@@ -168,7 +168,7 @@ impl SqliteSqlxDeviceRepository {
                         }))
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&device_id)
                             .fetch_optional(pool.postgres_pool().expect("postgres pool"))
                             .await?;
@@ -205,7 +205,7 @@ impl SqliteSqlxDeviceRepository {
                 );
                 let mut command = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -217,7 +217,7 @@ impl SqliteSqlxDeviceRepository {
                             .transpose()?
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -257,7 +257,7 @@ impl SqliteSqlxDeviceRepository {
                 );
                 let mut command = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&idempotency_key)
@@ -268,7 +268,7 @@ impl SqliteSqlxDeviceRepository {
                             .transpose()?
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&idempotency_key)
@@ -332,7 +332,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                     );
                     let exists: i64 = match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query_scalar(&exists_sql)
+                            sqlx::query_scalar(sqlx::AssertSqlSafe(exists_sql.as_str()))
                                 .bind(command.association.tenant_id)
                                 .bind(command.association.organization_id)
                                 .bind(&command.device_id)
@@ -340,7 +340,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                                 .await
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query_scalar(&exists_sql)
+                            sqlx::query_scalar(sqlx::AssertSqlSafe(exists_sql.as_str()))
                                 .bind(command.association.tenant_id)
                                 .bind(command.association.organization_id)
                                 .bind(&command.device_id)
@@ -398,7 +398,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -407,7 +407,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                         row.as_ref().map(row_to_device_record).transpose()
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -441,12 +441,12 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                 let offset = params.offset.max(0);
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(limit)
@@ -462,12 +462,12 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                         })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .fetch_one(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(limit)
@@ -513,7 +513,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                 let sql = pool.adapt_sql(&sql);
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let mut query = sqlx::query_scalar::<_, String>(&sql)
+                        let mut query = sqlx::query_scalar::<_, String>(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id);
                         if let Some(product_id) = product_filter {
@@ -525,7 +525,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
                             .await
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let mut query = sqlx::query_scalar::<_, String>(&sql)
+                        let mut query = sqlx::query_scalar::<_, String>(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id);
                         if let Some(product_id) = product_filter {
@@ -642,14 +642,14 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                 );
                 let duplicate_count: i64 = match &mut tx {
                     DeviceDbTransaction::Sqlite(connection) => {
-                        sqlx::query_scalar(&duplicate_sql)
+                        sqlx::query_scalar(sqlx::AssertSqlSafe(duplicate_sql.as_str()))
                             .bind(command.association.tenant_id)
                             .bind(&command_id)
                             .fetch_one(&mut **connection)
                             .await
                     }
                     DeviceDbTransaction::Postgres(connection) => {
-                        sqlx::query_scalar(&duplicate_sql)
+                        sqlx::query_scalar(sqlx::AssertSqlSafe(duplicate_sql.as_str()))
                             .bind(command.association.tenant_id)
                             .bind(&command_id)
                             .fetch_one(&mut **connection)
@@ -669,7 +669,7 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                 );
                 match &mut tx {
                     DeviceDbTransaction::Sqlite(connection) => {
-                        sqlx::query(&insert_sql)
+                        sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                             .bind(row_id)
                             .bind(format!("cmd-uuid-{}", row_id))
                             .bind(command.association.tenant_id)
@@ -696,7 +696,7 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                             .await?;
                     }
                     DeviceDbTransaction::Postgres(connection) => {
-                        sqlx::query(&insert_sql)
+                        sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                             .bind(row_id)
                             .bind(format!("cmd-uuid-{}", row_id))
                             .bind(command.association.tenant_id)
@@ -801,13 +801,13 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
                             .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -831,13 +831,13 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                         Ok(AiotOffsetListResult { items: commands, total })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
                             .fetch_one(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -885,7 +885,7 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                     );
                     match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            let existing = sqlx::query(&select_sql)
+                            let existing = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(&scoped_device_id)
@@ -911,7 +911,7 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                                         dialect,
                                         "UPDATE iot_command SET status = ?1, updated_at = ?2 WHERE id = ?3",
                                     );
-                                    sqlx::query(&update_sql)
+                                    sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                                         .bind(command_status_code("cancelled"))
                                         .bind(&now)
                                         .bind(id)
@@ -921,7 +921,7 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                             }
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            let existing = sqlx::query(&select_sql)
+                            let existing = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(&scoped_device_id)
@@ -947,7 +947,7 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
                                         dialect,
                                         "UPDATE iot_command SET status = ?1, updated_at = ?2 WHERE id = ?3",
                                     );
-                                    sqlx::query(&update_sql)
+                                    sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                                         .bind(command_status_code("cancelled"))
                                         .bind(&now)
                                         .bind(id)
@@ -984,7 +984,7 @@ impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
                     );
                     let exists: i64 = match &mut tx {
                         DeviceDbTransaction::Sqlite(connection) => {
-                            sqlx::query_scalar(&exists_sql)
+                            sqlx::query_scalar(sqlx::AssertSqlSafe(exists_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(&command_id)
@@ -992,7 +992,7 @@ impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
                                 .await?
                         }
                         DeviceDbTransaction::Postgres(connection) => {
-                            sqlx::query_scalar(&exists_sql)
+                            sqlx::query_scalar(sqlx::AssertSqlSafe(exists_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(&command_id)
@@ -1058,7 +1058,7 @@ impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let rows = sqlx::query(&sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -1073,7 +1073,7 @@ impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
                             .collect())
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let rows = sqlx::query(&sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -1110,7 +1110,7 @@ impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
                 );
                 let rows = match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        sqlx::query(&sql)
+                        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&now)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
@@ -1120,7 +1120,7 @@ impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
                             .rows_affected()
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        sqlx::query(&sql)
+                        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(&now)
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
@@ -1161,13 +1161,13 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
                             .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -1184,13 +1184,13 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                         })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let total: i64 = sqlx::query_scalar(&count_sql)
+                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
                             .fetch_one(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        let rows = sqlx::query(&list_sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -1236,7 +1236,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                 let DeviceDbTransaction::Sqlite(connection) = &mut tx else {
                                     unreachable!("sqlite disconnect_session select")
                                 };
-                                sqlx::query(&select_sql)
+                                sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                     .bind(association.tenant_id)
                                     .bind(association.organization_id)
                                     .bind(&device_id)
@@ -1255,7 +1255,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                     let DeviceDbTransaction::Sqlite(connection) = &mut tx else {
                                         unreachable!("sqlite disconnect_session update")
                                     };
-                                    sqlx::query(&update_sql)
+                                    sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                                         .bind(disconnected_status)
                                         .bind(&now)
                                         .bind(association.tenant_id)
@@ -1279,7 +1279,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                     let DeviceDbTransaction::Sqlite(connection) = &mut tx else {
                                         unreachable!("sqlite disconnect_session insert")
                                     };
-                                    sqlx::query(&insert_sql)
+                                    sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                                         .bind(row_id)
                                         .bind(&session_uuid)
                                         .bind(association.tenant_id)
@@ -1301,7 +1301,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                 let DeviceDbTransaction::Postgres(connection) = &mut tx else {
                                     unreachable!("postgres disconnect_session select")
                                 };
-                                sqlx::query(&select_sql)
+                                sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                     .bind(association.tenant_id)
                                     .bind(association.organization_id)
                                     .bind(&device_id)
@@ -1320,7 +1320,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                     let DeviceDbTransaction::Postgres(connection) = &mut tx else {
                                         unreachable!("postgres disconnect_session update")
                                     };
-                                    sqlx::query(&update_sql)
+                                    sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                                         .bind(disconnected_status)
                                         .bind(&now)
                                         .bind(association.tenant_id)
@@ -1344,7 +1344,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                                     let DeviceDbTransaction::Postgres(connection) = &mut tx else {
                                         unreachable!("postgres disconnect_session insert")
                                     };
-                                    sqlx::query(&insert_sql)
+                                    sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                                         .bind(row_id)
                                         .bind(&session_uuid)
                                         .bind(association.tenant_id)
@@ -1385,7 +1385,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -1397,7 +1397,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
                         )
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
                             .bind(&device_id)
@@ -1479,7 +1479,7 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                 );
                 match &mut tx {
                     DeviceDbTransaction::Sqlite(connection) => {
-                        sqlx::query(&insert_sql)
+                        sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                             .bind(row_id)
                             .bind(&event_id)
                             .bind(command.association.tenant_id)
@@ -1497,7 +1497,7 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                             .await?;
                     }
                     DeviceDbTransaction::Postgres(connection) => {
-                        sqlx::query(&insert_sql)
+                        sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                             .bind(row_id)
                             .bind(&event_id)
                             .bind(command.association.tenant_id)
@@ -1568,13 +1568,13 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                     );
                     match pool.engine() {
                         DeviceDatabaseEngine::Sqlite => {
-                            let total: i64 = sqlx::query_scalar(&count_sql)
+                            let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(device_id)
                                 .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                                 .await?;
-                            let rows = sqlx::query(&list_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(device_id)
@@ -1591,13 +1591,13 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                             })
                         }
                         DeviceDatabaseEngine::Postgres => {
-                            let total: i64 = sqlx::query_scalar(&count_sql)
+                            let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(device_id)
                                 .fetch_one(pool.postgres_pool().expect("postgres pool"))
                                 .await?;
-                            let rows = sqlx::query(&list_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(device_id)
@@ -1625,12 +1625,12 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                     );
                     match pool.engine() {
                         DeviceDatabaseEngine::Sqlite => {
-                            let total: i64 = sqlx::query_scalar(&count_sql)
+                            let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                                 .await?;
-                            let rows = sqlx::query(&list_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(limit)
@@ -1646,12 +1646,12 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
                             })
                         }
                         DeviceDatabaseEngine::Postgres => {
-                            let total: i64 = sqlx::query_scalar(&count_sql)
+                            let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .fetch_one(pool.postgres_pool().expect("postgres pool"))
                                 .await?;
-                            let rows = sqlx::query(&list_sql)
+                            let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                                 .bind(association.tenant_id)
                                 .bind(association.organization_id)
                                 .bind(limit)
@@ -1719,7 +1719,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                     );
                     let property_state: Option<TwinPropertyState> = match &mut tx {
                             DeviceDbTransaction::Sqlite(connection) => {
-                                let row = sqlx::query(&select_sql)
+                                let row = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                     .bind(command.association.tenant_id)
                                     .bind(command.association.organization_id)
                                     .bind(&command.device_id)
@@ -1765,7 +1765,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                                 }
                             }
                             DeviceDbTransaction::Postgres(connection) => {
-                                let row = sqlx::query(&select_sql)
+                                let row = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                                     .bind(command.association.tenant_id)
                                     .bind(command.association.organization_id)
                                     .bind(&command.device_id)
@@ -1839,7 +1839,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                         );
                         match &mut tx {
                             DeviceDbTransaction::Sqlite(connection) => {
-                                sqlx::query(&update_sql)
+                                sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                                     .bind(desired_value.as_deref())
                                     .bind(desired_version)
                                     .bind(&desired_updated_at)
@@ -1852,7 +1852,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                                     .await?;
                             }
                             DeviceDbTransaction::Postgres(connection) => {
-                                sqlx::query(&update_sql)
+                                sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                                     .bind(desired_value.as_deref())
                                     .bind(desired_version)
                                     .bind(&desired_updated_at)
@@ -1880,7 +1880,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                         );
                         match &mut tx {
                             DeviceDbTransaction::Sqlite(connection) => {
-                                sqlx::query(&insert_sql)
+                                sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                                     .bind(property_row_id)
                                     .bind(format!(
                                         "twin-prop-{}-{}",
@@ -1919,7 +1919,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                                     .await?;
                             }
                             DeviceDbTransaction::Postgres(connection) => {
-                                sqlx::query(&insert_sql)
+                                sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                                     .bind(property_row_id)
                                     .bind(format!(
                                         "twin-prop-{}-{}",
@@ -1997,7 +1997,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                 let mut reported = BTreeMap::new();
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let rows = sqlx::query(&sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association_for_properties.tenant_id)
                             .bind(association_for_properties.organization_id)
                             .bind(&device_id_for_properties)
@@ -2017,7 +2017,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                         }
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let rows = sqlx::query(&sql)
+                        let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association_for_properties.tenant_id)
                             .bind(association_for_properties.organization_id)
                             .bind(&device_id_for_properties)
@@ -2053,7 +2053,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association_for_twin.tenant_id)
                             .bind(association_for_twin.organization_id)
                             .bind(&device_id_for_twin)
@@ -2067,7 +2067,7 @@ impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
                         }))
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let row = sqlx::query(&sql)
+                        let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                             .bind(association_for_twin.tenant_id)
                             .bind(association_for_twin.organization_id)
                             .bind(&device_id_for_twin)
@@ -2251,7 +2251,7 @@ async fn command_result_for(
     );
     match pool.engine() {
         DeviceDatabaseEngine::Sqlite => {
-            let row = sqlx::query(&sql)
+            let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                 .bind(tenant_id)
                 .bind(organization_id)
                 .bind(command_id)
@@ -2267,7 +2267,7 @@ async fn command_result_for(
             }))
         }
         DeviceDatabaseEngine::Postgres => {
-            let row = sqlx::query(&sql)
+            let row = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                 .bind(tenant_id)
                 .bind(organization_id)
                 .bind(command_id)
@@ -2439,7 +2439,7 @@ async fn ensure_twin_root_row(
     );
     let existing: i64 = match tx {
         DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query_scalar(&exists_sql)
+            sqlx::query_scalar(sqlx::AssertSqlSafe(exists_sql.as_str()))
                 .bind(association.tenant_id)
                 .bind(association.organization_id)
                 .bind(device_id)
@@ -2447,7 +2447,7 @@ async fn ensure_twin_root_row(
                 .await?
         }
         DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query_scalar(&exists_sql)
+            sqlx::query_scalar(sqlx::AssertSqlSafe(exists_sql.as_str()))
                 .bind(association.tenant_id)
                 .bind(association.organization_id)
                 .bind(device_id)
@@ -2466,7 +2466,7 @@ async fn ensure_twin_root_row(
     );
     match tx {
         DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query(&insert_sql)
+            sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                 .bind(twin_row_id)
                 .bind(format!("twin-{device_id}"))
                 .bind(association.tenant_id)
@@ -2479,7 +2479,7 @@ async fn ensure_twin_root_row(
                 .await?;
         }
         DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query(&insert_sql)
+            sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                 .bind(twin_row_id)
                 .bind(format!("twin-{device_id}"))
                 .bind(association.tenant_id)
@@ -2508,7 +2508,7 @@ async fn recompute_twin_versions(
     );
     let (desired_version, reported_version) = match tx {
         DeviceDbTransaction::Sqlite(connection) => {
-            let row = sqlx::query(&select_sql)
+            let row = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                 .bind(association.tenant_id)
                 .bind(association.organization_id)
                 .bind(device_id)
@@ -2520,7 +2520,7 @@ async fn recompute_twin_versions(
             )
         }
         DeviceDbTransaction::Postgres(connection) => {
-            let row = sqlx::query(&select_sql)
+            let row = sqlx::query(sqlx::AssertSqlSafe(select_sql.as_str()))
                 .bind(association.tenant_id)
                 .bind(association.organization_id)
                 .bind(device_id)
@@ -2539,7 +2539,7 @@ async fn recompute_twin_versions(
     );
     match tx {
         DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query(&update_sql)
+            sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                 .bind(desired_version)
                 .bind(reported_version)
                 .bind(updated_at)
@@ -2550,7 +2550,7 @@ async fn recompute_twin_versions(
                 .await?;
         }
         DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query(&update_sql)
+            sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
                 .bind(desired_version)
                 .bind(reported_version)
                 .bind(updated_at)
@@ -2580,7 +2580,7 @@ async fn insert_command_delivery_row(
     );
     match tx {
         DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query(&insert_sql)
+            sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                 .bind(delivery_id)
                 .bind(&delivery_uuid)
                 .bind(association.tenant_id)
@@ -2593,7 +2593,7 @@ async fn insert_command_delivery_row(
                 .await?;
         }
         DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query(&insert_sql)
+            sqlx::query(sqlx::AssertSqlSafe(insert_sql.as_str()))
                 .bind(delivery_id)
                 .bind(&delivery_uuid)
                 .bind(association.tenant_id)
@@ -2646,7 +2646,7 @@ async fn insert_command_delivery_and_outbox(
     );
     match tx {
         DeviceDbTransaction::Sqlite(connection) => {
-            sqlx::query(&insert_outbox_sql)
+            sqlx::query(sqlx::AssertSqlSafe(insert_outbox_sql.as_str()))
                 .bind(outbox_id)
                 .bind(&outbox_uuid)
                 .bind(association.tenant_id)
@@ -2664,7 +2664,7 @@ async fn insert_command_delivery_and_outbox(
                 .await?;
         }
         DeviceDbTransaction::Postgres(connection) => {
-            sqlx::query(&insert_outbox_sql)
+            sqlx::query(sqlx::AssertSqlSafe(insert_outbox_sql.as_str()))
                 .bind(outbox_id)
                 .bind(&outbox_uuid)
                 .bind(association.tenant_id)
