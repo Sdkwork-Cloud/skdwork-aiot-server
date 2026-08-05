@@ -3,7 +3,11 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "jsx": "react-jsx",
     "strict": true,
     "esModuleInterop": true,
@@ -13,15 +17,9 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client"],
-    "paths": {
-      "@sdkwork/aiot-h5-core": ["./packages/sdkwork-aiot-h5-core/src/index.ts"],
-      "@sdkwork/aiot-h5-console-agent": ["./packages/sdkwork-aiot-h5-console-agent/src/index.ts"],
-      "@sdkwork/aiot-h5-console-device": ["./packages/sdkwork-aiot-h5-console-device/src/index.ts"],
-      "@sdkwork/aiot-h5-console-iot": ["./packages/sdkwork-aiot-h5-console-iot/src/index.ts"],
-      "@sdkwork/aiot-h5-console-voice": ["./packages/sdkwork-aiot-h5-console-voice/src/index.ts"],
-      "@sdkwork/aiot-app-core": ["../sdkwork-aiot-shared/packages/sdkwork-aiot-app-core/src/index.ts"],
-      "@sdkwork/aiot-app-sdk": ["../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/src/index.ts"]
-    }
+    "types": [
+      "vite/client"
+    ],
+    "allowImportingTsExtensions": true
   }
 }

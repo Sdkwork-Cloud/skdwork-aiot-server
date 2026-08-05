@@ -3,7 +3,11 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "jsx": "react-jsx",
     "strict": true,
     "esModuleInterop": true,
@@ -15,28 +19,10 @@
     "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
-    "types": ["node", "vite/client", "vitest/globals"],
-    "paths": {
-      "@sdkwork/aiot-pc-console-agent": ["./packages/sdkwork-aiot-pc-console-agent/src/index.ts"],
-      "@sdkwork/aiot-pc-console-agent/*": ["./packages/sdkwork-aiot-pc-console-agent/src/*"],
-      "@sdkwork/aiot-pc-console-voice": ["./packages/sdkwork-aiot-pc-console-voice/src/index.ts"],
-      "@sdkwork/aiot-pc-console-voice/*": ["./packages/sdkwork-aiot-pc-console-voice/src/*"],
-      "@sdkwork/aiot-app-core": ["../sdkwork-aiot-shared/packages/sdkwork-aiot-app-core/src/index.ts"],
-      "@sdkwork/aiot-app-core/*": ["../sdkwork-aiot-shared/packages/sdkwork-aiot-app-core/src/*"],
-      "@sdkwork/aiot-pc-console-device/*": ["./packages/sdkwork-aiot-pc-console-device/src/*"],
-      "@sdkwork/aiot-pc-console-device": ["./packages/sdkwork-aiot-pc-console-device/src/index.ts"],
-      "@sdkwork/aiot-pc-console-iot": ["./packages/sdkwork-aiot-pc-console-iot/src/index.ts"],
-      "@sdkwork/aiot-pc-console-iot/*": ["./packages/sdkwork-aiot-pc-console-iot/src/*"],
-      "@sdkwork/aiot-pc-core": ["./packages/sdkwork-aiot-pc-core/src/index.ts"],
-      "@sdkwork/aiot-pc-core/*": ["./packages/sdkwork-aiot-pc-core/src/*"],
-      "@sdkwork/aiot-app-sdk": ["../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/src/index.ts"],
-      "@sdkwork/aiot-app-sdk/*": ["../../sdks/sdkwork-aiot-app-sdk/sdkwork-aiot-app-sdk-typescript/src/*"],
-      "@sdkwork/core-pc-react": ["../../../sdkwork-core/sdkwork-core-pc-react/src/index.ts"],
-      "@sdkwork/core-pc-react/*": ["../../../sdkwork-core/sdkwork-core-pc-react/src/*"],
-      "@sdkwork/ui-pc-react": ["../../../sdkwork-ui/sdkwork-ui-pc-react/src/index.ts"],
-      "@sdkwork/ui-pc-react/*": ["../../../sdkwork-ui/sdkwork-ui-pc-react/src/*"],
-      "@sdkwork/ui-pc-react/theme": ["../../../sdkwork-ui/sdkwork-ui-pc-react/src/theme/index.ts"],
-      "@sdkwork/ui-pc-react/theme/*": ["../../../sdkwork-ui/sdkwork-ui-pc-react/src/theme/*"]
-    }
+    "types": [
+      "node",
+      "vite/client",
+      "vitest/globals"
+    ]
   }
 }

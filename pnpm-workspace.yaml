@@ -33,6 +33,8 @@ packages:
   - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
   - "../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript"
 
+  - "../sdkwork-ui/sdkwork-ui-mobile-react"
+  - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-user-center-core-pc-react"
 catalog:
   react: ^19.2.4
   react-dom: ^19.2.4
@@ -141,4 +143,3 @@ catalog:
   vite-plugin-dts: ^4.5.4
   vitest: ^4.1.8
   zustand: ^5.0.12
-  - "../../sdkwork-ui/sdkwork-ui-mobile-react"
