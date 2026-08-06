@@ -3,7 +3,7 @@ use std::sync::Arc;
 use sdkwork_aiot_storage::{
     paginate_vec, AiotOffsetListResult, AiotStorageAssociation, OffsetListPageParams,
 };
-use sdkwork_aiot_storage_sqlx::SqlitePersistedEntityRepository;
+use sdkwork_aiot_storage_sqlx::PersistedEntityRepository;
 use sdkwork_iot_device_service::{CapabilityDefinition, CapabilityKind};
 
 use crate::{
@@ -30,8 +30,8 @@ use crate::firmware_rollout_planner::{
 
 fn map_persisted_entity_page<T, F>(
     page: Result<
-        AiotOffsetListResult<sdkwork_aiot_storage_sqlx::SqlitePersistedEntityRecord>,
-        sdkwork_aiot_storage_sqlx::SqlitePersistedEntityError,
+        AiotOffsetListResult<sdkwork_aiot_storage_sqlx::PersistedEntityRecord>,
+        sdkwork_aiot_storage_sqlx::PersistedEntityError,
     >,
     parse: F,
 ) -> Result<AiotOffsetListResult<T>, AiotCatalogRepositoryError>
@@ -53,8 +53,8 @@ where
 
 fn map_persisted_entity_page_firmware<T, F>(
     page: Result<
-        AiotOffsetListResult<sdkwork_aiot_storage_sqlx::SqlitePersistedEntityRecord>,
-        sdkwork_aiot_storage_sqlx::SqlitePersistedEntityError,
+        AiotOffsetListResult<sdkwork_aiot_storage_sqlx::PersistedEntityRecord>,
+        sdkwork_aiot_storage_sqlx::PersistedEntityError,
     >,
     parse: F,
 ) -> Result<AiotOffsetListResult<T>, AiotFirmwareRepositoryError>
@@ -84,7 +84,7 @@ fn paginate_memory_catalog<T>(
 #[derive(Clone)]
 pub struct AiotCatalogRepositoryHandle {
     memory: InMemoryAiotCatalogRepository,
-    store: Option<Arc<SqlitePersistedEntityRepository>>,
+    store: Option<Arc<PersistedEntityRepository>>,
 }
 
 impl AiotCatalogRepositoryHandle {
@@ -95,13 +95,7 @@ impl AiotCatalogRepositoryHandle {
         }
     }
 
-    pub fn open_sqlite(path: impl AsRef<std::path::Path>) -> Result<Self, String> {
-        Ok(Self::from_entity_store(Arc::new(
-            SqlitePersistedEntityRepository::open(path).map_err(|error| error.to_string())?,
-        )))
-    }
-
-    pub fn from_entity_store(store: Arc<SqlitePersistedEntityRepository>) -> Self {
+    pub fn from_entity_store(store: Arc<PersistedEntityRepository>) -> Self {
         Self {
             memory: InMemoryAiotCatalogRepository::new(),
             store: Some(store),
@@ -229,7 +223,7 @@ impl AiotCatalogRepositoryHandle {
             store
                 .delete_entity(association, ENTITY_PRODUCT, product_id)
                 .map_err(|error| match error {
-                    sdkwork_aiot_storage_sqlx::SqlitePersistedEntityError::NotFound => {
+                    sdkwork_aiot_storage_sqlx::PersistedEntityError::NotFound => {
                         AiotCatalogRepositoryError::ProductNotFound
                     }
                     _ => AiotCatalogRepositoryError::ProductNotFound,
@@ -669,7 +663,7 @@ impl AiotCatalogRepositoryHandle {
 #[derive(Clone)]
 pub struct AiotFirmwareRepositoryHandle {
     memory: InMemoryAiotFirmwareRepository,
-    store: Option<Arc<SqlitePersistedEntityRepository>>,
+    store: Option<Arc<PersistedEntityRepository>>,
 }
 
 impl AiotFirmwareRepositoryHandle {
@@ -680,13 +674,7 @@ impl AiotFirmwareRepositoryHandle {
         }
     }
 
-    pub fn open_sqlite(path: impl AsRef<std::path::Path>) -> Result<Self, String> {
-        Ok(Self::from_entity_store(Arc::new(
-            SqlitePersistedEntityRepository::open(path).map_err(|error| error.to_string())?,
-        )))
-    }
-
-    pub fn from_entity_store(store: Arc<SqlitePersistedEntityRepository>) -> Self {
+    pub fn from_entity_store(store: Arc<PersistedEntityRepository>) -> Self {
         Self {
             memory: InMemoryAiotFirmwareRepository::new(),
             store: Some(store),
@@ -930,7 +918,7 @@ impl AiotFirmwareRepositoryHandle {
 }
 
 fn next_firmware_artifact_id(
-    store: &SqlitePersistedEntityRepository,
+    store: &PersistedEntityRepository,
     association: &AiotStorageAssociation,
 ) -> String {
     let next = store
@@ -940,7 +928,7 @@ fn next_firmware_artifact_id(
 }
 
 fn next_firmware_rollout_id(
-    store: &SqlitePersistedEntityRepository,
+    store: &PersistedEntityRepository,
     association: &AiotStorageAssociation,
 ) -> String {
     let next = store
@@ -950,7 +938,7 @@ fn next_firmware_rollout_id(
 }
 
 fn next_firmware_deployment_id(
-    store: &SqlitePersistedEntityRepository,
+    store: &PersistedEntityRepository,
     association: &AiotStorageAssociation,
 ) -> String {
     let next = store
@@ -960,7 +948,7 @@ fn next_firmware_deployment_id(
 }
 
 fn plan_firmware_deployments(
-    store: &SqlitePersistedEntityRepository,
+    store: &PersistedEntityRepository,
     association: &AiotStorageAssociation,
     rollout_id: &str,
     artifact_id: &str,

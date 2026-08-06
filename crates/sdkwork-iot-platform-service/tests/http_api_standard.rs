@@ -44,6 +44,13 @@ fn resolve_api_request_for_test(
     resolve_api_request(request)
 }
 
+fn open_test_database() -> Option<sdkwork_aiot_storage_sqlx::AiotDeviceDatabase> {
+    if !sdkwork_aiot_storage_sqlx::device_database_config_is_authoritative_postgres_from_env() {
+        return None;
+    }
+    sdkwork_aiot_storage_sqlx::open_aiot_device_database_from_env().ok()
+}
+
 #[test]
 fn admin_api_server_exposes_runtime_backed_protocol_catalog() {
     let server = standard_admin_api_server().expect("admin api server");
@@ -3574,17 +3581,16 @@ fn assert_problem_json_fields(
 }
 
 #[test]
-fn sqlite_credential_repository_adapter_persists_and_lists_credentials() {
-    let temp_path = std::env::temp_dir().join(format!(
-        "sdkwork-iot-platform-service-cred-{}-{}.db",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock")
-            .as_nanos()
-    ));
-    let adapter = sdkwork_iot_platform_service::SqliteCredentialRepositoryAdapter::open(&temp_path)
-        .expect("open sqlite credential adapter");
+fn credential_repository_adapter_persists_and_lists_credentials() {
+    let Some(database) = open_test_database() else {
+        eprintln!("skipping credential adapter test: set SDKWORK_DATABASE_* to a postgres device database");
+        return;
+    };
+    let adapter = sdkwork_iot_platform_service::CredentialRepositoryAdapter::from_repository(
+        database
+            .credential_repository()
+            .expect("credential repository"),
+    );
     let repository =
         Arc::new(adapter) as Arc<dyn sdkwork_iot_platform_service::AiotCredentialRepository>;
 
@@ -3594,50 +3600,47 @@ fn sqlite_credential_repository_adapter_persists_and_lists_credentials() {
 
     let create_device = handle_api_request_bytes(
         &admin,
-        b"POST /backend/v3/api/iot/devices HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.write\r\n\r\n{\"deviceId\":\"sqlite-cred-001\",\"displayName\":\"SQLite Credential Device\",\"productId\":\"1005\"}",
+        b"POST /backend/v3/api/iot/devices HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.write\r\n\r\n{\"deviceId\":\"persist-cred-001\",\"displayName\":\"Persisted Credential Device\",\"productId\":\"1005\"}",
     )
-    .expect("backend devices.create sqlite credential target");
+    .expect("backend devices.create persisted credential target");
     assert!(create_device.starts_with("HTTP/1.1 201"));
 
     let created = handle_api_request_bytes(
         &admin,
-        b"POST /backend/v3/api/iot/devices/sqlite-cred-001/credentials HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.write\r\n\r\n{\"credentialType\":\"hmac\"}",
+        b"POST /backend/v3/api/iot/devices/persist-cred-001/credentials HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.write\r\n\r\n{\"credentialType\":\"hmac\"}",
     )
-    .expect("backend devices.credentials.create sqlite");
+    .expect("backend devices.credentials.create persisted");
     assert!(created.starts_with("HTTP/1.1 201"));
-    assert!(created.contains(r#""deviceId":"sqlite-cred-001""#));
+    assert!(created.contains(r#""deviceId":"persist-cred-001""#));
     assert!(created.contains(r#""credentialType":"hmac""#));
 
     let listed = handle_api_request_bytes(
         &admin,
-        b"GET /backend/v3/api/iot/devices/sqlite-cred-001/credentials HTTP/1.1\r\nHost: local\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.read\r\n\r\n",
+        b"GET /backend/v3/api/iot/devices/persist-cred-001/credentials HTTP/1.1\r\nHost: local\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.devices.read\r\n\r\n",
     )
-    .expect("backend devices.credentials.list sqlite");
+    .expect("backend devices.credentials.list persisted");
     assert!(listed.starts_with("HTTP/1.1 200"));
     assert!(listed.contains(r#""credentialType":"hmac""#));
 
-    let _ = std::fs::remove_file(temp_path);
 }
 
 #[test]
-fn sqlite_catalog_and_firmware_handles_persist_across_reopen() {
-    let temp_path = std::env::temp_dir().join(format!(
-        "sdkwork-iot-platform-service-admin-{}-{}.db",
-        std::process::id(),
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock")
-            .as_nanos()
+fn catalog_and_firmware_handles_persist_across_reopen() {
+    let Some(database) = open_test_database() else {
+        eprintln!("skipping catalog/firmware persistence test: set SDKWORK_DATABASE_* to a postgres device database");
+        return;
+    };
+    let entity_store = Arc::new(
+        database
+            .persisted_entity_repository()
+            .expect("persisted entity repository"),
+    );
+    let catalog = Arc::new(sdkwork_iot_platform_service::AiotCatalogRepositoryHandle::from_entity_store(
+        entity_store.clone(),
     ));
-
-    let catalog = Arc::new(
-        sdkwork_iot_platform_service::AiotCatalogRepositoryHandle::open_sqlite(&temp_path)
-            .expect("open sqlite catalog handle"),
-    );
-    let firmware = Arc::new(
-        sdkwork_iot_platform_service::AiotFirmwareRepositoryHandle::open_sqlite(&temp_path)
-            .expect("open sqlite firmware handle"),
-    );
+    let firmware = Arc::new(sdkwork_iot_platform_service::AiotFirmwareRepositoryHandle::from_entity_store(
+        entity_store,
+    ));
     let admin = standard_admin_api_server()
         .expect("admin api server")
         .with_catalog_repository(catalog)
@@ -3645,38 +3648,45 @@ fn sqlite_catalog_and_firmware_handles_persist_across_reopen() {
 
     let create_product = handle_api_request_bytes(
         &admin,
-        b"POST /backend/v3/api/iot/products HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.products.write\r\n\r\n{\"productId\":\"sqlite-product-001\",\"displayName\":\"SQLite Product\",\"defaultHardwareProfileId\":\"hw-esp32-s3\",\"defaultProtocolProfileId\":\"proto-xiaozhi\",\"defaultCapabilityModelId\":\"capmodel-xiaozhi-core\"}",
+        b"POST /backend/v3/api/iot/products HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.products.write\r\n\r\n{\"productId\":\"persist-product-001\",\"displayName\":\"Persisted Product\",\"defaultHardwareProfileId\":\"hw-esp32-s3\",\"defaultProtocolProfileId\":\"proto-xiaozhi\",\"defaultCapabilityModelId\":\"capmodel-xiaozhi-core\"}",
     )
-    .expect("backend products.create sqlite");
+    .expect("backend products.create persisted");
     assert!(create_product.starts_with("HTTP/1.1 201"));
-    assert!(create_product.contains(r#""productId":"sqlite-product-001""#));
+    assert!(create_product.contains(r#""productId":"persist-product-001""#));
 
     let create_hardware = handle_api_request_bytes(
         &admin,
-        b"POST /backend/v3/api/iot/hardware_profiles HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.profiles.write\r\n\r\n{\"hardwareProfileId\":\"hw-sqlite-001\",\"chipFamily\":\"esp32_s3\",\"hardwareClasses\":[\"mcu\"],\"runtimeProfiles\":[\"esp_idf\"],\"connectivityProfiles\":[\"wifi\"],\"securityProfiles\":[\"device_secret\"],\"otaProfiles\":[\"xiaozhi_ota\"]}",
+        b"POST /backend/v3/api/iot/hardware_profiles HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.profiles.write\r\n\r\n{\"hardwareProfileId\":\"hw-persist-001\",\"chipFamily\":\"esp32_s3\",\"hardwareClasses\":[\"mcu\"],\"runtimeProfiles\":[\"esp_idf\"],\"connectivityProfiles\":[\"wifi\"],\"securityProfiles\":[\"device_secret\"],\"otaProfiles\":[\"xiaozhi_ota\"]}",
     )
-    .expect("backend hardwareProfiles.create sqlite");
+    .expect("backend hardwareProfiles.create persisted");
     assert!(create_hardware.starts_with("HTTP/1.1 201"));
-    assert!(create_hardware.contains(r#""hardwareProfileId":"hw-sqlite-001""#));
+    assert!(create_hardware.contains(r#""hardwareProfileId":"hw-persist-001""#));
 
     let create_artifact = handle_api_request_bytes(
         &admin,
-        b"POST /backend/v3/api/iot/firmware_artifacts HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.firmware.write\r\n\r\n{\"artifactKey\":\"fw-sqlite\",\"version\":\"1.0.0\",\"resource\":{\"id\":\"media-res-sqlite\",\"kind\":\"document\",\"source\":\"object_storage\",\"objectBlobId\":\"obj-blob-sqlite\",\"mimeType\":\"application/octet-stream\",\"sizeBytes\":\"1024\"},\"sha256\":\"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\"}",
+        b"POST /backend/v3/api/iot/firmware_artifacts HTTP/1.1\r\nHost: local\r\nContent-Type: application/json\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.firmware.write\r\n\r\n{\"artifactKey\":\"fw-persist\",\"version\":\"1.0.0\",\"resource\":{\"id\":\"media-res-persist\",\"kind\":\"document\",\"source\":\"object_storage\",\"objectBlobId\":\"obj-blob-persist\",\"mimeType\":\"application/octet-stream\",\"sizeBytes\":\"1024\"},\"sha256\":\"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\"}",
     )
-    .expect("backend firmwareArtifacts.create sqlite");
+    .expect("backend firmwareArtifacts.create persisted");
     assert!(create_artifact.starts_with("HTTP/1.1 201"));
     assert!(create_artifact.contains(r#""artifactId":"firmware-artifact-0001""#));
 
     drop(admin);
 
-    let reopened_catalog = Arc::new(
-        sdkwork_iot_platform_service::AiotCatalogRepositoryHandle::open_sqlite(&temp_path)
-            .expect("reopen sqlite catalog handle"),
+    let Some(reopened_database) = open_test_database() else {
+        eprintln!("skipping catalog/firmware persistence test: set SDKWORK_DATABASE_* to a postgres device database");
+        return;
+    };
+    let reopened_entity_store = Arc::new(
+        reopened_database
+            .persisted_entity_repository()
+            .expect("reopened persisted entity repository"),
     );
-    let reopened_firmware = Arc::new(
-        sdkwork_iot_platform_service::AiotFirmwareRepositoryHandle::open_sqlite(&temp_path)
-            .expect("reopen sqlite firmware handle"),
-    );
+    let reopened_catalog = Arc::new(sdkwork_iot_platform_service::AiotCatalogRepositoryHandle::from_entity_store(
+        reopened_entity_store.clone(),
+    ));
+    let reopened_firmware = Arc::new(sdkwork_iot_platform_service::AiotFirmwareRepositoryHandle::from_entity_store(
+        reopened_entity_store,
+    ));
     let reopened_admin = standard_admin_api_server()
         .expect("reopened admin api server")
         .with_catalog_repository(reopened_catalog)
@@ -3684,30 +3694,29 @@ fn sqlite_catalog_and_firmware_handles_persist_across_reopen() {
 
     let get_product = handle_api_request_bytes(
         &reopened_admin,
-        b"GET /backend/v3/api/iot/products/sqlite-product-001 HTTP/1.1\r\nHost: local\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.products.read\r\n\r\n",
+        b"GET /backend/v3/api/iot/products/persist-product-001 HTTP/1.1\r\nHost: local\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.products.read\r\n\r\n",
     )
-    .expect("backend products.retrieve sqlite");
+    .expect("backend products.retrieve persisted");
     assert!(get_product.starts_with("HTTP/1.1 200"));
-    assert!(get_product.contains(r#""productId":"sqlite-product-001""#));
+    assert!(get_product.contains(r#""productId":"persist-product-001""#));
 
     let get_hardware = handle_api_request_bytes(
         &reopened_admin,
-        b"GET /backend/v3/api/iot/hardware_profiles/hw-sqlite-001 HTTP/1.1\r\nHost: local\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.profiles.read\r\n\r\n",
+        b"GET /backend/v3/api/iot/hardware_profiles/hw-persist-001 HTTP/1.1\r\nHost: local\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.profiles.read\r\n\r\n",
     )
-    .expect("backend hardwareProfiles.retrieve sqlite");
+    .expect("backend hardwareProfiles.retrieve persisted");
     assert!(get_hardware.starts_with("HTTP/1.1 200"));
-    assert!(get_hardware.contains(r#""hardwareProfileId":"hw-sqlite-001""#));
+    assert!(get_hardware.contains(r#""hardwareProfileId":"hw-persist-001""#));
 
     let list_artifacts = handle_api_request_bytes(
         &reopened_admin,
         b"GET /backend/v3/api/iot/firmware_artifacts HTTP/1.1\r\nHost: local\r\nAuthorization: Bearer app-token\r\nAccess-Token: user-token\r\nX-Sdkwork-Tenant-Id: 100001\r\nX-Sdkwork-Organization-Id: 0\r\nX-Sdkwork-Permission-Scope: iot.firmware.read\r\n\r\n",
     )
-    .expect("backend firmwareArtifacts.list sqlite");
+    .expect("backend firmwareArtifacts.list persisted");
     assert!(list_artifacts.starts_with("HTTP/1.1 200"));
     assert!(list_artifacts.contains(r#""artifactId":"firmware-artifact-0001""#));
-    assert!(list_artifacts.contains(r#""artifactKey":"fw-sqlite""#));
+    assert!(list_artifacts.contains(r#""artifactKey":"fw-persist""#));
 
-    let _ = std::fs::remove_file(temp_path);
 }
 
 #[test]

@@ -10,7 +10,7 @@ use sdkwork_aiot_storage::OutboxEventRepository;
 use sdkwork_database_config::workspace_database::workspace_postgres_env_is_configured;
 
 use crate::database_bootstrap::aiot_device_blocking_pool_from_env;
-use crate::outbox::SqliteOutboxEventRepository;
+use crate::outbox::SqlxOutboxEventRepository;
 use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
 use crate::BlockingDevicePool;
 
@@ -97,13 +97,13 @@ pub fn outbox_readiness_probe(
     move || device_storage_ready_from_env() && outbox_lag.load(Ordering::Relaxed) <= threshold
 }
 
-pub fn open_outbox_repository_from_env() -> Option<Arc<SqliteOutboxEventRepository>> {
+pub fn open_outbox_repository_from_env() -> Option<Arc<SqlxOutboxEventRepository>> {
     open_outbox_repository_for_pool(aiot_device_blocking_pool_from_env(None).ok()?)
 }
 
 pub fn open_outbox_repository_for_path(
     path: impl AsRef<Path>,
-) -> Option<Arc<SqliteOutboxEventRepository>> {
+) -> Option<Arc<SqlxOutboxEventRepository>> {
     let url = sqlite_connect_url(path.as_ref().to_string_lossy().as_ref());
     let sqlite = BlockingSqlitePool::connect(&url).ok()?;
     open_outbox_repository_for_pool(BlockingDevicePool::Sqlite(sqlite))
@@ -111,8 +111,8 @@ pub fn open_outbox_repository_for_path(
 
 pub fn open_outbox_repository_for_pool(
     pool: BlockingDevicePool,
-) -> Option<Arc<SqliteOutboxEventRepository>> {
-    match SqliteOutboxEventRepository::from_blocking_pool(pool) {
+) -> Option<Arc<SqlxOutboxEventRepository>> {
+    match SqlxOutboxEventRepository::from_blocking_pool(pool) {
         Ok(repository) => Some(Arc::new(repository)),
         Err(error) => {
             eprintln!("sdkwork-aiot-storage-sqlx outbox_repository_open_error={error}");

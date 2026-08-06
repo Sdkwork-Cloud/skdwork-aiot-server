@@ -12,20 +12,20 @@ use crate::sqlite_sync::{sqlite_connect_url, BlockingSqlitePool};
 const ENTITY_STATUS_ACTIVE: i32 = 1;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SqlitePersistedEntityRecord {
+pub struct PersistedEntityRecord {
     pub entity_kind: String,
     pub entity_key: String,
     pub payload_json: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SqlitePersistedEntityError {
+pub enum PersistedEntityError {
     PersistenceFailure,
     NotFound,
     Duplicate,
 }
 
-impl From<sqlx::Error> for SqlitePersistedEntityError {
+impl From<sqlx::Error> for PersistedEntityError {
     fn from(_: sqlx::Error) -> Self {
         Self::PersistenceFailure
     }
@@ -33,7 +33,7 @@ impl From<sqlx::Error> for SqlitePersistedEntityError {
 
 #[allow(dead_code)]
 enum PersistedEntityTxError {
-    Repo(SqlitePersistedEntityError),
+    Repo(PersistedEntityError),
     Sql(sqlx::Error),
 }
 
@@ -44,19 +44,19 @@ impl From<sqlx::Error> for PersistedEntityTxError {
 }
 
 impl PersistedEntityTxError {
-    fn into_repo(self) -> SqlitePersistedEntityError {
+    fn into_repo(self) -> PersistedEntityError {
         match self {
             Self::Repo(error) => error,
-            Self::Sql(_) => SqlitePersistedEntityError::PersistenceFailure,
+            Self::Sql(_) => PersistedEntityError::PersistenceFailure,
         }
     }
 }
 
-pub struct SqlitePersistedEntityRepository {
+pub struct PersistedEntityRepository {
     db: BlockingDevicePool,
 }
 
-impl SqlitePersistedEntityRepository {
+impl PersistedEntityRepository {
     pub fn new_in_memory() -> Result<Self, sqlx::Error> {
         Self::open("file:sdkwork-aiot-admin-entity?mode=memory&cache=shared")
     }
@@ -80,7 +80,7 @@ impl SqlitePersistedEntityRepository {
         &self,
         association: &AiotStorageAssociation,
         entity_kind: &str,
-    ) -> Result<i64, SqlitePersistedEntityError> {
+    ) -> Result<i64, PersistedEntityError> {
         let association = association.clone();
         let allocator_key = format!(
             "iot_admin_entity:{}:{}:{}",
@@ -91,7 +91,7 @@ impl SqlitePersistedEntityRepository {
                 let allocator_key = allocator_key.clone();
                 Box::pin(async move { allocate_row_id(&mut tx, dialect, &allocator_key).await })
             })
-            .map_err(|_| SqlitePersistedEntityError::PersistenceFailure)
+            .map_err(|_| PersistedEntityError::PersistenceFailure)
     }
 
     pub fn upsert_entity(
@@ -100,7 +100,7 @@ impl SqlitePersistedEntityRepository {
         entity_kind: &str,
         entity_key: &str,
         payload_json: &str,
-    ) -> Result<(), SqlitePersistedEntityError> {
+    ) -> Result<(), PersistedEntityError> {
         let now = current_timestamp();
         let association = association.clone();
         let entity_kind = entity_kind.to_string();
@@ -201,7 +201,7 @@ impl SqlitePersistedEntityRepository {
         association: &AiotStorageAssociation,
         entity_kind: &str,
         entity_key: &str,
-    ) -> Option<SqlitePersistedEntityRecord> {
+    ) -> Option<PersistedEntityRecord> {
         let association = association.clone();
         let entity_kind = entity_kind.to_string();
         let entity_key = entity_key.to_string();
@@ -250,7 +250,7 @@ impl SqlitePersistedEntityRepository {
         association: &AiotStorageAssociation,
         entity_kind: &str,
         params: OffsetListPageParams,
-    ) -> Result<AiotOffsetListResult<SqlitePersistedEntityRecord>, SqlitePersistedEntityError> {
+    ) -> Result<AiotOffsetListResult<PersistedEntityRecord>, PersistedEntityError> {
         let association = association.clone();
         let entity_kind = entity_kind.to_string();
         let limit = params.page_size.max(1);
@@ -289,7 +289,7 @@ impl SqlitePersistedEntityRepository {
                             .bind(offset)
                             .fetch_all(pool.sqlite_pool().expect("sqlite pool"))
                             .await?;
-                        Ok::<AiotOffsetListResult<SqlitePersistedEntityRecord>, sqlx::Error>(
+                        Ok::<AiotOffsetListResult<PersistedEntityRecord>, sqlx::Error>(
                             AiotOffsetListResult {
                             items: rows
                                 .iter()
@@ -315,7 +315,7 @@ impl SqlitePersistedEntityRepository {
                             .bind(offset)
                             .fetch_all(pool.postgres_pool().expect("postgres pool"))
                             .await?;
-                        Ok::<AiotOffsetListResult<SqlitePersistedEntityRecord>, sqlx::Error>(
+                        Ok::<AiotOffsetListResult<PersistedEntityRecord>, sqlx::Error>(
                             AiotOffsetListResult {
                             items: rows
                                 .iter()
@@ -326,14 +326,14 @@ impl SqlitePersistedEntityRepository {
                     }
                 }
             })
-            .map_err(|_: sqlx::Error| SqlitePersistedEntityError::PersistenceFailure)
+            .map_err(|_: sqlx::Error| PersistedEntityError::PersistenceFailure)
     }
 
     pub fn list_entities(
         &self,
         association: &AiotStorageAssociation,
         entity_kind: &str,
-    ) -> Vec<SqlitePersistedEntityRecord> {
+    ) -> Vec<PersistedEntityRecord> {
         self.list_entities_catalog(association, entity_kind)
     }
 
@@ -342,7 +342,7 @@ impl SqlitePersistedEntityRepository {
         &self,
         association: &AiotStorageAssociation,
         entity_kind: &str,
-    ) -> Vec<SqlitePersistedEntityRecord> {
+    ) -> Vec<PersistedEntityRecord> {
         const MAX_CATALOG_EXPORT_PAGES: i64 = 10;
         let mut items = Vec::new();
         for page_no in 1..=MAX_CATALOG_EXPORT_PAGES {
@@ -370,7 +370,7 @@ impl SqlitePersistedEntityRepository {
         association: &AiotStorageAssociation,
         entity_kind: &str,
         entity_key: &str,
-    ) -> Result<(), SqlitePersistedEntityError> {
+    ) -> Result<(), PersistedEntityError> {
         let now = current_timestamp();
         let association = association.clone();
         let entity_kind = entity_kind.to_string();
@@ -413,9 +413,9 @@ impl SqlitePersistedEntityRepository {
                 };
                 Ok::<u64, sqlx::Error>(updated)
             })
-            .map_err(|_: sqlx::Error| SqlitePersistedEntityError::PersistenceFailure)?;
+            .map_err(|_: sqlx::Error| PersistedEntityError::PersistenceFailure)?;
         if updated == 0 {
-            return Err(SqlitePersistedEntityError::NotFound);
+            return Err(PersistedEntityError::NotFound);
         }
         Ok(())
     }
@@ -423,8 +423,8 @@ impl SqlitePersistedEntityRepository {
 
 fn row_to_entity_record(
     row: &sqlx::sqlite::SqliteRow,
-) -> Result<SqlitePersistedEntityRecord, sqlx::Error> {
-    Ok(SqlitePersistedEntityRecord {
+) -> Result<PersistedEntityRecord, sqlx::Error> {
+    Ok(PersistedEntityRecord {
         entity_kind: row.try_get("entity_kind")?,
         entity_key: row.try_get("entity_key")?,
         payload_json: row.try_get("payload_json")?,
@@ -433,8 +433,8 @@ fn row_to_entity_record(
 
 fn row_to_entity_record_postgres(
     row: &sqlx::postgres::PgRow,
-) -> Result<SqlitePersistedEntityRecord, sqlx::Error> {
-    Ok(SqlitePersistedEntityRecord {
+) -> Result<PersistedEntityRecord, sqlx::Error> {
+    Ok(PersistedEntityRecord {
         entity_kind: row.try_get("entity_kind")?,
         entity_key: row.try_get("entity_key")?,
         payload_json: row.try_get("payload_json")?,

@@ -16,11 +16,11 @@ use crate::SqlDialect;
 const OUTBOX_RETRY_BASE_SECONDS: i64 = 5;
 const OUTBOX_CLAIM_LEASE_SECONDS: i64 = 60;
 
-pub struct SqliteOutboxEventRepository {
+pub struct SqlxOutboxEventRepository {
     db: BlockingDevicePool,
 }
 
-impl SqliteOutboxEventRepository {
+impl SqlxOutboxEventRepository {
     pub fn from_blocking_pool(db: BlockingDevicePool) -> Result<Self, sqlx::Error> {
         ensure_device_schema(&db)?;
         Ok(Self { db })
@@ -33,7 +33,7 @@ impl SqliteOutboxEventRepository {
     }
 }
 
-impl OutboxEventRepository for SqliteOutboxEventRepository {
+impl OutboxEventRepository for SqlxOutboxEventRepository {
     fn pending_lag_count(&self) -> u64 {
         self.db
             .run_owned(|pool| async move {

@@ -59,14 +59,14 @@ use sdkwork_utils_rust::{base64url_decode, hex_encode, hmac_sha256, secure_compa
 
 mod firmware_rollout_planner;
 mod service_stores;
-mod sqlite_admin;
+mod admin_stores;
 
 use serde_json::{Map as JsonMap, Value as JsonValue};
 pub use service_stores::{
     open_admin_service_stores, open_app_service_stores, AiotAdminServiceStores,
     AiotAppServiceStores,
 };
-pub use sqlite_admin::{AiotCatalogRepositoryHandle, AiotFirmwareRepositoryHandle};
+pub use admin_stores::{AiotCatalogRepositoryHandle, AiotFirmwareRepositoryHandle};
 
 const AUTH_FAILURE_RATE_LIMIT_PER_MINUTE: u32 = 100;
 const AUTH_FAILURE_RATE_LIMIT_WINDOW: Duration = Duration::from_secs(60);
@@ -152,27 +152,13 @@ pub trait AiotCredentialRepository: Send + Sync {
     ) -> Result<(), HttpResponse>;
 }
 
-pub struct SqliteCredentialRepositoryAdapter {
-    inner: Arc<sdkwork_aiot_storage_sqlx::SqliteSqlxCredentialRepository>,
+pub struct CredentialRepositoryAdapter {
+    inner: Arc<sdkwork_aiot_storage_sqlx::SqlxCredentialRepository>,
 }
 
-impl SqliteCredentialRepositoryAdapter {
-    pub fn new_in_memory() -> Result<Self, String> {
-        sdkwork_aiot_storage_sqlx::SqliteSqlxCredentialRepository::new_in_memory()
-            .map(|inner| Self {
-                inner: Arc::new(inner),
-            })
-            .map_err(|error| error.to_string())
-    }
-
-    pub fn open(path: impl AsRef<std::path::Path>) -> Result<Self, String> {
-        sdkwork_aiot_storage_sqlx::SqliteSqlxCredentialRepository::open(path)
-            .map(Self::from_repository)
-            .map_err(|error| error.to_string())
-    }
-
+impl CredentialRepositoryAdapter {
     pub fn from_repository(
-        inner: sdkwork_aiot_storage_sqlx::SqliteSqlxCredentialRepository,
+        inner: sdkwork_aiot_storage_sqlx::SqlxCredentialRepository,
     ) -> Self {
         Self {
             inner: Arc::new(inner),
@@ -184,14 +170,14 @@ impl SqliteCredentialRepositoryAdapter {
     }
 }
 
-impl AiotCredentialRepository for SqliteCredentialRepositoryAdapter {
+impl AiotCredentialRepository for CredentialRepositoryAdapter {
     fn create_credential(
         &self,
         association: AiotStorageAssociation,
         command: AiotCredentialCreateCommand,
     ) -> Result<AiotDeviceCredentialRecord, HttpResponse> {
         self.inner
-            .create_credential(sdkwork_aiot_storage_sqlx::SqliteCredentialCreateCommand {
+            .create_credential(sdkwork_aiot_storage_sqlx::CredentialCreateCommand {
                 association,
                 device_id: command.device_id,
                 credential_type: command.credential_type,
@@ -286,10 +272,10 @@ impl AiotCredentialRepository for SqliteCredentialRepositoryAdapter {
         self.inner
             .revoke_credential(association, device_id, credential_id)
             .map_err(|error| match error {
-                sdkwork_aiot_storage_sqlx::SqliteCredentialRepositoryError::CredentialNotFound => {
+                sdkwork_aiot_storage_sqlx::CredentialRepositoryError::CredentialNotFound => {
                     credential_not_found_response(credential_id)
                 }
-                sdkwork_aiot_storage_sqlx::SqliteCredentialRepositoryError::PersistenceFailure => {
+                sdkwork_aiot_storage_sqlx::CredentialRepositoryError::PersistenceFailure => {
                     problem_response(
                         HttpStatus::InternalServerError,
                         "api.storage.write_failed",

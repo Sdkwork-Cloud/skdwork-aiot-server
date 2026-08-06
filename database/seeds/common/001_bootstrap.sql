@@ -1,7 +1,7 @@
 -- SDKWork AIoT standard bootstrap seed (tenant 100001).
 -- Provides a default Xiaozhi-compatible product template for dev and pilot deployments.
 
-INSERT OR IGNORE INTO iot_product (
+INSERT INTO iot_product (
     id,
     uuid,
     tenant_id,
@@ -29,9 +29,10 @@ INSERT OR IGNORE INTO iot_product (
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
     0
-);
+)
+ON CONFLICT (id) DO NOTHING;
 
-INSERT OR IGNORE INTO iot_hardware_profile (
+INSERT INTO iot_hardware_profile (
     id,
     uuid,
     tenant_id,
@@ -67,4 +68,5 @@ INSERT OR IGNORE INTO iot_hardware_profile (
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
     0
-);
+)
+ON CONFLICT (id) DO NOTHING;

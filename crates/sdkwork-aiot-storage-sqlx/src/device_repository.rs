@@ -118,12 +118,12 @@ impl SqliteRepoTxError {
 }
 
 #[derive(Debug, Clone)]
-pub struct SqliteSqlxDeviceRepository {
+pub struct SqlxDeviceRepository {
     db: BlockingDevicePool,
     planner: SqlDeviceRepositoryPlanner,
 }
 
-impl SqliteSqlxDeviceRepository {
+impl SqlxDeviceRepository {
     pub fn new_in_memory() -> Result<Self, sqlx::Error> {
         Self::open("file:sdkwork-aiot-device-repo?mode=memory&cache=shared")
     }
@@ -294,7 +294,7 @@ impl SqliteSqlxDeviceRepository {
     }
 }
 
-impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
+impl AiotDeviceRepository for SqlxDeviceRepository {
     fn storage_ready(&self) -> bool {
         self.db
             .run_owned(|pool| async move {
@@ -582,7 +582,7 @@ impl AiotDeviceRepository for SqliteSqlxDeviceRepository {
     }
 }
 
-impl AiotCommandRepository for SqliteSqlxDeviceRepository {
+impl AiotCommandRepository for SqlxDeviceRepository {
     fn get_command(
         &self,
         association: &AiotStorageAssociation,
@@ -966,7 +966,7 @@ impl AiotCommandRepository for SqliteSqlxDeviceRepository {
     }
 }
 
-impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
+impl AiotCommandDeliveryRepository for SqlxDeviceRepository {
     fn enqueue_delivery(
         &self,
         command: AiotCommandDeliveryEnqueueCommand,
@@ -1140,7 +1140,7 @@ impl AiotCommandDeliveryRepository for SqliteSqlxDeviceRepository {
     }
 }
 
-impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
+impl AiotDeviceSessionRepository for SqlxDeviceRepository {
     fn list_sessions(
         &self,
         association: &AiotStorageAssociation,
@@ -1415,7 +1415,7 @@ impl AiotDeviceSessionRepository for SqliteSqlxDeviceRepository {
     }
 }
 
-impl AiotEventRepository for SqliteSqlxDeviceRepository {
+impl AiotEventRepository for SqlxDeviceRepository {
     fn record_event(
         &self,
         command: AiotDeviceEventCreateCommand,
@@ -1675,7 +1675,7 @@ impl AiotEventRepository for SqliteSqlxDeviceRepository {
     }
 }
 
-impl AiotDeviceTwinRepository for SqliteSqlxDeviceRepository {
+impl AiotDeviceTwinRepository for SqlxDeviceRepository {
     fn upsert_twin_property(
         &self,
         command: AiotTwinPropertyUpsertCommand,

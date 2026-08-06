@@ -5,8 +5,8 @@ use sdkwork_database_sqlx::PoolError;
 use crate::blocking_device_pool::BlockingDevicePool;
 use crate::schema::ensure_device_schema;
 use crate::{
-    aiot_device_blocking_pool_from_env, SqlitePersistedEntityRepository,
-    SqliteSqlxCredentialRepository, SqliteSqlxDeviceRepository,
+    aiot_device_blocking_pool_from_env, PersistedEntityRepository,
+    SqlxCredentialRepository, SqlxDeviceRepository,
 };
 
 /// Shared device database pool backing device, credential, and admin-entity repositories.
@@ -35,18 +35,18 @@ impl AiotDeviceDatabase {
         self.pool.engine()
     }
 
-    pub fn device_repository(&self) -> Result<SqliteSqlxDeviceRepository, sqlx::Error> {
-        SqliteSqlxDeviceRepository::from_blocking_pool(self.pool.clone())
+    pub fn device_repository(&self) -> Result<SqlxDeviceRepository, sqlx::Error> {
+        SqlxDeviceRepository::from_blocking_pool(self.pool.clone())
     }
 
-    pub fn credential_repository(&self) -> Result<SqliteSqlxCredentialRepository, sqlx::Error> {
-        SqliteSqlxCredentialRepository::from_blocking_pool(self.pool.clone())
+    pub fn credential_repository(&self) -> Result<SqlxCredentialRepository, sqlx::Error> {
+        SqlxCredentialRepository::from_blocking_pool(self.pool.clone())
     }
 
     pub fn persisted_entity_repository(
         &self,
-    ) -> Result<SqlitePersistedEntityRepository, sqlx::Error> {
-        SqlitePersistedEntityRepository::from_blocking_pool(self.pool.clone())
+    ) -> Result<PersistedEntityRepository, sqlx::Error> {
+        PersistedEntityRepository::from_blocking_pool(self.pool.clone())
     }
 }
 

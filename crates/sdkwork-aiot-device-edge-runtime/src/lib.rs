@@ -43,8 +43,8 @@ use sdkwork_aiot_storage::{
 use sdkwork_aiot_storage_sqlx::{
     open_aiot_device_database_from_env, outbox_readiness_probe,
     start_outbox_dispatcher_worker as start_storage_outbox_dispatcher_worker, AiotDeviceDatabase,
-    BlockingSqlitePool, FirmwareOtaCatalog, SqlitePersistedEntityError,
-    SqliteSqlxCredentialRepository, SqlxPoolSqlStatementExecutor, StorageSqliteError,
+    BlockingSqlitePool, FirmwareOtaCatalog, PersistedEntityError,
+    SqlxCredentialRepository, SqlxPoolSqlStatementExecutor, StorageSqliteError,
 };
 use sdkwork_aiot_transport::{
     websocket_frame_to_inbound_frame, HttpRequest, HttpResponse, HttpStatus, TransportError,
@@ -1281,7 +1281,7 @@ pub struct XiaozhiSessionOptions {
     mcp_tool_policy: Arc<dyn XiaozhiSimulatorMcpToolPolicy>,
     speech_pipeline: Option<Arc<KernelSpeechPipeline>>,
     protocol_ingest: Arc<dyn AiotProtocolIngestUnitOfWork>,
-    device_credential_repository: Option<Arc<SqliteSqlxCredentialRepository>>,
+    device_credential_repository: Option<Arc<SqlxCredentialRepository>>,
 }
 
 impl XiaozhiSessionOptions {
@@ -1381,7 +1381,7 @@ impl XiaozhiSessionOptions {
 
     pub fn with_device_credential_repository(
         mut self,
-        device_credential_repository: Arc<SqliteSqlxCredentialRepository>,
+        device_credential_repository: Arc<SqlxCredentialRepository>,
     ) -> Self {
         self.device_credential_repository = Some(device_credential_repository);
         self
@@ -1407,12 +1407,12 @@ impl XiaozhiSessionOptions {
         Arc::clone(&self.protocol_ingest)
     }
 
-    pub fn device_credential_repository(&self) -> Option<Arc<SqliteSqlxCredentialRepository>> {
+    pub fn device_credential_repository(&self) -> Option<Arc<SqlxCredentialRepository>> {
         self.device_credential_repository.as_ref().map(Arc::clone)
     }
 }
 
-fn device_credential_repository_from_env() -> Option<Arc<SqliteSqlxCredentialRepository>> {
+fn device_credential_repository_from_env() -> Option<Arc<SqlxCredentialRepository>> {
     match open_aiot_device_database_from_env() {
         Ok(database) => match database.credential_repository() {
             Ok(repository) => {
@@ -1491,7 +1491,7 @@ fn finalize_protocol_ingest(
     };
 
     if let Err(error) = catalog.mark_offered_deployment_completed_for_device(device_id) {
-        if !matches!(error, SqlitePersistedEntityError::NotFound) {
+        if !matches!(error, PersistedEntityError::NotFound) {
             eprintln!(
                 "sdkwork-aiot-device-edge-runtime firmware_deployment_complete_error device_id={device_id} error={error:?}"
             );
@@ -1662,7 +1662,7 @@ pub fn xiaozhi_ota_http_handler_full(
     request: &HttpRequest,
     provider: &dyn XiaozhiOtaProfileProvider,
     challenge_registry: &dyn XiaozhiActivationChallengeRegistry,
-    credential_repository: Option<&SqliteSqlxCredentialRepository>,
+    credential_repository: Option<&SqlxCredentialRepository>,
 ) -> HttpResponse {
     if request.method != "POST" && request.method != "GET" {
         return problem_response(HttpStatus::BadRequest, "iot.xiaozhi.ota.method");
@@ -2821,7 +2821,7 @@ enum OtaWebsocketTokenResolution {
 
 fn resolve_ota_websocket_token(
     request: &HttpRequest,
-    credential_repository: Option<&SqliteSqlxCredentialRepository>,
+    credential_repository: Option<&SqlxCredentialRepository>,
 ) -> OtaWebsocketTokenResolution {
     if dev_mode_enabled() {
         return configured_device_token()

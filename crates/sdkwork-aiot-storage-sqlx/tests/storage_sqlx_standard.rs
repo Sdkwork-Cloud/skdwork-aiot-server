@@ -12,7 +12,7 @@ use sdkwork_aiot_storage_sqlx::{
     InMemorySqlxDeviceRepository, SqlBindValue, SqlDeviceWriteOperation, SqlDialect,
     SqlProtocolIngestPlanner, SqlStatementBatch, SqlStatementExecutor, SqlStatementPlan,
     SqlTransactionFailurePolicy, SqlTransactionOutcome, SqlTransactionPlan,
-    SqliteSqlxDeviceRepository, SqlxProtocolIngestUnitOfWork,
+    SqlxDeviceRepository, SqlxProtocolIngestUnitOfWork,
 };
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
@@ -103,7 +103,7 @@ fn sqlite_sqlx_device_repository_persists_crud_and_reopen_reads_state() {
     let _ = std::fs::remove_file(&path);
 
     {
-        let repo = SqliteSqlxDeviceRepository::open(&path).expect("open sqlite repo");
+        let repo = SqlxDeviceRepository::open(&path).expect("open sqlite repo");
         let association = AiotStorageAssociation::tenant_org(100001, 0);
         repo.create_device(
             AiotDeviceCreateCommand::new(
@@ -129,7 +129,7 @@ fn sqlite_sqlx_device_repository_persists_crud_and_reopen_reads_state() {
     }
 
     {
-        let reopened = SqliteSqlxDeviceRepository::open(&path).expect("reopen sqlite repo");
+        let reopened = SqlxDeviceRepository::open(&path).expect("reopen sqlite repo");
         let association = AiotStorageAssociation::tenant_org(100001, 0);
         let retrieved = reopened
             .get_device(&association, "sqlite-device-001")
@@ -161,7 +161,7 @@ fn sqlite_sqlx_command_repository_persists_create_and_list() {
     let path = std::env::temp_dir().join(format!("aiot-command-repo-{unique_suffix}.db"));
     let _ = std::fs::remove_file(&path);
 
-    let repo = SqliteSqlxDeviceRepository::open(&path).expect("open sqlite repo");
+    let repo = SqlxDeviceRepository::open(&path).expect("open sqlite repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
     let created = repo
         .create_command(
@@ -208,7 +208,7 @@ fn sqlite_sqlx_command_repository_supports_cancel_command() {
     let path = std::env::temp_dir().join(format!("aiot-command-cancel-{unique_suffix}.db"));
     let _ = std::fs::remove_file(&path);
 
-    let repo = SqliteSqlxDeviceRepository::open(&path).expect("open sqlite repo");
+    let repo = SqlxDeviceRepository::open(&path).expect("open sqlite repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
 
     repo.create_command(
@@ -251,7 +251,7 @@ fn sqlite_sqlx_command_repository_scopes_idempotency_by_tenant_and_organization(
         std::env::temp_dir().join(format!("aiot-command-idempotency-scope-{unique_suffix}.db"));
     let _ = std::fs::remove_file(&path);
 
-    let repo = SqliteSqlxDeviceRepository::open(&path).expect("open sqlite repo");
+    let repo = SqlxDeviceRepository::open(&path).expect("open sqlite repo");
     let association_a = AiotStorageAssociation::tenant_org(100001, 0);
     let association_b = AiotStorageAssociation::tenant_org(100001, 1);
 
@@ -315,7 +315,7 @@ fn sqlite_sqlx_event_and_twin_repositories_persist_and_read_snapshot() {
     let path = std::env::temp_dir().join(format!("aiot-event-twin-repo-{unique_suffix}.db"));
     let _ = std::fs::remove_file(&path);
 
-    let repo = SqliteSqlxDeviceRepository::open(&path).expect("open sqlite repo");
+    let repo = SqlxDeviceRepository::open(&path).expect("open sqlite repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
 
     repo.record_event(
@@ -386,7 +386,7 @@ fn sqlite_sqlx_device_session_repository_supports_disconnect_lifecycle() {
     let path = std::env::temp_dir().join(format!("aiot-session-disconnect-{unique_suffix}.db"));
     let _ = std::fs::remove_file(&path);
 
-    let repo = SqliteSqlxDeviceRepository::open(&path).expect("open sqlite repo");
+    let repo = SqlxDeviceRepository::open(&path).expect("open sqlite repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
     let device_id = "device-session-001";
     let session_id = "session-device-session-001-primary";
@@ -1615,7 +1615,7 @@ fn sqlx_pool_sql_statement_executor_persists_device_create_batch() {
         .expect("plan device create");
     executor.execute_batch(batch);
 
-    let repo = SqliteSqlxDeviceRepository::open(&path).expect("reopen sqlite repo");
+    let repo = SqlxDeviceRepository::open(&path).expect("reopen sqlite repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
     let loaded = repo
         .get_device(&association, "sqlx-device-001")
@@ -1629,13 +1629,13 @@ fn sqlx_pool_sql_statement_executor_persists_device_create_batch() {
 #[test]
 fn sqlite_credential_repository_verifies_hashed_bearer_tokens() {
     use sdkwork_aiot_storage_sqlx::{
-        SqliteCredentialCreateCommand, SqliteSqlxCredentialRepository,
+        CredentialCreateCommand, SqlxCredentialRepository,
     };
 
-    let repository = SqliteSqlxCredentialRepository::new_in_memory().expect("credential repo");
+    let repository = SqlxCredentialRepository::new_in_memory().expect("credential repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
     let created = repository
-        .create_credential(SqliteCredentialCreateCommand {
+        .create_credential(CredentialCreateCommand {
             association,
             device_id: "device-auth-001".to_string(),
             credential_type: "device-bearer".to_string(),
@@ -1673,13 +1673,13 @@ fn sqlite_credential_repository_verifies_hashed_bearer_tokens() {
 #[test]
 fn shared_sqlite_memory_uri_uses_one_schema_for_device_and_credential_repositories() {
     use sdkwork_aiot_storage_sqlx::{
-        SqliteCredentialCreateCommand, SqliteSqlxCredentialRepository, SqliteSqlxDeviceRepository,
+        CredentialCreateCommand, SqlxCredentialRepository, SqlxDeviceRepository,
         DEFAULT_SHARED_SQLITE_MEMORY_URI,
     };
 
     let device_repo =
-        SqliteSqlxDeviceRepository::open(DEFAULT_SHARED_SQLITE_MEMORY_URI).expect("device repo");
-    let credential_repo = SqliteSqlxCredentialRepository::open(DEFAULT_SHARED_SQLITE_MEMORY_URI)
+        SqlxDeviceRepository::open(DEFAULT_SHARED_SQLITE_MEMORY_URI).expect("device repo");
+    let credential_repo = SqlxCredentialRepository::open(DEFAULT_SHARED_SQLITE_MEMORY_URI)
         .expect("credential repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
 
@@ -1693,7 +1693,7 @@ fn shared_sqlite_memory_uri_uses_one_schema_for_device_and_credential_repositori
         .expect("create device");
 
     let created = credential_repo
-        .create_credential(SqliteCredentialCreateCommand {
+        .create_credential(CredentialCreateCommand {
             association,
             device_id: "shared-db-device".to_string(),
             credential_type: "device-bearer".to_string(),
@@ -1732,7 +1732,7 @@ fn sqlite_outbox_repository_publishes_pending_events() {
         AiotOutboxWriteIntent, AiotProtocolStorageCommand, AiotStorageWriteKind,
         OutboxEventRepository,
     };
-    use sdkwork_aiot_storage_sqlx::{SqliteOutboxEventRepository, SqlxPoolSqlStatementExecutor};
+    use sdkwork_aiot_storage_sqlx::{SqlxOutboxEventRepository, SqlxPoolSqlStatementExecutor};
     use std::sync::Arc;
 
     let unique_suffix = SystemTime::now()
@@ -1765,7 +1765,7 @@ fn sqlite_outbox_repository_publishes_pending_events() {
         receipt.dead_letter_reason
     );
 
-    let repo = SqliteOutboxEventRepository::open(&db_uri).expect("outbox repo");
+    let repo = SqlxOutboxEventRepository::open(&db_uri).expect("outbox repo");
     assert_eq!(repo.pending_lag_count(), 1);
 
     let dispatcher = AiotOutboxDispatcher::new(

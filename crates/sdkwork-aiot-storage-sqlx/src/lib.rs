@@ -7,7 +7,7 @@ mod credential;
 mod credential_hash;
 mod database_bootstrap;
 mod device_database;
-mod device_repository_sqlite;
+mod device_repository;
 mod dialect_sql;
 mod firmware_ota_catalog;
 mod framework_bootstrap;
@@ -26,8 +26,8 @@ mod test_env;
 
 pub use blocking_device_pool::{BlockingDevicePool, DeviceDatabaseEngine, DeviceDbTransaction};
 pub use credential::{
-    SqliteCredentialCreateCommand, SqliteCredentialRepositoryError, SqliteDeviceCredentialRecord,
-    SqliteSqlxCredentialRepository,
+    CredentialCreateCommand, CredentialRepositoryError, DeviceCredentialRecord,
+    SqlxCredentialRepository,
 };
 pub use database_bootstrap::{
     aiot_device_blocking_pool, aiot_device_blocking_pool_from_env, aiot_device_pool_from_env,
@@ -38,7 +38,7 @@ pub use database_bootstrap::{
 pub use device_database::{
     open_aiot_device_database, open_aiot_device_database_from_env, AiotDeviceDatabase,
 };
-pub use device_repository_sqlite::SqliteSqlxDeviceRepository;
+pub use device_repository::SqlxDeviceRepository;
 pub use firmware_ota_catalog::{
     resolve_firmware_download_url, FirmwareOtaCatalog, FirmwareOtaHint,
     DEFAULT_ROLLOUT_DEVICE_BATCH, ENTITY_FIRMWARE_ARTIFACT, ENTITY_FIRMWARE_DEPLOYMENT,
@@ -48,7 +48,7 @@ pub use framework_bootstrap::{
     bootstrap_aiot_database, bootstrap_aiot_database_from_env, connect_aiot_database_pool_from_env,
     connect_and_bootstrap_aiot_database_from_env, AiotDatabaseHost, AiotDatabasePool,
 };
-pub use outbox::SqliteOutboxEventRepository;
+pub use outbox::SqlxOutboxEventRepository;
 pub use outbox_worker::{
     device_storage_ready_from_env, open_outbox_repository_for_path,
     open_outbox_repository_for_pool, open_outbox_repository_from_env,
@@ -59,7 +59,7 @@ pub use outbox_worker::{
     ENV_OUTBOX_DISPATCH_INTERVAL_MS, ENV_OUTBOX_LAG_READY_THRESHOLD,
 };
 pub use persisted_entity::{
-    SqlitePersistedEntityError, SqlitePersistedEntityRecord, SqlitePersistedEntityRepository,
+    PersistedEntityError, PersistedEntityRecord, PersistedEntityRepository,
 };
 pub use postgres_sync::{BlockingPostgresPool, StoragePostgresError};
 use schema::ensure_device_schema;
@@ -91,7 +91,7 @@ pub const DEFAULT_SHARED_SQLITE_MEMORY_URI: &str =
 /// Opens the canonical device repository using `sdkwork-database-config` resolution.
 pub fn open_device_repository(
     device_db_path: Option<&str>,
-) -> Result<SqliteSqlxDeviceRepository, PoolError> {
+) -> Result<SqlxDeviceRepository, PoolError> {
     open_aiot_device_database(device_db_path)?
         .device_repository()
         .map_err(PoolError::PoolCreation)

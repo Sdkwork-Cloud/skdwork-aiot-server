@@ -14,8 +14,8 @@ use sdkwork_aiot_device_edge_runtime::{
 };
 use sdkwork_aiot_storage::AiotStorageAssociation;
 use sdkwork_aiot_storage_sqlx::{
-    FirmwareOtaCatalog, SqliteCredentialCreateCommand, SqlitePersistedEntityRepository,
-    SqliteSqlxCredentialRepository,
+    FirmwareOtaCatalog, CredentialCreateCommand, PersistedEntityRepository,
+    SqlxCredentialRepository,
 };
 use sdkwork_aiot_transport::parse_http_request_bytes;
 use std::collections::HashSet;
@@ -2925,9 +2925,9 @@ fn xiaozhi_device_token_valid_accepts_sqlite_stored_credentials_in_production_mo
     let _env = EnvGuard::set_all_locked(&[("SDKWORK_AIOT_DEV_MODE", None)]);
 
     let repository =
-        Arc::new(SqliteSqlxCredentialRepository::new_in_memory().expect("credential repository"));
+        Arc::new(SqlxCredentialRepository::new_in_memory().expect("credential repository"));
     let created = repository
-        .create_credential(SqliteCredentialCreateCommand {
+        .create_credential(CredentialCreateCommand {
             association: AiotStorageAssociation::tenant_org(100001, 0),
             device_id: "edge-device-001".to_string(),
             credential_type: "device-bearer".to_string(),
@@ -2970,7 +2970,7 @@ fn xiaozhi_device_token_valid_accepts_sqlite_stored_credentials_in_production_mo
 
 #[test]
 fn rollout_aware_ota_provider_delivers_firmware_once_per_pending_deployment() {
-    let store = SqlitePersistedEntityRepository::new_in_memory().expect("repo");
+    let store = PersistedEntityRepository::new_in_memory().expect("repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
 
     store

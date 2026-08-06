@@ -9,17 +9,17 @@ use sdkwork_database_config::DatabaseEngine;
 
 use crate::{
     AiotCatalogRepositoryHandle, AiotCredentialRepository, AiotFirmwareRepositoryHandle,
-    SqliteCredentialRepositoryAdapter,
+    CredentialRepositoryAdapter,
 };
 
 pub struct AiotAppServiceStores {
-    pub device_repository: Arc<sdkwork_aiot_storage_sqlx::SqliteSqlxDeviceRepository>,
+    pub device_repository: Arc<sdkwork_aiot_storage_sqlx::SqlxDeviceRepository>,
     pub credential_repository: Arc<dyn AiotCredentialRepository>,
     pub catalog_repository: Arc<AiotCatalogRepositoryHandle>,
 }
 
 pub struct AiotAdminServiceStores {
-    pub device_repository: Arc<sdkwork_aiot_storage_sqlx::SqliteSqlxDeviceRepository>,
+    pub device_repository: Arc<sdkwork_aiot_storage_sqlx::SqlxDeviceRepository>,
     pub credential_repository: Arc<dyn AiotCredentialRepository>,
     pub catalog_repository: Arc<AiotCatalogRepositoryHandle>,
     pub firmware_repository: Arc<AiotFirmwareRepositoryHandle>,
@@ -40,7 +40,7 @@ pub fn open_app_service_stores(service_label: &str) -> Result<AiotAppServiceStor
                 .device_repository()
                 .map_err(|error| error.to_string())?,
         ),
-        credential_repository: Arc::new(SqliteCredentialRepositoryAdapter::from_repository(
+        credential_repository: Arc::new(CredentialRepositoryAdapter::from_repository(
             database
                 .credential_repository()
                 .map_err(|error| error.to_string())?,
@@ -64,7 +64,7 @@ pub fn open_admin_service_stores(service_label: &str) -> Result<AiotAdminService
                 .device_repository()
                 .map_err(|error| error.to_string())?,
         ),
-        credential_repository: Arc::new(SqliteCredentialRepositoryAdapter::from_repository(
+        credential_repository: Arc::new(CredentialRepositoryAdapter::from_repository(
             database
                 .credential_repository()
                 .map_err(|error| error.to_string())?,

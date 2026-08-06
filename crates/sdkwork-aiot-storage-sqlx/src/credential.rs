@@ -17,7 +17,7 @@ const CREDENTIAL_STATUS_ACTIVE: i32 = 1;
 const CREDENTIAL_STATUS_REVOKED: i32 = 0;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SqliteDeviceCredentialRecord {
+pub struct DeviceCredentialRecord {
     pub credential_id: String,
     pub tenant_id: i64,
     pub organization_id: i64,
@@ -31,7 +31,7 @@ pub struct SqliteDeviceCredentialRecord {
 }
 
 #[derive(Debug, Clone)]
-pub struct SqliteCredentialCreateCommand {
+pub struct CredentialCreateCommand {
     pub association: AiotStorageAssociation,
     pub device_id: String,
     pub credential_type: String,
@@ -39,12 +39,12 @@ pub struct SqliteCredentialCreateCommand {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SqliteCredentialRepositoryError {
+pub enum CredentialRepositoryError {
     PersistenceFailure,
     CredentialNotFound,
 }
 
-impl From<sqlx::Error> for SqliteCredentialRepositoryError {
+impl From<sqlx::Error> for CredentialRepositoryError {
     fn from(_: sqlx::Error) -> Self {
         Self::PersistenceFailure
     }
@@ -52,7 +52,7 @@ impl From<sqlx::Error> for SqliteCredentialRepositoryError {
 
 #[allow(dead_code)]
 enum CredentialRepoTxError {
-    Repo(SqliteCredentialRepositoryError),
+    Repo(CredentialRepositoryError),
     Sql(sqlx::Error),
 }
 
@@ -63,19 +63,19 @@ impl From<sqlx::Error> for CredentialRepoTxError {
 }
 
 impl CredentialRepoTxError {
-    fn into_repo(self) -> SqliteCredentialRepositoryError {
+    fn into_repo(self) -> CredentialRepositoryError {
         match self {
             Self::Repo(error) => error,
-            Self::Sql(_) => SqliteCredentialRepositoryError::PersistenceFailure,
+            Self::Sql(_) => CredentialRepositoryError::PersistenceFailure,
         }
     }
 }
 
-pub struct SqliteSqlxCredentialRepository {
+pub struct SqlxCredentialRepository {
     db: BlockingDevicePool,
 }
 
-impl SqliteSqlxCredentialRepository {
+impl SqlxCredentialRepository {
     pub fn new_in_memory() -> Result<Self, sqlx::Error> {
         Self::open("file:sdkwork-aiot-credential?mode=memory&cache=shared")
     }
@@ -300,8 +300,8 @@ impl SqliteSqlxCredentialRepository {
 
     pub fn create_credential(
         &self,
-        command: SqliteCredentialCreateCommand,
-    ) -> Result<SqliteDeviceCredentialRecord, SqliteCredentialRepositoryError> {
+        command: CredentialCreateCommand,
+    ) -> Result<DeviceCredentialRecord, CredentialRepositoryError> {
         let now = current_rfc3339_timestamp();
         self.db
             .with_device_transaction(|mut tx, dialect| {
@@ -359,7 +359,7 @@ impl SqliteSqlxCredentialRepository {
                         }
                     }
 
-                    Ok(SqliteDeviceCredentialRecord {
+                    Ok(DeviceCredentialRecord {
                         credential_id,
                         tenant_id: command.association.tenant_id,
                         organization_id: command.association.organization_id,
@@ -381,7 +381,7 @@ impl SqliteSqlxCredentialRepository {
         association: &AiotStorageAssociation,
         device_id: &str,
         params: OffsetListPageParams,
-    ) -> Result<AiotOffsetListResult<SqliteDeviceCredentialRecord>, SqliteCredentialRepositoryError>
+    ) -> Result<AiotOffsetListResult<DeviceCredentialRecord>, CredentialRepositoryError>
     {
         let association = association.clone();
         let device_id = device_id.to_string();
@@ -453,7 +453,7 @@ impl SqliteSqlxCredentialRepository {
                     }
                 }
             })
-            .map_err(|_: sqlx::Error| SqliteCredentialRepositoryError::PersistenceFailure)
+            .map_err(|_: sqlx::Error| CredentialRepositoryError::PersistenceFailure)
     }
 
     pub fn get_credential(
@@ -461,7 +461,7 @@ impl SqliteSqlxCredentialRepository {
         association: &AiotStorageAssociation,
         device_id: &str,
         credential_id: &str,
-    ) -> Option<SqliteDeviceCredentialRecord> {
+    ) -> Option<DeviceCredentialRecord> {
         let association = association.clone();
         let device_id = device_id.to_string();
         let credential_id = credential_id.to_string();
@@ -509,7 +509,7 @@ impl SqliteSqlxCredentialRepository {
         association: &AiotStorageAssociation,
         device_id: &str,
         credential_id: &str,
-    ) -> Result<(), SqliteCredentialRepositoryError> {
+    ) -> Result<(), CredentialRepositoryError> {
         let now = current_rfc3339_timestamp();
         let association = association.clone();
         let device_id = device_id.to_string();
@@ -552,9 +552,9 @@ impl SqliteSqlxCredentialRepository {
                 }?;
                 Ok(result)
             })
-            .map_err(|_: sqlx::Error| SqliteCredentialRepositoryError::PersistenceFailure)?;
+            .map_err(|_: sqlx::Error| CredentialRepositoryError::PersistenceFailure)?;
         if updated == 0 {
-            return Err(SqliteCredentialRepositoryError::CredentialNotFound);
+            return Err(CredentialRepositoryError::CredentialNotFound);
         }
         Ok(())
     }
@@ -562,8 +562,8 @@ impl SqliteSqlxCredentialRepository {
 
 fn row_to_credential_record(
     row: &sqlx::sqlite::SqliteRow,
-) -> Result<SqliteDeviceCredentialRecord, sqlx::Error> {
-    Ok(SqliteDeviceCredentialRecord {
+) -> Result<DeviceCredentialRecord, sqlx::Error> {
+    Ok(DeviceCredentialRecord {
         credential_id: row.try_get("uuid")?,
         tenant_id: row.try_get("tenant_id")?,
         organization_id: row.try_get("organization_id")?,
@@ -579,8 +579,8 @@ fn row_to_credential_record(
 
 fn row_to_credential_record_postgres(
     row: &sqlx::postgres::PgRow,
-) -> Result<SqliteDeviceCredentialRecord, sqlx::Error> {
-    Ok(SqliteDeviceCredentialRecord {
+) -> Result<DeviceCredentialRecord, sqlx::Error> {
+    Ok(DeviceCredentialRecord {
         credential_id: row.try_get("uuid")?,
         tenant_id: row.try_get("tenant_id")?,
         organization_id: row.try_get("organization_id")?,

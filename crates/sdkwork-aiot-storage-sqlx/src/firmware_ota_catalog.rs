@@ -8,7 +8,7 @@ use sqlx::Row;
 use crate::blocking_device_pool::DeviceDatabaseEngine;
 use crate::device_database::open_aiot_device_database_from_env;
 use crate::dialect_sql::adapt_sqlite_placeholders;
-use crate::persisted_entity::{SqlitePersistedEntityError, SqlitePersistedEntityRepository};
+use crate::persisted_entity::{PersistedEntityError, PersistedEntityRepository};
 
 pub const ENTITY_FIRMWARE_DEPLOYMENT: &str = "firmware_deployment";
 pub const ENTITY_FIRMWARE_ARTIFACT: &str = "firmware_artifact";
@@ -33,11 +33,11 @@ struct ScopedEntityRow {
 
 #[derive(Clone)]
 pub struct FirmwareOtaCatalog {
-    store: Arc<SqlitePersistedEntityRepository>,
+    store: Arc<PersistedEntityRepository>,
 }
 
 impl FirmwareOtaCatalog {
-    pub fn from_repository(store: SqlitePersistedEntityRepository) -> Self {
+    pub fn from_repository(store: PersistedEntityRepository) -> Self {
         Self {
             store: Arc::new(store),
         }
@@ -95,7 +95,7 @@ impl FirmwareOtaCatalog {
         tenant_id: i64,
         organization_id: i64,
         deployment_id: &str,
-    ) -> Result<(), SqlitePersistedEntityError> {
+    ) -> Result<(), PersistedEntityError> {
         self.set_deployment_state(
             tenant_id,
             organization_id,
@@ -108,17 +108,17 @@ impl FirmwareOtaCatalog {
     pub fn mark_offered_deployment_completed_for_device(
         &self,
         device_id: &str,
-    ) -> Result<(), SqlitePersistedEntityError> {
+    ) -> Result<(), PersistedEntityError> {
         let device_id = device_id.trim();
         if device_id.is_empty() {
-            return Err(SqlitePersistedEntityError::NotFound);
+            return Err(PersistedEntityError::NotFound);
         }
 
         let deployment = self
             .list_deployments_for_device(device_id, DEPLOYMENT_STATE_OFFERED)
             .into_iter()
             .max_by(|left, right| left.deployment_id.cmp(&right.deployment_id))
-            .ok_or(SqlitePersistedEntityError::NotFound)?;
+            .ok_or(PersistedEntityError::NotFound)?;
 
         self.mark_deployment_completed(
             deployment.tenant_id,
@@ -133,17 +133,17 @@ impl FirmwareOtaCatalog {
         organization_id: i64,
         deployment_id: &str,
         deployment_state: &str,
-    ) -> Result<(), SqlitePersistedEntityError> {
+    ) -> Result<(), PersistedEntityError> {
         use sdkwork_aiot_storage::AiotStorageAssociation;
         let association = AiotStorageAssociation::tenant_org(tenant_id, organization_id);
         let Some(entity) =
             self.store
                 .get_entity(&association, ENTITY_FIRMWARE_DEPLOYMENT, deployment_id)
         else {
-            return Err(SqlitePersistedEntityError::NotFound);
+            return Err(PersistedEntityError::NotFound);
         };
         let mut value: Value = serde_json::from_str(&entity.payload_json)
-            .map_err(|_| SqlitePersistedEntityError::PersistenceFailure)?;
+            .map_err(|_| PersistedEntityError::PersistenceFailure)?;
         if let Some(object) = value.as_object_mut() {
             object.insert(
                 "deploymentState".to_string(),
@@ -151,7 +151,7 @@ impl FirmwareOtaCatalog {
             );
         }
         let payload_json = serde_json::to_string(&value)
-            .map_err(|_| SqlitePersistedEntityError::PersistenceFailure)?;
+            .map_err(|_| PersistedEntityError::PersistenceFailure)?;
         self.store.upsert_entity(
             &association,
             ENTITY_FIRMWARE_DEPLOYMENT,
@@ -181,7 +181,7 @@ impl FirmwareOtaCatalog {
         tenant_id: i64,
         organization_id: i64,
         deployment_id: &str,
-    ) -> Result<(), SqlitePersistedEntityError> {
+    ) -> Result<(), PersistedEntityError> {
         self.set_deployment_state(
             tenant_id,
             organization_id,
@@ -551,9 +551,9 @@ mod tests {
 
     #[test]
     fn catalog_resolves_pending_deployment_for_device() {
-        let store = SqlitePersistedEntityRepository::new_in_memory().expect("repo");
+        let store = PersistedEntityRepository::new_in_memory().expect("repo");
         let catalog = FirmwareOtaCatalog::from_repository(
-            SqlitePersistedEntityRepository::from_blocking_pool(store.blocking_pool())
+            PersistedEntityRepository::from_blocking_pool(store.blocking_pool())
                 .expect("repo clone"),
         );
         let association = AiotStorageAssociation::tenant_org(100001, 0);

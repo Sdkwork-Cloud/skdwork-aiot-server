@@ -1311,7 +1311,7 @@ fn device_database_supports_postgres_device_repository() {
             .expect("device database");
     assert!(
         device_database
-            .contains("SqliteSqlxDeviceRepository::from_blocking_pool(self.pool.clone())"),
+            .contains("SqlxDeviceRepository::from_blocking_pool(self.pool.clone())"),
         "device database must open device repository from BlockingDevicePool for all engines"
     );
     assert!(
