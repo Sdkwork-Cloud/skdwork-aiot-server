@@ -3,7 +3,7 @@
 -- Application is in initialization state: full DDL lives here; migrations/ is reserved for post-GA changes.
 
 -- baseline source: ddl/baseline/postgres/0001_aiot_legacy_baseline.sql
-CREATE TABLE iot_product (
+CREATE TABLE IF NOT EXISTS iot_product (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE iot_product (
     CONSTRAINT uk_iot_product_tenant_key UNIQUE (tenant_id, product_key)
 );
 
-CREATE TABLE iot_hardware_profile (
+CREATE TABLE IF NOT EXISTS iot_hardware_profile (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -49,10 +49,10 @@ CREATE TABLE iot_hardware_profile (
     CONSTRAINT uk_iot_hardware_profile_tenant_key UNIQUE (tenant_id, profile_key)
 );
 
-CREATE INDEX idx_iot_hardware_profile_tenant_chip
+CREATE INDEX IF NOT EXISTS idx_iot_hardware_profile_tenant_chip
     ON iot_hardware_profile (tenant_id, chip_family, runtime_profile);
 
-CREATE TABLE iot_protocol_profile (
+CREATE TABLE IF NOT EXISTS iot_protocol_profile (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -75,10 +75,10 @@ CREATE TABLE iot_protocol_profile (
     CONSTRAINT uk_iot_protocol_profile_tenant_key UNIQUE (tenant_id, profile_key)
 );
 
-CREATE INDEX idx_iot_protocol_profile_tenant_protocol
+CREATE INDEX IF NOT EXISTS idx_iot_protocol_profile_tenant_protocol
     ON iot_protocol_profile (tenant_id, default_protocol_id, status);
 
-CREATE TABLE iot_capability_model (
+CREATE TABLE IF NOT EXISTS iot_capability_model (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE iot_capability_model (
     CONSTRAINT uk_iot_capability_model_tenant_key UNIQUE (tenant_id, model_key)
 );
 
-CREATE TABLE iot_capability_definition (
+CREATE TABLE IF NOT EXISTS iot_capability_definition (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -117,7 +117,7 @@ CREATE TABLE iot_capability_definition (
         UNIQUE (tenant_id, capability_model_id, capability_name)
 );
 
-CREATE TABLE iot_device (
+CREATE TABLE IF NOT EXISTS iot_device (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -156,13 +156,13 @@ CREATE TABLE iot_device (
     CONSTRAINT uk_iot_device_tenant_client_id UNIQUE (tenant_id, client_id)
 );
 
-CREATE INDEX idx_iot_device_tenant_product_status
+CREATE INDEX IF NOT EXISTS idx_iot_device_tenant_product_status
     ON iot_device (tenant_id, product_id, status);
 
-CREATE INDEX idx_iot_device_tenant_last_seen
+CREATE INDEX IF NOT EXISTS idx_iot_device_tenant_last_seen
     ON iot_device (tenant_id, last_seen_at);
 
-CREATE TABLE iot_device_credential (
+CREATE TABLE IF NOT EXISTS iot_device_credential (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -182,10 +182,10 @@ CREATE TABLE iot_device_credential (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_device_credential_tenant_device_status
+CREATE INDEX IF NOT EXISTS idx_iot_device_credential_tenant_device_status
     ON iot_device_credential (tenant_id, device_id, status);
 
-CREATE TABLE iot_device_binding (
+CREATE TABLE IF NOT EXISTS iot_device_binding (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -207,10 +207,10 @@ CREATE TABLE iot_device_binding (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_device_binding_tenant_target
+CREATE INDEX IF NOT EXISTS idx_iot_device_binding_tenant_target
     ON iot_device_binding (tenant_id, target_type, target_id, status);
 
-CREATE TABLE iot_gateway_child_device (
+CREATE TABLE IF NOT EXISTS iot_gateway_child_device (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -228,7 +228,7 @@ CREATE TABLE iot_gateway_child_device (
         UNIQUE (tenant_id, gateway_device_id, child_device_id)
 );
 
-CREATE TABLE iot_device_connection (
+CREATE TABLE IF NOT EXISTS iot_device_connection (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -246,10 +246,10 @@ CREATE TABLE iot_device_connection (
     CONSTRAINT uk_iot_device_connection_tenant_connection UNIQUE (tenant_id, connection_id)
 );
 
-CREATE INDEX idx_iot_device_connection_tenant_device_created
+CREATE INDEX IF NOT EXISTS idx_iot_device_connection_tenant_device_created
     ON iot_device_connection (tenant_id, device_id, created_at);
 
-CREATE TABLE iot_device_session (
+CREATE TABLE IF NOT EXISTS iot_device_session (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -272,10 +272,10 @@ CREATE TABLE iot_device_session (
     CONSTRAINT uk_iot_device_session_tenant_session UNIQUE (tenant_id, session_id)
 );
 
-CREATE INDEX idx_iot_device_session_tenant_device_status
+CREATE INDEX IF NOT EXISTS idx_iot_device_session_tenant_device_status
     ON iot_device_session (tenant_id, device_id, status);
 
-CREATE TABLE iot_device_online_lease (
+CREATE TABLE IF NOT EXISTS iot_device_online_lease (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -293,10 +293,10 @@ CREATE TABLE iot_device_online_lease (
     CONSTRAINT uk_iot_device_online_lease_tenant_device UNIQUE (tenant_id, device_id)
 );
 
-CREATE INDEX idx_iot_device_online_lease_tenant_expires
+CREATE INDEX IF NOT EXISTS idx_iot_device_online_lease_tenant_expires
     ON iot_device_online_lease (tenant_id, lease_expires_at);
 
-CREATE TABLE iot_command (
+CREATE TABLE IF NOT EXISTS iot_command (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -328,13 +328,13 @@ CREATE TABLE iot_command (
         UNIQUE (tenant_id, organization_id, idempotency_key)
 );
 
-CREATE INDEX idx_iot_command_tenant_device_status_created
+CREATE INDEX IF NOT EXISTS idx_iot_command_tenant_device_status_created
     ON iot_command (tenant_id, device_id, status, created_at);
 
-CREATE INDEX idx_iot_command_tenant_status_timeout
+CREATE INDEX IF NOT EXISTS idx_iot_command_tenant_status_timeout
     ON iot_command (tenant_id, status, timeout_at);
 
-CREATE TABLE iot_command_delivery (
+CREATE TABLE IF NOT EXISTS iot_command_delivery (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -350,10 +350,10 @@ CREATE TABLE iot_command_delivery (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_command_delivery_tenant_session_status
+CREATE INDEX IF NOT EXISTS idx_iot_command_delivery_tenant_session_status
     ON iot_command_delivery (tenant_id, session_id, status);
 
-CREATE TABLE iot_command_result (
+CREATE TABLE IF NOT EXISTS iot_command_result (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -372,10 +372,10 @@ CREATE TABLE iot_command_result (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_command_result_tenant_command
+CREATE INDEX IF NOT EXISTS idx_iot_command_result_tenant_command
     ON iot_command_result (tenant_id, command_id);
 
-CREATE TABLE iot_device_twin (
+CREATE TABLE IF NOT EXISTS iot_device_twin (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -392,7 +392,7 @@ CREATE TABLE iot_device_twin (
     CONSTRAINT uk_iot_device_twin_tenant_device UNIQUE (tenant_id, device_id)
 );
 
-CREATE TABLE iot_device_twin_property (
+CREATE TABLE IF NOT EXISTS iot_device_twin_property (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -415,10 +415,10 @@ CREATE TABLE iot_device_twin_property (
         UNIQUE (tenant_id, device_id, property_name)
 );
 
-CREATE INDEX idx_iot_twin_property_tenant_device_property
+CREATE INDEX IF NOT EXISTS idx_iot_twin_property_tenant_device_property
     ON iot_device_twin_property (tenant_id, device_id, property_name);
 
-CREATE TABLE iot_telemetry_latest (
+CREATE TABLE IF NOT EXISTS iot_telemetry_latest (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -438,10 +438,10 @@ CREATE TABLE iot_telemetry_latest (
         UNIQUE (tenant_id, device_id, metric_key)
 );
 
-CREATE INDEX idx_iot_telemetry_latest_tenant_device_key
+CREATE INDEX IF NOT EXISTS idx_iot_telemetry_latest_tenant_device_key
     ON iot_telemetry_latest (tenant_id, device_id, metric_key);
 
-CREATE TABLE iot_telemetry_event (
+CREATE TABLE IF NOT EXISTS iot_telemetry_event (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -458,10 +458,10 @@ CREATE TABLE iot_telemetry_event (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_telemetry_event_tenant_device_time
+CREATE INDEX IF NOT EXISTS idx_iot_telemetry_event_tenant_device_time
     ON iot_telemetry_event (tenant_id, device_id, measured_at);
 
-CREATE TABLE iot_device_event (
+CREATE TABLE IF NOT EXISTS iot_device_event (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -480,10 +480,10 @@ CREATE TABLE iot_device_event (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_device_event_tenant_device_time
+CREATE INDEX IF NOT EXISTS idx_iot_device_event_tenant_device_time
     ON iot_device_event (tenant_id, device_id, created_at);
 
-CREATE TABLE iot_security_event (
+CREATE TABLE IF NOT EXISTS iot_security_event (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -501,10 +501,10 @@ CREATE TABLE iot_security_event (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_security_event_tenant_time
+CREATE INDEX IF NOT EXISTS idx_iot_security_event_tenant_time
     ON iot_security_event (tenant_id, created_at);
 
-CREATE TABLE iot_media_resource (
+CREATE TABLE IF NOT EXISTS iot_media_resource (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -528,13 +528,13 @@ CREATE TABLE iot_media_resource (
         UNIQUE (tenant_id, media_resource_id)
 );
 
-CREATE INDEX idx_iot_media_resource_tenant_owner
+CREATE INDEX IF NOT EXISTS idx_iot_media_resource_tenant_owner
     ON iot_media_resource (tenant_id, owner_type, owner_id, status);
 
-CREATE INDEX idx_iot_media_resource_tenant_object_blob
+CREATE INDEX IF NOT EXISTS idx_iot_media_resource_tenant_object_blob
     ON iot_media_resource (tenant_id, object_blob_id);
 
-CREATE TABLE iot_device_media (
+CREATE TABLE IF NOT EXISTS iot_device_media (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -555,13 +555,13 @@ CREATE TABLE iot_device_media (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_device_media_tenant_owner_role
+CREATE INDEX IF NOT EXISTS idx_iot_device_media_tenant_owner_role
     ON iot_device_media (tenant_id, owner_type, owner_id, media_role, sort_order);
 
-CREATE INDEX idx_iot_device_media_tenant_media
+CREATE INDEX IF NOT EXISTS idx_iot_device_media_tenant_media
     ON iot_device_media (tenant_id, media_resource_id);
 
-CREATE TABLE iot_firmware_artifact (
+CREATE TABLE IF NOT EXISTS iot_firmware_artifact (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -591,7 +591,7 @@ CREATE TABLE iot_firmware_artifact (
         UNIQUE (tenant_id, media_resource_id)
 );
 
-CREATE TABLE iot_firmware_rollout (
+CREATE TABLE IF NOT EXISTS iot_firmware_rollout (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -610,10 +610,10 @@ CREATE TABLE iot_firmware_rollout (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_firmware_rollout_tenant_status
+CREATE INDEX IF NOT EXISTS idx_iot_firmware_rollout_tenant_status
     ON iot_firmware_rollout (tenant_id, status);
 
-CREATE TABLE iot_firmware_rollout_target (
+CREATE TABLE IF NOT EXISTS iot_firmware_rollout_target (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -629,10 +629,10 @@ CREATE TABLE iot_firmware_rollout_target (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_firmware_rollout_target_tenant_rollout
+CREATE INDEX IF NOT EXISTS idx_iot_firmware_rollout_target_tenant_rollout
     ON iot_firmware_rollout_target (tenant_id, rollout_id);
 
-CREATE TABLE iot_firmware_deployment (
+CREATE TABLE IF NOT EXISTS iot_firmware_deployment (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -648,10 +648,10 @@ CREATE TABLE iot_firmware_deployment (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_firmware_deployment_tenant_device_status
+CREATE INDEX IF NOT EXISTS idx_iot_firmware_deployment_tenant_device_status
     ON iot_firmware_deployment (tenant_id, device_id, status);
 
-CREATE TABLE iot_provisioning_challenge (
+CREATE TABLE IF NOT EXISTS iot_provisioning_challenge (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -668,10 +668,10 @@ CREATE TABLE iot_provisioning_challenge (
     CONSTRAINT uk_iot_provisioning_challenge_tenant_id UNIQUE (tenant_id, challenge_id)
 );
 
-CREATE INDEX idx_iot_provisioning_challenge_tenant_expires
+CREATE INDEX IF NOT EXISTS idx_iot_provisioning_challenge_tenant_expires
     ON iot_provisioning_challenge (tenant_id, expires_at);
 
-CREATE TABLE iot_activation_record (
+CREATE TABLE IF NOT EXISTS iot_activation_record (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -687,10 +687,10 @@ CREATE TABLE iot_activation_record (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_activation_record_tenant_device
+CREATE INDEX IF NOT EXISTS idx_iot_activation_record_tenant_device
     ON iot_activation_record (tenant_id, device_id);
 
-CREATE TABLE iot_protocol_message_dead_letter (
+CREATE TABLE IF NOT EXISTS iot_protocol_message_dead_letter (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -710,10 +710,10 @@ CREATE TABLE iot_protocol_message_dead_letter (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_protocol_dead_letter_tenant_created
+CREATE INDEX IF NOT EXISTS idx_iot_protocol_dead_letter_tenant_created
     ON iot_protocol_message_dead_letter (tenant_id, created_at);
 
-CREATE TABLE iot_outbox_event (
+CREATE TABLE IF NOT EXISTS iot_outbox_event (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -736,10 +736,10 @@ CREATE TABLE iot_outbox_event (
     CONSTRAINT uk_iot_outbox_event_tenant_event_id UNIQUE (tenant_id, event_id)
 );
 
-CREATE INDEX idx_iot_outbox_event_status_next_attempt
+CREATE INDEX IF NOT EXISTS idx_iot_outbox_event_status_next_attempt
     ON iot_outbox_event (status, next_attempt_at);
 
-CREATE TABLE iot_inbox_event (
+CREATE TABLE IF NOT EXISTS iot_inbox_event (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -760,7 +760,7 @@ CREATE TABLE iot_inbox_event (
         UNIQUE (source_system, message_id, consumer_name)
 );
 
-CREATE TABLE iot_audit_log (
+CREATE TABLE IF NOT EXISTS iot_audit_log (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -778,10 +778,10 @@ CREATE TABLE iot_audit_log (
     PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_iot_audit_log_tenant_created
+CREATE INDEX IF NOT EXISTS idx_iot_audit_log_tenant_created
     ON iot_audit_log (tenant_id, created_at);
 
-CREATE TABLE iot_protocol_ingest_record (
+CREATE TABLE IF NOT EXISTS iot_protocol_ingest_record (
     id BIGINT NOT NULL,
     uuid VARCHAR(64) NOT NULL,
     tenant_id BIGINT NOT NULL,
@@ -806,7 +806,7 @@ CREATE TABLE iot_protocol_ingest_record (
         UNIQUE (tenant_id, idempotency_key)
 );
 
-CREATE INDEX idx_iot_protocol_ingest_tenant_message
+CREATE INDEX IF NOT EXISTS idx_iot_protocol_ingest_tenant_message
     ON iot_protocol_ingest_record (tenant_id, protocol_id, message_id);
 
 -- folded migration: migrations/postgres/0002_aiot_admin_entity_schema.up.sql
