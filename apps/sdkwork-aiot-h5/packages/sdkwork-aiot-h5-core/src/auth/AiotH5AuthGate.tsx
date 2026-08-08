@@ -15,7 +15,15 @@ function resolveLoginUrl(): string {
     'VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL',
     'http://127.0.0.1:3900',
   );
-  const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+  const { pathname, search } = window.location;
+  // Never re-wrap an auth-route URL: encoding the whole current URL again
+  // nests the `redirect` param one level deeper on every bounce. Reuse the
+  // existing return target when already on the auth surface.
+  if (pathname === '/auth' || pathname.startsWith('/auth/')) {
+    const existing = /[?&]redirect=([^&]*)/u.exec(search)?.[1];
+    return `${gatewayBase.replace(/\/$/, '')}/auth/login${existing ? `?redirect=${existing}` : ''}`;
+  }
+  const redirect = encodeURIComponent(pathname + search);
   return `${gatewayBase.replace(/\/$/, '')}/auth/login?redirect=${redirect}`;
 }
 

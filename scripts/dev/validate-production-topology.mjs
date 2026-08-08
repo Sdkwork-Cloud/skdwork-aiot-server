@@ -108,10 +108,10 @@ function validateProductionProfile(fileName, values) {
   requireDeployInjectPlaceholder(fileName, values, 'SDKWORK_AIOT_INTERNAL_TOKEN');
   requireDeployInjectPlaceholder(fileName, values, 'SDKWORK_AIOT_CREDENTIAL_PEPPER');
 
-  const corsOrigins = values.get('SDKWORK_AIOT_CORS_ALLOWED_ORIGINS');
+  const corsOrigins = values.get('SDKWORK_CORS_ALLOWED_ORIGINS');
   assert.ok(
     typeof corsOrigins === 'string' && corsOrigins.length > 0,
-    `${fileName} must set SDKWORK_AIOT_CORS_ALLOWED_ORIGINS`,
+    `${fileName} must set SDKWORK_CORS_ALLOWED_ORIGINS`,
   );
 
   const legacyDeviceToken = values.get('SDKWORK_AIOT_XIAOZHI_DEVICE_TOKEN');

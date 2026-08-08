@@ -2449,6 +2449,7 @@ dependencies = [
 name = "sdkwork-iot-platform-service"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "sdkwork-aiot-app-context",
  "sdkwork-aiot-contract",
  "sdkwork-aiot-intelligence-bridge",
@@ -2461,6 +2462,7 @@ dependencies = [
  "sdkwork-database-config",
  "sdkwork-iot-device-service",
  "sdkwork-utils-rust",
+ "sdkwork-web-bootstrap",
  "sdkwork-web-core",
  "serde_json",
 ]

@@ -773,56 +773,39 @@ fn apply_security_headers(mut response: HttpResponse) -> HttpResponse {
     response
 }
 
-fn cors_allowed_origins() -> Vec<String> {
-    std::env::var("SDKWORK_AIOT_CORS_ALLOWED_ORIGINS")
-        .ok()
-        .map(|value| {
-            value
-                .split(',')
-                .map(str::trim)
-                .filter(|entry| !entry.is_empty())
-                .map(str::to_string)
-                .collect()
-        })
-        .unwrap_or_default()
+/// Canonical CORS policy for the AIoT API surfaces.
+///
+/// Origins come from the shared `SDKWORK_CORS_ALLOWED_ORIGINS` key via the
+/// official bootstrap helper; development/test environments additionally
+/// accept loopback and private-network dev-server origins
+/// (`CorsPolicy::development_private_network`), matching every other SDKWork
+/// service. Production keeps the exact configured allowlist.
+fn cors_policy() -> sdkwork_web_core::CorsPolicy {
+    let environment =
+        sdkwork_web_bootstrap::web_environment_from_env(&["SDKWORK_AIOT_ENVIRONMENT"]);
+    let origins = sdkwork_web_bootstrap::cors_allowed_origins_from_process_env();
+    sdkwork_web_bootstrap::security_policy_for_environment(&environment, origins).cors
 }
 
 fn cors_allowed_origin(request: &HttpRequest) -> Option<String> {
     let origin = optional_header(request, "origin")?;
-    let allowed = cors_allowed_origins();
-    let environment = std::env::var("SDKWORK_AIOT_ENVIRONMENT")
-        .unwrap_or_else(|_| "development".to_owned())
-        .trim()
-        .to_ascii_lowercase();
-    let development = matches!(
-        environment.as_str(),
-        "development" | "dev" | "local" | "test" | "testing"
-    );
-    if allowed.iter().any(|candidate| candidate == origin)
-        || (development && sdkwork_web_core::is_development_private_network_origin(origin))
-    {
-        Some(origin.to_string())
-    } else {
-        None
-    }
+    cors_policy().validate_origin_value(origin).ok()?;
+    Some(origin.to_string())
 }
 
-fn apply_cors_headers(request: &HttpRequest, mut response: HttpResponse) -> HttpResponse {
-    let Some(origin) = cors_allowed_origin(request) else {
-        return response;
-    };
-    response = response
-        .with_header("access-control-allow-origin", origin)
-        .with_header("vary", "Origin")
-        .with_header(
-            "access-control-allow-headers",
-            "Authorization, Access-Token, Content-Type, Idempotency-Key",
-        )
-        .with_header(
-            "access-control-allow-methods",
-            "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-        )
-        .with_header("access-control-max-age", "600");
+/// Applies the official policy's CORS response headers (`apply_headers_from_origin`)
+/// onto the plain transport `HttpResponse`, bridged through an axum response so the
+/// header emission stays the official implementation.
+fn apply_cors_headers(request: &HttpRequest, response: HttpResponse) -> HttpResponse {
+    let origin = optional_header(request, "origin");
+    let mut bridged = axum::response::Response::new(axum::body::Body::empty());
+    cors_policy().apply_headers_from_origin(origin, &mut bridged);
+    let mut response = response;
+    for (name, value) in bridged.headers() {
+        if let Ok(value) = value.to_str() {
+            response = response.with_header(name.as_str(), value);
+        }
+    }
     response
 }
 
@@ -830,23 +813,28 @@ fn cors_preflight_response(request: &HttpRequest) -> Option<HttpResponse> {
     if request.method != "OPTIONS" {
         return None;
     }
+    let policy = cors_policy();
     let origin = cors_allowed_origin(request)?;
-    Some(apply_security_headers(
-        HttpResponse::new(HttpStatus::NoContent)
-            .with_header("access-control-allow-origin", origin)
-            .with_header("vary", "Origin")
-            .with_header(
-                "access-control-allow-headers",
-                optional_header(request, "access-control-request-headers")
-                    .unwrap_or("Authorization, Access-Token, Content-Type, Idempotency-Key"),
-            )
-            .with_header(
-                "access-control-allow-methods",
-                optional_header(request, "access-control-request-method")
-                    .unwrap_or("GET, POST, PUT, PATCH, DELETE, OPTIONS"),
-            )
-            .with_header("access-control-max-age", "600"),
-    ))
+    let preflight = axum::extract::Request::builder()
+        .method("OPTIONS")
+        .uri("/")
+        .header("origin", &origin)
+        .header(
+            "access-control-request-method",
+            optional_header(request, "access-control-request-method").unwrap_or("GET"),
+        )
+        .body(axum::body::Body::empty())
+        .ok()?;
+    policy.validate_preflight(&preflight).ok()?;
+    let mut bridged = axum::response::Response::new(axum::body::Body::empty());
+    policy.apply_headers_from_origin(Some(&origin), &mut bridged);
+    let mut response = HttpResponse::new(HttpStatus::NoContent);
+    for (name, value) in bridged.headers() {
+        if let Ok(value) = value.to_str() {
+            response = response.with_header(name.as_str(), value);
+        }
+    }
+    Some(apply_security_headers(response))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

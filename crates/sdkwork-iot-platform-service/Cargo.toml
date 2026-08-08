@@ -5,9 +5,11 @@ version.workspace = true
 license.workspace = true
 
 [dependencies]
+axum.workspace = true
 serde_json = "1"
 sdkwork-aiot-app-context.workspace = true
 sdkwork-aiot-contract.workspace = true
+sdkwork-web-bootstrap.workspace = true
 sdkwork-web-core.workspace = true
 sdkwork-iot-device-service.workspace = true
 sdkwork-aiot-observability.workspace = true
