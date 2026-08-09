@@ -50,12 +50,12 @@ pub fn device_storage_ready_from_env() -> bool {
             .run(async {
                 match pool.engine() {
                     crate::DeviceDatabaseEngine::Sqlite => {
-                        sqlx::query_scalar::<_, i64>("SELECT 1")
+                        sqlx::query_scalar::<_, i64>("SELECT 1::bigint")
                             .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
                             .await
                     }
                     crate::DeviceDatabaseEngine::Postgres => {
-                        sqlx::query_scalar::<_, i64>("SELECT 1")
+                        sqlx::query_scalar::<_, i64>("SELECT 1::bigint")
                             .fetch_one(pool.postgres_pool().expect("postgres pool"))
                             .await
                     }
@@ -71,7 +71,7 @@ pub fn sqlite_path_ready(path: &str) -> bool {
     BlockingSqlitePool::connect(&url)
         .and_then(|db| {
             db.run(async {
-                sqlx::query_scalar::<_, i64>("SELECT 1")
+                sqlx::query_scalar::<_, i64>("SELECT 1::bigint")
                     .fetch_one(db.pool())
                     .await
             })
