@@ -29,34 +29,15 @@ fn combined_route_manifest() -> HttpRouteManifest {
     )
 }
 
-fn openapi_documents() -> Result<Vec<serde_json::Value>, String> {
-    [
-        (
-            "sdkwork-aiot-app-api",
-            include_str!("../../../apis/app-api/iot/sdkwork-aiot-app-api.openapi.json"),
-        ),
-        (
-            "sdkwork-aiot-backend-api",
-            include_str!("../../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json"),
-        ),
-    ]
-    .into_iter()
-    .map(|(owner, source)| {
-        serde_json::from_str(source).map_err(|error| format!("invalid {owner} OpenAPI: {error}"))
-    })
-    .collect()
-}
-
 fn contribution_from(
     router: Router,
     readiness_check: Arc<dyn ReadinessCheck>,
 ) -> Result<ApiAssembly, String> {
-    ApiAssemblyContribution::from_openapi_documents(
+    ApiAssemblyContribution::from_manifest(
         "sdkwork-aiot",
         "SDKWork AIoT API",
         router,
         combined_route_manifest(),
-        openapi_documents()?,
         vec![
             Arc::new(sdkwork_routes_iot_app_api::AiotAppContextInjector),
             Arc::new(sdkwork_routes_iot_backend_api::AiotBackendContextInjector),
