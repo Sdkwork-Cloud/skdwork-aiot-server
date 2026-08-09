@@ -2257,11 +2257,13 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "http-body-util",
+ "sdkwork-database-sqlx",
  "sdkwork-iot-platform-service",
  "sdkwork-routes-iot-app-api",
  "sdkwork-routes-iot-backend-api",
  "sdkwork-web-bootstrap",
  "sdkwork-web-core",
+ "serde_json",
  "tokio",
  "tower",
 ]

@@ -7,6 +7,10 @@ use sdkwork_web_core::{DomainContextInjector, HttpRouteManifest, WebRequestConte
 
 include!(concat!(env!("OUT_DIR"), "/iot_app_http_routes.rs"));
 
+pub fn gateway_route_manifest() -> HttpRouteManifest {
+    HttpRouteManifest::new(IOT_APP_HTTP_ROUTES)
+}
+
 pub mod http_adapter;
 pub mod routes;
 
@@ -15,7 +19,7 @@ pub fn iot_public_path_prefixes() -> Vec<String> {
 }
 
 #[derive(Clone, Default)]
-struct AiotAppContextInjector;
+pub struct AiotAppContextInjector;
 
 impl DomainContextInjector for AiotAppContextInjector {
     fn inject(&self, request: &mut axum::extract::Request, context: &WebRequestContext) {

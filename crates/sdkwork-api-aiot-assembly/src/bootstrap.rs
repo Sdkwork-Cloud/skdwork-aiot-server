@@ -1,11 +1,68 @@
 //! Gateway bootstrap for sdkwork-aiot.
+//!
+//! The assembly exports the indivisible `ApiAssemblyContribution` contract
+//! (API_ASSEMBLY_SPEC.md section 4); the platform cloud gateway composes the
+//! contribution with its process-shared PostgreSQL pool.
 
 use std::sync::Arc;
 
 use axum::Router;
+use sdkwork_database_sqlx::DatabasePool;
+use sdkwork_web_bootstrap::{
+    ApiAssemblyContribution, DatabasePoolReadinessCheck, ReadinessCheck,
+};
+use sdkwork_web_core::HttpRouteManifest;
 
-pub struct ApiAssembly {
-    pub router: Router,
+/// Indivisible host-neutral API assembly contribution (web-bootstrap contract).
+pub type ApiAssembly = ApiAssemblyContribution;
+
+fn combined_route_manifest() -> HttpRouteManifest {
+    let manifests = [
+        sdkwork_routes_iot_app_api::gateway_route_manifest(),
+        sdkwork_routes_iot_backend_api::gateway_route_manifest(),
+    ];
+    HttpRouteManifest::from_owned_routes(
+        manifests
+            .into_iter()
+            .flat_map(|manifest| manifest.routes().to_vec())
+            .collect(),
+    )
+}
+
+fn openapi_documents() -> Result<Vec<serde_json::Value>, String> {
+    [
+        (
+            "sdkwork-aiot-app-api",
+            include_str!("../../../apis/app-api/iot/sdkwork-aiot-app-api.openapi.json"),
+        ),
+        (
+            "sdkwork-aiot-backend-api",
+            include_str!("../../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json"),
+        ),
+    ]
+    .into_iter()
+    .map(|(owner, source)| {
+        serde_json::from_str(source).map_err(|error| format!("invalid {owner} OpenAPI: {error}"))
+    })
+    .collect()
+}
+
+fn contribution_from(
+    router: Router,
+    readiness_check: Arc<dyn ReadinessCheck>,
+) -> Result<ApiAssembly, String> {
+    ApiAssemblyContribution::from_openapi_documents(
+        "sdkwork-aiot",
+        "SDKWork AIoT API",
+        router,
+        combined_route_manifest(),
+        openapi_documents()?,
+        vec![
+            Arc::new(sdkwork_routes_iot_app_api::AiotAppContextInjector),
+            Arc::new(sdkwork_routes_iot_backend_api::AiotBackendContextInjector),
+        ],
+        readiness_check,
+    )
 }
 
 /// Assemble the aiot application router from environment variables.
@@ -14,6 +71,38 @@ pub struct ApiAssembly {
 /// admin API servers, and builds wrapped routers for both the app-api and
 /// backend-api surfaces.
 pub async fn assemble_api_router() -> Result<ApiAssembly, String> {
+    let (app_server, admin_server) = bootstrap_aiot_servers()?;
+
+    let app_router = sdkwork_routes_iot_app_api::build_wrapped_app_api_router(app_server).await;
+    let backend_router =
+        sdkwork_routes_iot_backend_api::build_wrapped_backend_api_router(admin_server).await;
+    let router = compose_application_router(app_router, backend_router);
+
+    contribution_from(router, Arc::new(sdkwork_web_bootstrap::AlwaysReady))
+}
+
+/// Assemble the AIoT contribution against a caller-provided database pool so the
+/// platform cloud gateway can share its process-wide PostgreSQL pool.
+pub async fn assemble_api_router_with_pool(pool: DatabasePool) -> Result<ApiAssembly, String> {
+    let (app_server, admin_server) = bootstrap_aiot_servers()?;
+
+    let app_router = sdkwork_routes_iot_app_api::gateway_mount(app_server);
+    let backend_router = sdkwork_routes_iot_backend_api::gateway_mount(admin_server);
+    let router = compose_application_router(app_router, backend_router);
+
+    contribution_from(
+        router,
+        Arc::new(DatabasePoolReadinessCheck::new(pool)),
+    )
+}
+
+fn bootstrap_aiot_servers() -> Result<
+    (
+        Arc<sdkwork_iot_platform_service::AiotApiServer>,
+        Arc<sdkwork_iot_platform_service::AiotApiServer>,
+    ),
+    String,
+> {
     sdkwork_iot_platform_service::assert_production_environment_safety();
     let app_stores =
         sdkwork_iot_platform_service::open_app_service_stores("sdkwork-api-aiot-assembly")?;
@@ -41,13 +130,7 @@ pub async fn assemble_api_router() -> Result<ApiAssembly, String> {
             .with_catalog_repository(admin_stores.catalog_repository)
             .with_firmware_repository(admin_stores.firmware_repository),
     );
-
-    let app_router = sdkwork_routes_iot_app_api::build_wrapped_app_api_router(app_server).await;
-    let backend_router =
-        sdkwork_routes_iot_backend_api::build_wrapped_backend_api_router(admin_server).await;
-    let router = compose_application_router(app_router, backend_router);
-
-    Ok(ApiAssembly { router })
+    Ok((app_server, admin_server))
 }
 
 fn compose_application_router(app_router: Router, backend_router: Router) -> Router {
