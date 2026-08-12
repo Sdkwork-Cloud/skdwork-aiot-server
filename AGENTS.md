@@ -79,6 +79,21 @@ Do not load the whole repository or every root spec before identifying the task 
 
 Language-specific specs are on-demand; do not load Rust, Java, TypeScript, and frontend specs for unrelated tasks.
 
+## Int64 Wire Contract (API_SPEC §13.6)
+
+- OpenAPI `int64` fields and parameters `MUST` be `type: string`, `format: int64`,
+  a decimal `pattern` such as `^-?[0-9]+$`, and `x-sdkwork-int64-string: true`.
+  `type: integer, format: int64` is a contract violation: generated TypeScript
+  SDKs then emit `number`, and browsers silently round ids past
+  `Number.MAX_SAFE_INTEGER` (2^53), replaying wrong ids into lookups.
+- Rust response DTOs `MUST` serialize `i64` wire fields with
+  `#[serde(with = "sdkwork_utils_rust::serde_int64")]` (or `::option`); request
+  boundaries parse inbound strings with the same helper.
+- Generated TypeScript SDKs keep `int64` as `string`; frontend code `MUST NOT`
+  convert ids/snowflake ids/sequence ids to `number` for storage, comparison,
+  or submission.
+- Verification: `node <sdkwork-specs>/tools/check-api-operation-patterns.mjs --workspace .`
+
 ## Code Style Rules
 
 Read `../sdkwork-specs/CODE_STYLE_SPEC.md` and `../sdkwork-specs/NAMING_SPEC.md` before code changes. Use `sdkwork-utils-rust` and `@sdkwork/utils` for shared utility helpers instead of duplicating string, bytes, datetime, validation, id, or crypto logic locally. For Rust, keep `src/lib.rs` limited to module declarations, re-exports, light docs, and wiring; move handlers, services, repositories, DTOs, SQL, provider clients, and tests into focused modules. Generated SDK transport output is changed only through source contracts, generator inputs, or approved composed facades.
