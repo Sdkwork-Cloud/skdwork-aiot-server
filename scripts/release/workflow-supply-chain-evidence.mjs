@@ -87,9 +87,9 @@ export function createSbomAndProvenance({ env = process.env, root = REPO_ROOT, s
         buildType: 'https://sdkwork.com/buildtypes/github-workflow/v1',
         externalParameters: { packageId: paths.packageId, runtimeTarget: required(env.SDKWORK_RUNTIME_TARGET, 'SDKWORK_RUNTIME_TARGET') },
         internalParameters: { sourceCommit },
-        resolvedDependencies: [{ uri: 'git+https://github.com/Sdkwork-Cloud/sdkwork-aiot', digest: { gitCommit: sourceCommit } }],
+        resolvedDependencies: [{ uri: 'git+https://github.com/sdkwork-ai/sdkwork-aiot', digest: { gitCommit: sourceCommit } }],
       },
-      runDetails: { builder: { id: 'https://github.com/Sdkwork-Cloud/sdkwork-github-workflow' }, metadata: { invocationId: String(env.GITHUB_RUN_ID ?? 'local-validation') } },
+      runDetails: { builder: { id: 'https://github.com/sdkwork-ai/sdkwork-github-workflow' }, metadata: { invocationId: String(env.GITHUB_RUN_ID ?? 'local-validation') } },
     },
   };
   fs.writeFileSync(paths.sbomPath, `${JSON.stringify(sbom, null, 2)}\n`);

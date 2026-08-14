@@ -3,7 +3,7 @@
   "app": {
     "id": "sdkwork-aiot",
     "name": "SDKWork AIoT",
-    "repository": "Sdkwork-Cloud/sdkwork-aiot",
+    "repository": "sdkwork-ai/sdkwork-aiot",
     "sourcePath": "."
   },
   "release": {
@@ -12,13 +12,13 @@
     "changelog": { "source": "auto", "maxCommitSubjects": 50 }
   },
   "dependencies": [
-    { "id": "sdkwork-appbase", "repository": "Sdkwork-Cloud/sdkwork-appbase", "ref": "main", "refInput": "SDKWORK_APPBASE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-web-framework", "repository": "Sdkwork-Cloud/sdkwork-web-framework", "ref": "main", "refInput": "SDKWORK_WEB_FRAMEWORK_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-database", "repository": "Sdkwork-Cloud/sdkwork-database", "ref": "main", "refInput": "SDKWORK_DATABASE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-sdk-generator", "repository": "Sdkwork-Cloud/sdkwork-sdk-generator", "ref": "main", "refInput": "SDKWORK_SDK_GENERATOR_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-app-topology", "repository": "Sdkwork-Cloud/sdkwork-app-topology", "ref": "main", "refInput": "SDKWORK_APP_TOPOLOGY_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-utils", "repository": "Sdkwork-Cloud/sdkwork-utils", "ref": "main", "refInput": "SDKWORK_UTILS_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-drive", "repository": "Sdkwork-Cloud/sdkwork-drive", "ref": "main", "refInput": "SDKWORK_DRIVE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" }
+    { "id": "sdkwork-appbase", "repository": "sdkwork-ai/sdkwork-appbase", "ref": "main", "refInput": "SDKWORK_APPBASE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
+    { "id": "sdkwork-web-framework", "repository": "sdkwork-ai/sdkwork-web-framework", "ref": "main", "refInput": "SDKWORK_WEB_FRAMEWORK_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
+    { "id": "sdkwork-database", "repository": "sdkwork-ai/sdkwork-database", "ref": "main", "refInput": "SDKWORK_DATABASE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
+    { "id": "sdkwork-sdk-generator", "repository": "sdkwork-ai/sdkwork-sdk-generator", "ref": "main", "refInput": "SDKWORK_SDK_GENERATOR_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
+    { "id": "sdkwork-app-topology", "repository": "sdkwork-ai/sdkwork-app-topology", "ref": "main", "refInput": "SDKWORK_APP_TOPOLOGY_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
+    { "id": "sdkwork-utils", "repository": "sdkwork-ai/sdkwork-utils", "ref": "main", "refInput": "SDKWORK_UTILS_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
+    { "id": "sdkwork-drive", "repository": "sdkwork-ai/sdkwork-drive", "ref": "main", "refInput": "SDKWORK_DRIVE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" }
   ],
   "toolchains": { "node": "22", "pnpm": "10.33.0", "rust": "stable" },
   "lifecycle": {
