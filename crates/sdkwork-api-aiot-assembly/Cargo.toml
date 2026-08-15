@@ -16,6 +16,7 @@ sdkwork-web-bootstrap.workspace = true
 sdkwork-web-core.workspace = true
 serde_json.workspace = true
 sdkwork-database-sqlx.workspace = true
+sdkwork-aiot-database-host.workspace = true
 sdkwork-iot-platform-service = { workspace = true }
 sdkwork-routes-iot-app-api.workspace = true
 sdkwork-routes-iot-backend-api.workspace = true

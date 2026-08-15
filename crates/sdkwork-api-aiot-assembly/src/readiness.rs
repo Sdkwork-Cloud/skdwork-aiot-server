@@ -1,6 +1,7 @@
 use sdkwork_database_sqlx::DatabasePool;
 use sdkwork_web_bootstrap::{ReadinessCheck, ReadinessFuture};
 
+/// Database-backed readiness for the AIoT standalone gateway profile.
 pub struct AiotDatabaseReadinessCheck {
     pool: DatabasePool,
 }

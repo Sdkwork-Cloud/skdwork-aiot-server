@@ -62,6 +62,27 @@ pub async fn assemble_api_router() -> Result<ApiAssembly, String> {
     contribution_from(router, Arc::new(sdkwork_web_bootstrap::AlwaysReady))
 }
 
+/// Assemble the AIoT contribution from the canonical environment profile with
+/// lifecycle-prepared AIoT database-backed readiness for the standalone gateway.
+pub async fn assemble_api_router_with_database_host() -> Result<ApiAssembly, String> {
+    let (app_server, admin_server) = bootstrap_aiot_servers()?;
+
+    let app_router = sdkwork_routes_iot_app_api::build_wrapped_app_api_router(app_server).await;
+    let backend_router =
+        sdkwork_routes_iot_backend_api::build_wrapped_backend_api_router(admin_server).await;
+    let router = compose_application_router(app_router, backend_router);
+
+    let database_host = sdkwork_aiot_database_host::bootstrap_aiot_database_from_env()
+        .await
+        .map_err(|error| format!("bootstrap AIoT database host: {error}"))?;
+    contribution_from(
+        router,
+        Arc::new(crate::readiness::AiotDatabaseReadinessCheck::new(
+            database_host.pool().clone(),
+        )),
+    )
+}
+
 /// Assemble the AIoT contribution against a caller-provided database pool so the
 /// platform cloud gateway can share its process-wide PostgreSQL pool.
 pub async fn assemble_api_router_with_pool(pool: DatabasePool) -> Result<ApiAssembly, String> {

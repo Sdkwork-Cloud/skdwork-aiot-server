@@ -2257,6 +2257,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "http-body-util",
+ "sdkwork-aiot-database-host",
  "sdkwork-database-sqlx",
  "sdkwork-iot-platform-service",
  "sdkwork-routes-iot-app-api",
@@ -2272,7 +2273,6 @@ dependencies = [
 name = "sdkwork-api-aiot-standalone-gateway"
 version = "0.1.0"
 dependencies = [
- "sdkwork-aiot-database-host",
  "sdkwork-api-aiot-assembly",
  "sdkwork-database-sqlx",
  "sdkwork-web-bootstrap",
