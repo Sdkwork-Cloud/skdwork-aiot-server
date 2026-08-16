@@ -25,7 +25,8 @@
   "exports": {
     ".": {
       "import": "./src/app.js",
-      "default": "./src/app.js"
+      "default": "./src/app.js",
+      "types": "./src/app.js"
     }
   }
 }

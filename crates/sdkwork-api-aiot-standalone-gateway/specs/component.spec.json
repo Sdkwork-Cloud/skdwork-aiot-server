@@ -59,7 +59,13 @@
     "layerRole": "runtime-gateway",
     "publicExports": [],
     "providedPorts": [],
-    "requiredPorts": [],
+    "requiredPorts": [
+      {
+        "name": "applicationApiAssembly",
+        "export": "sdkwork_api_aiot_assembly::assemble_api_router_with_database_host",
+        "provider": "sdkwork-api-aiot-assembly"
+      }
+    ],
     "runtimeEntrypoints": [
       "src/main.rs"
     ],

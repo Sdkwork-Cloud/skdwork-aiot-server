@@ -36,12 +36,6 @@ packages:
   - "../sdkwork-ui/sdkwork-ui-mobile-react"
   - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-user-center-core-pc-react"
 catalog:
-  react: ^19.2.4
-  react-dom: ^19.2.4
-  typescript: ~6.0.2
-  vite: ^8.0.3
-  "@types/react": ^19.2.14
-  "@types/react-dom": ^19.2.3
   "@monaco-editor/react": ^4.7.0
   "@playwright/test": ^1.52.0
   "@radix-ui/react-avatar": ^1.1.11
@@ -65,8 +59,9 @@ catalog:
   "@sdkwork/sdk-common": ^1.0.3
   "@tailwindcss/typography": ^0.5.19
   "@tailwindcss/vite": ^4.1.14
-  "@tauri-apps/api": ^2.10.1
-  "@tauri-apps/cli": ^2.10.1
+  "@tanstack/react-query": ^5.96.2
+  "@tauri-apps/api": ~2.11.0
+  "@tauri-apps/cli": ~2.11.0
   "@tauri-apps/plugin-clipboard-manager": ^2.3.2
   "@tauri-apps/plugin-dialog": ^2.6.0
   "@tauri-apps/plugin-fs": ^2.4.5
@@ -104,6 +99,8 @@ catalog:
   "@types/markdown-it": ^14.1.2
   "@types/node": ^25.9.2
   "@types/qrcode": ^1.5.6
+  "@types/react": ^19.2.14
+  "@types/react-dom": ^19.2.3
   "@vitejs/plugin-react": ^6.0.1
   "@xterm/addon-fit": ^0.11.0
   "@xterm/addon-image": ^0.9.0
@@ -129,6 +126,8 @@ catalog:
   motion: ^12.23.24
   postcss: ^8.5.8
   qrcode: ^1.5.4
+  react: ^19.2.4
+  react-dom: ^19.2.4
   react-hook-form: ^7.72.1
   react-i18next: ^17.0.7
   react-markdown: ^10.1.0
@@ -140,6 +139,8 @@ catalog:
   tailwindcss-animate: ^1.0.7
   tsup: ^8.5.0
   tsx: ^4.21.0
+  typescript: ~6.0.2
+  vite: ^8.0.3
   vite-plugin-dts: ^4.5.4
   vitest: ^4.1.8
   zustand: ^5.0.12

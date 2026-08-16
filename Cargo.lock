@@ -2275,6 +2275,7 @@ version = "0.1.0"
 dependencies = [
  "sdkwork-api-aiot-assembly",
  "sdkwork-database-sqlx",
+ "sdkwork-iam-web-adapter",
  "sdkwork-web-bootstrap",
  "tokio",
 ]

@@ -9,42 +9,159 @@
   "release": {
     "artifactPrefix": "sdkwork-aiot",
     "defaultVersion": "0.1.0",
-    "changelog": { "source": "auto", "maxCommitSubjects": 50 }
+    "changelog": {
+      "source": "auto",
+      "maxCommitSubjects": 50
+    }
   },
   "dependencies": [
-    { "id": "sdkwork-appbase", "repository": "sdkwork-ai/sdkwork-appbase", "ref": "main", "refInput": "SDKWORK_APPBASE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-web-framework", "repository": "sdkwork-ai/sdkwork-web-framework", "ref": "main", "refInput": "SDKWORK_WEB_FRAMEWORK_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-database", "repository": "sdkwork-ai/sdkwork-database", "ref": "main", "refInput": "SDKWORK_DATABASE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-sdk-generator", "repository": "sdkwork-ai/sdkwork-sdk-generator", "ref": "main", "refInput": "SDKWORK_SDK_GENERATOR_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-app-topology", "repository": "sdkwork-ai/sdkwork-app-topology", "ref": "main", "refInput": "SDKWORK_APP_TOPOLOGY_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-utils", "repository": "sdkwork-ai/sdkwork-utils", "ref": "main", "refInput": "SDKWORK_UTILS_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" },
-    { "id": "sdkwork-drive", "repository": "sdkwork-ai/sdkwork-drive", "ref": "main", "refInput": "SDKWORK_DRIVE_REF", "tokenSecret": "SDKWORK_RELEASE_TOKEN" }
+    {
+      "id": "sdkwork-appbase",
+      "repository": "sdkwork-ai/sdkwork-appbase",
+      "ref": "main",
+      "refInput": "SDKWORK_APPBASE_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-web-framework",
+      "repository": "sdkwork-ai/sdkwork-web-framework",
+      "ref": "main",
+      "refInput": "SDKWORK_WEB_FRAMEWORK_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-database",
+      "repository": "sdkwork-ai/sdkwork-database",
+      "ref": "main",
+      "refInput": "SDKWORK_DATABASE_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-sdk-generator",
+      "repository": "sdkwork-ai/sdkwork-sdk-generator",
+      "ref": "main",
+      "refInput": "SDKWORK_SDK_GENERATOR_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-app-topology",
+      "repository": "sdkwork-ai/sdkwork-app-topology",
+      "ref": "main",
+      "refInput": "SDKWORK_APP_TOPOLOGY_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-utils",
+      "repository": "sdkwork-ai/sdkwork-utils",
+      "ref": "main",
+      "refInput": "SDKWORK_UTILS_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-drive",
+      "repository": "sdkwork-ai/sdkwork-drive",
+      "ref": "main",
+      "refInput": "SDKWORK_DRIVE_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-agents",
+      "repository": "sdkwork-ai/sdkwork-agents",
+      "refInput": "SDKWORK_AGENTS_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-core",
+      "repository": "sdkwork-ai/sdkwork-core",
+      "refInput": "SDKWORK_CORE_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-iam",
+      "repository": "sdkwork-ai/sdkwork-iam",
+      "refInput": "SDKWORK_IAM_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-sdk-commons",
+      "repository": "sdkwork-ai/sdkwork-sdk-commons",
+      "refInput": "SDKWORK_SDK_COMMONS_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-ui",
+      "repository": "sdkwork-ai/sdkwork-ui",
+      "refInput": "SDKWORK_UI_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    },
+    {
+      "id": "sdkwork-voice",
+      "repository": "sdkwork-ai/sdkwork-voice",
+      "refInput": "SDKWORK_VOICE_REF",
+      "tokenSecret": "SDKWORK_RELEASE_TOKEN"
+    }
   ],
-  "toolchains": { "node": "22", "pnpm": "10.33.0", "rust": "stable" },
+  "toolchains": {
+    "node": "22",
+    "pnpm": "10.33.0",
+    "rust": "stable"
+  },
   "lifecycle": {
     "install": [
-      { "name": "Install frozen workspace dependencies", "shell": "pwsh", "run": "pnpm install --frozen-lockfile" }
+      {
+        "name": "Install frozen workspace dependencies",
+        "shell": "pwsh",
+        "run": "pnpm install --frozen-lockfile"
+      }
     ],
     "preflight": [
-      { "name": "Validate application lifecycle contracts", "shell": "pwsh", "run": "pnpm exec sdkwork-app doctor" }
+      {
+        "name": "Validate application lifecycle contracts",
+        "shell": "pwsh",
+        "run": "pnpm exec sdkwork-app doctor"
+      }
     ],
     "build": [
-      { "name": "Build selected AIoT target", "shell": "pwsh", "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-release-target.mjs build --package-id $env:SDKWORK_PACKAGE_ID --version $env:SDKWORK_PACKAGE_VERSION" }
+      {
+        "name": "Build selected AIoT target",
+        "shell": "pwsh",
+        "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-release-target.mjs build --package-id $env:SDKWORK_PACKAGE_ID --version $env:SDKWORK_PACKAGE_VERSION"
+      }
     ],
     "package": [
-      { "name": "Package selected AIoT target", "shell": "pwsh", "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-release-target.mjs package --package-id $env:SDKWORK_PACKAGE_ID --version $env:SDKWORK_PACKAGE_VERSION" }
+      {
+        "name": "Package selected AIoT target",
+        "shell": "pwsh",
+        "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-release-target.mjs package --package-id $env:SDKWORK_PACKAGE_ID --version $env:SDKWORK_PACKAGE_VERSION"
+      }
     ],
     "sign": [
-      { "name": "Sign AIoT artifact", "shell": "pwsh", "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-supply-chain-evidence.mjs sign" }
+      {
+        "name": "Sign AIoT artifact",
+        "shell": "pwsh",
+        "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-supply-chain-evidence.mjs sign"
+      }
     ],
     "sbom": [
-      { "name": "Generate AIoT SBOM and provenance", "shell": "pwsh", "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-supply-chain-evidence.mjs attest" }
+      {
+        "name": "Generate AIoT SBOM and provenance",
+        "shell": "pwsh",
+        "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-supply-chain-evidence.mjs attest"
+      }
     ],
     "validate": [
-      { "name": "Validate selected AIoT artifact", "shell": "pwsh", "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-release-target.mjs validate --package-id $env:SDKWORK_PACKAGE_ID --version $env:SDKWORK_PACKAGE_VERSION" }
+      {
+        "name": "Validate selected AIoT artifact",
+        "shell": "pwsh",
+        "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-release-target.mjs validate --package-id $env:SDKWORK_PACKAGE_ID --version $env:SDKWORK_PACKAGE_VERSION"
+      }
     ],
     "deploy": [
-      { "name": "Apply immutable artifact through deployctl", "shell": "pwsh", "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-deploy.mjs" }
+      {
+        "name": "Apply immutable artifact through deployctl",
+        "shell": "pwsh",
+        "run": "$ErrorActionPreference = \"Stop\"\nnode scripts/release/workflow-deploy.mjs"
+      }
     ]
   },
   "targets": [
@@ -58,9 +175,15 @@
       "profile": "browser",
       "platform": "web",
       "architecture": "universal",
-      "formats": ["zip"],
+      "formats": [
+        "zip"
+      ],
       "runner": "ubuntu-latest",
-      "outputGlobs": ["dist/release-packages/sdkwork-aiot-web-universal-cloud-browser-zip-0.1.0.zip", "dist/release-packages/sdkwork-aiot-web-universal-cloud-browser-zip-0.1.0.manifest.json", "dist/release-evidence/web-universal-cloud-browser-zip/*"],
+      "outputGlobs": [
+        "dist/release-packages/sdkwork-aiot-web-universal-cloud-browser-zip-0.1.0.zip",
+        "dist/release-packages/sdkwork-aiot-web-universal-cloud-browser-zip-0.1.0.manifest.json",
+        "dist/release-evidence/web-universal-cloud-browser-zip/*"
+      ],
       "artifactPath": "dist/release-packages/sdkwork-aiot-web-universal-cloud-browser-zip-0.1.0.zip"
     },
     {
@@ -73,9 +196,15 @@
       "profile": "mobile",
       "platform": "h5",
       "architecture": "universal",
-      "formats": ["zip"],
+      "formats": [
+        "zip"
+      ],
       "runner": "ubuntu-latest",
-      "outputGlobs": ["dist/release-packages/sdkwork-aiot-h5-universal-cloud-mobile-zip-0.1.0.zip", "dist/release-packages/sdkwork-aiot-h5-universal-cloud-mobile-zip-0.1.0.manifest.json", "dist/release-evidence/h5-universal-cloud-mobile-zip/*"],
+      "outputGlobs": [
+        "dist/release-packages/sdkwork-aiot-h5-universal-cloud-mobile-zip-0.1.0.zip",
+        "dist/release-packages/sdkwork-aiot-h5-universal-cloud-mobile-zip-0.1.0.manifest.json",
+        "dist/release-evidence/h5-universal-cloud-mobile-zip/*"
+      ],
       "artifactPath": "dist/release-packages/sdkwork-aiot-h5-universal-cloud-mobile-zip-0.1.0.zip"
     },
     {
@@ -88,9 +217,15 @@
       "profile": "mini-program",
       "platform": "mp-weixin",
       "architecture": "universal",
-      "formats": ["mini-program-package"],
+      "formats": [
+        "mini-program-package"
+      ],
       "runner": "windows-latest",
-      "outputGlobs": ["dist/release-packages/sdkwork-aiot-mp-weixin-universal-cloud-mini-program-mini-program-package-0.1.0.mini-program-package", "dist/release-packages/sdkwork-aiot-mp-weixin-universal-cloud-mini-program-mini-program-package-0.1.0.manifest.json", "dist/release-evidence/mp-weixin-universal-cloud-mini-program-mini-program-package/*"],
+      "outputGlobs": [
+        "dist/release-packages/sdkwork-aiot-mp-weixin-universal-cloud-mini-program-mini-program-package-0.1.0.mini-program-package",
+        "dist/release-packages/sdkwork-aiot-mp-weixin-universal-cloud-mini-program-mini-program-package-0.1.0.manifest.json",
+        "dist/release-evidence/mp-weixin-universal-cloud-mini-program-mini-program-package/*"
+      ],
       "artifactPath": "dist/release-packages/sdkwork-aiot-mp-weixin-universal-cloud-mini-program-mini-program-package-0.1.0.mini-program-package"
     },
     {
@@ -101,9 +236,15 @@
       "profile": "server",
       "platform": "linux",
       "architecture": "x64",
-      "formats": ["tar.gz"],
+      "formats": [
+        "tar.gz"
+      ],
       "runner": "ubuntu-latest",
-      "outputGlobs": ["dist/release-packages/sdkwork-aiot-linux-x64-standalone-server-tar-gz-0.1.0.tar.gz", "dist/release-packages/sdkwork-aiot-linux-x64-standalone-server-tar-gz-0.1.0.manifest.json", "dist/release-evidence/linux-x64-standalone-server-tar-gz/*"],
+      "outputGlobs": [
+        "dist/release-packages/sdkwork-aiot-linux-x64-standalone-server-tar-gz-0.1.0.tar.gz",
+        "dist/release-packages/sdkwork-aiot-linux-x64-standalone-server-tar-gz-0.1.0.manifest.json",
+        "dist/release-evidence/linux-x64-standalone-server-tar-gz/*"
+      ],
       "artifactPath": "dist/release-packages/sdkwork-aiot-linux-x64-standalone-server-tar-gz-0.1.0.tar.gz"
     },
     {
@@ -114,9 +255,15 @@
       "profile": "server",
       "platform": "windows",
       "architecture": "x64",
-      "formats": ["zip"],
+      "formats": [
+        "zip"
+      ],
       "runner": "windows-latest",
-      "outputGlobs": ["dist/release-packages/sdkwork-aiot-windows-x64-standalone-server-zip-0.1.0.zip", "dist/release-packages/sdkwork-aiot-windows-x64-standalone-server-zip-0.1.0.manifest.json", "dist/release-evidence/windows-x64-standalone-server-zip/*"],
+      "outputGlobs": [
+        "dist/release-packages/sdkwork-aiot-windows-x64-standalone-server-zip-0.1.0.zip",
+        "dist/release-packages/sdkwork-aiot-windows-x64-standalone-server-zip-0.1.0.manifest.json",
+        "dist/release-evidence/windows-x64-standalone-server-zip/*"
+      ],
       "artifactPath": "dist/release-packages/sdkwork-aiot-windows-x64-standalone-server-zip-0.1.0.zip"
     },
     {
@@ -128,16 +275,44 @@
       "platform": "container",
       "architecture": "x64",
       "variant": "kubernetes",
-      "formats": ["tar.gz"],
+      "formats": [
+        "tar.gz"
+      ],
       "runner": "ubuntu-latest",
-      "outputGlobs": ["dist/release-packages/sdkwork-aiot-container-x64-cloud-container-kubernetes-tar-gz-0.1.0.tar.gz", "dist/release-packages/sdkwork-aiot-container-x64-cloud-container-kubernetes-tar-gz-0.1.0.manifest.json", "dist/release-evidence/container-x64-cloud-container-kubernetes-tar-gz/*"],
+      "outputGlobs": [
+        "dist/release-packages/sdkwork-aiot-container-x64-cloud-container-kubernetes-tar-gz-0.1.0.tar.gz",
+        "dist/release-packages/sdkwork-aiot-container-x64-cloud-container-kubernetes-tar-gz-0.1.0.manifest.json",
+        "dist/release-evidence/container-x64-cloud-container-kubernetes-tar-gz/*"
+      ],
       "artifactPath": "dist/release-packages/sdkwork-aiot-container-x64-cloud-container-kubernetes-tar-gz-0.1.0.tar.gz"
     }
   ],
-  "security": { "artifactAttestations": true, "sbomRequired": true, "signingRequired": true },
-  "publish": { "workflowArtifact": true, "githubRelease": false, "retentionDays": 30 },
+  "security": {
+    "artifactAttestations": true,
+    "sbomRequired": true,
+    "signingRequired": true
+  },
+  "publish": {
+    "workflowArtifact": true,
+    "githubRelease": false,
+    "retentionDays": 30
+  },
   "deployments": [
-    { "id": "standalone-production-server", "environment": "production", "targetId": "linux-x64-standalone-server-tar-gz", "deploymentProfile": "standalone", "lifecycle": "deploy", "artifactEvidencePath": ".sdkwork/evidence/{packageId}.json" },
-    { "id": "cloud-production-kubernetes", "environment": "production", "targetId": "container-x64-cloud-container-kubernetes-tar-gz", "deploymentProfile": "cloud", "lifecycle": "deploy", "artifactEvidencePath": ".sdkwork/evidence/{packageId}.json" }
+    {
+      "id": "standalone-production-server",
+      "environment": "production",
+      "targetId": "linux-x64-standalone-server-tar-gz",
+      "deploymentProfile": "standalone",
+      "lifecycle": "deploy",
+      "artifactEvidencePath": ".sdkwork/evidence/{packageId}.json"
+    },
+    {
+      "id": "cloud-production-kubernetes",
+      "environment": "production",
+      "targetId": "container-x64-cloud-container-kubernetes-tar-gz",
+      "deploymentProfile": "cloud",
+      "lifecycle": "deploy",
+      "artifactEvidencePath": ".sdkwork/evidence/{packageId}.json"
+    }
   ]
 }

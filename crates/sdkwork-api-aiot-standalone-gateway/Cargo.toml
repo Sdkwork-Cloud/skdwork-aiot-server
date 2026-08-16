@@ -7,5 +7,6 @@ license.workspace = true
 [dependencies]
 sdkwork-api-aiot-assembly.workspace = true
 sdkwork-database-sqlx.workspace = true
+sdkwork-iam-web-adapter.workspace = true
 sdkwork-web-bootstrap.workspace = true
 tokio.workspace = true

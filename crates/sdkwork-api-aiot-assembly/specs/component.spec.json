@@ -40,7 +40,11 @@
     "publicExports": [
       "."
     ],
-    "runtimeEntrypoints": [],
+    "runtimeEntrypoints": [
+      "src/bootstrap.rs#assemble_api_router",
+      "src/bootstrap.rs#assemble_api_router_with_database_host",
+      "src/bootstrap.rs#assemble_api_router_with_pool"
+    ],
     "routeManifest": "assembly-manifest.json",
     "sdkClients": [],
     "sdkDependencies": [],
