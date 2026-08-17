@@ -32,9 +32,9 @@ packages:
   - "../sdkwork-drive/sdks/sdkwork-drive-app-sdk/sdkwork-drive-app-sdk-typescript"
   - "../sdkwork-agents/sdks/sdkwork-agents-app-sdk/sdkwork-agents-app-sdk-typescript"
   - "../sdkwork-voice/sdks/sdkwork-voice-app-sdk/sdkwork-voice-app-sdk-typescript"
-
   - "../sdkwork-ui/sdkwork-ui-mobile-react"
   - "../sdkwork-iam/apps/sdkwork-iam-pc/packages/sdkwork-user-center-core-pc-react"
+
 catalog:
   "@monaco-editor/react": ^4.7.0
   "@playwright/test": ^1.52.0

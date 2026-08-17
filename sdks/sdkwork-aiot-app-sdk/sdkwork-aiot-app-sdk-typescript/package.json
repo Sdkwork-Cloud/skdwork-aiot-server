@@ -1,6 +1,6 @@
 {
   "name": "@sdkwork/aiot-app-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SDKWork AIoT app API generated SDK boundary.",
   "type": "module",
   "private": false,
@@ -21,14 +21,14 @@
   },
   "sideEffects": false,
   "dependencies": {
-    "@sdkwork/sdk-common": "^1.0.2"
+    "@sdkwork/sdk-common": "^1.0.5"
   },
   "scripts": {
     "generate": "node ../../../scripts/strip-openapi-context-headers.mjs && node ../../../tools/run-sdkgen.mjs generate -i ../../../apis/app-api/iot/sdkwork-aiot-app-api.openapi.json -o generated/server-openapi -n sdkwork-aiot-app-sdk -t app -l typescript --package-name \"@sdkwork/aiot-app-sdk\" --api-prefix \"/app/v3/api\" --sdk-version 0.1.0 --standard-profile sdkwork-v3",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@sdkwork/sdk-generator": "^1.0.9",
+    "@sdkwork/sdk-generator": "^1.0.10",
     "typescript": "^5.8.2"
   },
   "publishConfig": {
