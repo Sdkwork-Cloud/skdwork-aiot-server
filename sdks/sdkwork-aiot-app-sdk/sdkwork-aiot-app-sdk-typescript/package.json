@@ -1,6 +1,6 @@
 {
   "name": "@sdkwork/aiot-app-sdk",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "SDKWork AIoT app API generated SDK boundary.",
   "type": "module",
   "private": false,

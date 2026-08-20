@@ -1,6 +1,6 @@
 {
   "name": "@sdkwork/aiot-backend-sdk",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "SDKWork AIoT backend API generated SDK boundary.",
   "type": "module",
   "private": false,
