@@ -12,39 +12,122 @@
   "mode": "apply",
   "hasChanges": true,
   "hasDestructiveChanges": false,
-  "changeFingerprint": "82649a9df2ac375b3488281e9fd0efea8421a0f2da332adcf3cdd606beadca3d",
+  "changeFingerprint": "96ac4c84df104c8d4b5e41d74a7f9b786bdf40ab14045b120455f82500d9aca6",
   "changeImpact": {
     "schemaVersion": 1,
     "areas": [
+      "api-surface",
+      "models",
+      "runtime",
       "build-metadata",
-      "documentation"
+      "publish-workflow",
+      "documentation",
+      "unknown"
     ],
     "details": [
+      {
+        "area": "api-surface",
+        "paths": [
+          "src/api/base.ts",
+          "src/api/index.ts",
+          "src/api/iot.ts",
+          "src/api/paths.ts",
+          "src/http/client.ts",
+          "src/sdk.ts"
+        ]
+      },
+      {
+        "area": "models",
+        "paths": [
+          "src/types/aiot-command-create-request.ts",
+          "src/types/aiot-command-response.ts",
+          "src/types/aiot-command-result.ts",
+          "src/types/aiot-command.ts",
+          "src/types/aiot-device-list-response.ts",
+          "src/types/aiot-device-response.ts",
+          "src/types/aiot-device.ts",
+          "src/types/aiot-event-list-response.ts",
+          "src/types/aiot-event.ts",
+          "src/types/aiot-twin-response.ts",
+          "src/types/common.ts",
+          "src/types/devices-retrieve-response.ts",
+          "src/types/devices-twin-retrieve-response.ts",
+          "src/types/field-error.ts",
+          "src/types/index.ts",
+          "src/types/json-value.ts",
+          "src/types/media-access.ts",
+          "src/types/media-ai-provenance.ts",
+          "src/types/media-checksum.ts",
+          "src/types/media-kind.ts",
+          "src/types/media-resource.ts",
+          "src/types/media-source.ts",
+          "src/types/page-info.ts",
+          "src/types/problem-detail.ts",
+          "src/types/sdk-work-api-response.ts",
+          "src/types/sdk-work-command-data.ts",
+          "src/types/sdk-work-command-response.ts",
+          "src/types/sdk-work-list-response.ts",
+          "src/types/sdk-work-page-data.ts",
+          "src/types/sdk-work-platform-error-code.ts",
+          "src/types/sdk-work-resource-data.ts",
+          "src/types/sdk-work-resource-response.ts"
+        ]
+      },
+      {
+        "area": "runtime",
+        "paths": [
+          "src/auth/index.ts",
+          "src/http/client.ts",
+          "src/http/index.ts"
+        ]
+      },
       {
         "area": "build-metadata",
         "paths": [
           "package.json",
-          "sdkwork-sdk.json"
+          "sdkwork-sdk.json",
+          "tsconfig.json"
+        ]
+      },
+      {
+        "area": "publish-workflow",
+        "paths": [
+          "bin/publish-core.mjs",
+          "bin/publish.ps1",
+          "bin/publish.sh",
+          "bin/sdk-gen.bat",
+          "bin/sdk-gen.sh"
         ]
       },
       {
         "area": "documentation",
         "paths": [
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "README.md"
+        ]
+      },
+      {
+        "area": "unknown",
+        "paths": [
+          "LICENSE",
+          "src/index.ts"
         ]
       }
     ],
     "requiresVerification": true,
-    "summary": "Detected impact areas: build-metadata, documentation. Verification is required."
+    "summary": "Detected impact areas: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown. Verification is required."
   },
   "executionDecision": {
     "schemaVersion": 1,
-    "riskLevel": "medium",
+    "riskLevel": "high",
     "nextAction": "verify",
     "requiresManualReview": false,
     "applyRequiresExpectedFingerprint": false,
     "summary": "Changes have been applied. Run the required verification plan now.",
     "reasons": [
+      "backed-up-generated-files",
+      "manual-review-required",
+      "unknown-impact",
       "verification-required"
     ]
   },
@@ -56,7 +139,7 @@
         "id": "verify-check",
         "title": "Unified package check",
         "required": true,
-        "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
+        "rationale": "Validate the generated package with the unified publish helper. Triggered by: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -74,7 +157,7 @@
         "id": "verify-build",
         "title": "Unified package build",
         "required": true,
-        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
+        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -93,13 +176,13 @@
   "verificationPlan": {
     "shouldRun": true,
     "runPhase": "now",
-    "summary": "Detected impact areas: build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
+    "summary": "Detected impact areas: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown. Verification is required. Run the required verification commands now against the generated SDK output.",
     "steps": [
       {
         "id": "check",
         "title": "Unified package check",
         "required": true,
-        "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
+        "rationale": "Validate the generated package with the unified publish helper. Triggered by: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -117,7 +200,7 @@
         "id": "build",
         "title": "Unified package build",
         "required": true,
-        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
+        "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown.",
         "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
         "command": "node",
         "args": [
@@ -135,7 +218,7 @@
   },
   "sdk": {
     "name": "sdkwork-aiot-app-sdk",
-    "version": "0.1.14",
+    "version": "0.1.15",
     "language": "typescript",
     "sdkType": "app",
     "protocol": "http",
@@ -143,10 +226,11 @@
     "packageName": "@sdkwork/aiot-app-sdk"
   },
   "versioning": {
-    "resolvedVersion": "0.1.14",
+    "resolvedVersion": "0.1.15",
     "localVersions": [
-      "0.1.13"
-    ]
+      "0.1.14"
+    ],
+    "publishedVersion": "0.1.2"
   },
   "stats": {
     "totalFiles": 54,
@@ -158,27 +242,25 @@
   "syncSummary": {
     "dryRun": false,
     "controlPlaneEnabled": true,
-    "writtenFiles": 3,
+    "writtenFiles": 52,
     "skippedScaffoldFiles": 2,
-    "skippedUnchangedGeneratedFiles": 49,
+    "skippedUnchangedGeneratedFiles": 0,
     "deletedGeneratedFiles": 0,
     "changeSummaryPath": ".sdkwork/sdkwork-generator-changes.json",
-    "changeFingerprint": "82649a9df2ac375b3488281e9fd0efea8421a0f2da332adcf3cdd606beadca3d",
+    "changeFingerprint": "96ac4c84df104c8d4b5e41d74a7f9b786bdf40ab14045b120455f82500d9aca6",
     "changes": {
       "createdGeneratedFiles": [],
       "updatedGeneratedFiles": [
-        "CHANGELOG.md",
-        "package.json",
-        "sdkwork-sdk.json"
-      ],
-      "unchangedGeneratedFiles": [
         "bin/publish-core.mjs",
         "bin/publish.ps1",
         "bin/publish.sh",
         "bin/sdk-gen.bat",
         "bin/sdk-gen.sh",
+        "CHANGELOG.md",
         "LICENSE",
+        "package.json",
         "README.md",
+        "sdkwork-sdk.json",
         "src/api/base.ts",
         "src/api/index.ts",
         "src/api/iot.ts",
@@ -222,48 +304,182 @@
         "src/types/sdk-work-resource-response.ts",
         "tsconfig.json"
       ],
+      "unchangedGeneratedFiles": [],
       "deletedGeneratedFiles": [],
       "scaffoldedFiles": [],
       "preservedScaffoldFiles": [
         "custom/build-runtime.mjs",
         "custom/README.md"
       ],
-      "backedUpFiles": []
+      "backedUpFiles": [
+        "bin/publish-core.mjs",
+        "bin/publish.ps1",
+        "bin/publish.sh",
+        "bin/sdk-gen.bat",
+        "bin/sdk-gen.sh",
+        "CHANGELOG.md",
+        "LICENSE",
+        "package.json",
+        "README.md",
+        "sdkwork-sdk.json",
+        "src/api/base.ts",
+        "src/api/index.ts",
+        "src/api/iot.ts",
+        "src/api/paths.ts",
+        "src/auth/index.ts",
+        "src/http/client.ts",
+        "src/http/index.ts",
+        "src/index.ts",
+        "src/sdk.ts",
+        "src/types/aiot-command-create-request.ts",
+        "src/types/aiot-command-response.ts",
+        "src/types/aiot-command-result.ts",
+        "src/types/aiot-command.ts",
+        "src/types/aiot-device-list-response.ts",
+        "src/types/aiot-device-response.ts",
+        "src/types/aiot-device.ts",
+        "src/types/aiot-event-list-response.ts",
+        "src/types/aiot-event.ts",
+        "src/types/aiot-twin-response.ts",
+        "src/types/common.ts",
+        "src/types/devices-retrieve-response.ts",
+        "src/types/devices-twin-retrieve-response.ts",
+        "src/types/field-error.ts",
+        "src/types/index.ts",
+        "src/types/json-value.ts",
+        "src/types/media-access.ts",
+        "src/types/media-ai-provenance.ts",
+        "src/types/media-checksum.ts",
+        "src/types/media-kind.ts",
+        "src/types/media-resource.ts",
+        "src/types/media-source.ts",
+        "src/types/page-info.ts",
+        "src/types/problem-detail.ts",
+        "src/types/sdk-work-api-response.ts",
+        "src/types/sdk-work-command-data.ts",
+        "src/types/sdk-work-command-response.ts",
+        "src/types/sdk-work-list-response.ts",
+        "src/types/sdk-work-page-data.ts",
+        "src/types/sdk-work-platform-error-code.ts",
+        "src/types/sdk-work-resource-data.ts",
+        "src/types/sdk-work-resource-response.ts",
+        "tsconfig.json"
+      ]
     },
     "impact": {
       "schemaVersion": 1,
       "areas": [
+        "api-surface",
+        "models",
+        "runtime",
         "build-metadata",
-        "documentation"
+        "publish-workflow",
+        "documentation",
+        "unknown"
       ],
       "details": [
+        {
+          "area": "api-surface",
+          "paths": [
+            "src/api/base.ts",
+            "src/api/index.ts",
+            "src/api/iot.ts",
+            "src/api/paths.ts",
+            "src/http/client.ts",
+            "src/sdk.ts"
+          ]
+        },
+        {
+          "area": "models",
+          "paths": [
+            "src/types/aiot-command-create-request.ts",
+            "src/types/aiot-command-response.ts",
+            "src/types/aiot-command-result.ts",
+            "src/types/aiot-command.ts",
+            "src/types/aiot-device-list-response.ts",
+            "src/types/aiot-device-response.ts",
+            "src/types/aiot-device.ts",
+            "src/types/aiot-event-list-response.ts",
+            "src/types/aiot-event.ts",
+            "src/types/aiot-twin-response.ts",
+            "src/types/common.ts",
+            "src/types/devices-retrieve-response.ts",
+            "src/types/devices-twin-retrieve-response.ts",
+            "src/types/field-error.ts",
+            "src/types/index.ts",
+            "src/types/json-value.ts",
+            "src/types/media-access.ts",
+            "src/types/media-ai-provenance.ts",
+            "src/types/media-checksum.ts",
+            "src/types/media-kind.ts",
+            "src/types/media-resource.ts",
+            "src/types/media-source.ts",
+            "src/types/page-info.ts",
+            "src/types/problem-detail.ts",
+            "src/types/sdk-work-api-response.ts",
+            "src/types/sdk-work-command-data.ts",
+            "src/types/sdk-work-command-response.ts",
+            "src/types/sdk-work-list-response.ts",
+            "src/types/sdk-work-page-data.ts",
+            "src/types/sdk-work-platform-error-code.ts",
+            "src/types/sdk-work-resource-data.ts",
+            "src/types/sdk-work-resource-response.ts"
+          ]
+        },
+        {
+          "area": "runtime",
+          "paths": [
+            "src/auth/index.ts",
+            "src/http/client.ts",
+            "src/http/index.ts"
+          ]
+        },
         {
           "area": "build-metadata",
           "paths": [
             "package.json",
-            "sdkwork-sdk.json"
+            "sdkwork-sdk.json",
+            "tsconfig.json"
+          ]
+        },
+        {
+          "area": "publish-workflow",
+          "paths": [
+            "bin/publish-core.mjs",
+            "bin/publish.ps1",
+            "bin/publish.sh",
+            "bin/sdk-gen.bat",
+            "bin/sdk-gen.sh"
           ]
         },
         {
           "area": "documentation",
           "paths": [
-            "CHANGELOG.md"
+            "CHANGELOG.md",
+            "README.md"
+          ]
+        },
+        {
+          "area": "unknown",
+          "paths": [
+            "LICENSE",
+            "src/index.ts"
           ]
         }
       ],
       "requiresVerification": true,
-      "summary": "Detected impact areas: build-metadata, documentation. Verification is required."
+      "summary": "Detected impact areas: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown. Verification is required."
     },
     "verificationPlan": {
       "shouldRun": true,
       "runPhase": "now",
-      "summary": "Detected impact areas: build-metadata, documentation. Verification is required. Run the required verification commands now against the generated SDK output.",
+      "summary": "Detected impact areas: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown. Verification is required. Run the required verification commands now against the generated SDK output.",
       "steps": [
         {
           "id": "check",
           "title": "Unified package check",
           "required": true,
-          "rationale": "Validate the generated package with the unified publish helper. Triggered by: build-metadata, documentation.",
+          "rationale": "Validate the generated package with the unified publish helper. Triggered by: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown.",
           "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
           "command": "node",
           "args": [
@@ -281,7 +497,7 @@
           "id": "build",
           "title": "Unified package build",
           "required": true,
-          "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: build-metadata, documentation.",
+          "rationale": "Run the full package build because this language uses a lighter check path than the final build. Triggered by: api-surface, models, runtime, build-metadata, publish-workflow, documentation, unknown.",
           "workingDirectory": "E:\\sdkwork-space\\sdkwork-aiot\\sdks\\sdkwork-aiot-app-sdk\\sdkwork-aiot-app-sdk-typescript\\generated\\server-openapi",
           "command": "node",
           "args": [
@@ -299,16 +515,72 @@
     },
     "executionDecision": {
       "schemaVersion": 1,
-      "riskLevel": "medium",
+      "riskLevel": "high",
       "nextAction": "verify",
       "requiresManualReview": false,
       "applyRequiresExpectedFingerprint": false,
       "summary": "Changes have been applied. Run the required verification plan now.",
       "reasons": [
+        "backed-up-generated-files",
+        "manual-review-required",
+        "unknown-impact",
         "verification-required"
       ]
     },
-    "backedUpFiles": [],
+    "backedUpFiles": [
+      "bin/publish-core.mjs",
+      "bin/publish.ps1",
+      "bin/publish.sh",
+      "bin/sdk-gen.bat",
+      "bin/sdk-gen.sh",
+      "CHANGELOG.md",
+      "LICENSE",
+      "package.json",
+      "README.md",
+      "sdkwork-sdk.json",
+      "src/api/base.ts",
+      "src/api/index.ts",
+      "src/api/iot.ts",
+      "src/api/paths.ts",
+      "src/auth/index.ts",
+      "src/http/client.ts",
+      "src/http/index.ts",
+      "src/index.ts",
+      "src/sdk.ts",
+      "src/types/aiot-command-create-request.ts",
+      "src/types/aiot-command-response.ts",
+      "src/types/aiot-command-result.ts",
+      "src/types/aiot-command.ts",
+      "src/types/aiot-device-list-response.ts",
+      "src/types/aiot-device-response.ts",
+      "src/types/aiot-device.ts",
+      "src/types/aiot-event-list-response.ts",
+      "src/types/aiot-event.ts",
+      "src/types/aiot-twin-response.ts",
+      "src/types/common.ts",
+      "src/types/devices-retrieve-response.ts",
+      "src/types/devices-twin-retrieve-response.ts",
+      "src/types/field-error.ts",
+      "src/types/index.ts",
+      "src/types/json-value.ts",
+      "src/types/media-access.ts",
+      "src/types/media-ai-provenance.ts",
+      "src/types/media-checksum.ts",
+      "src/types/media-kind.ts",
+      "src/types/media-resource.ts",
+      "src/types/media-source.ts",
+      "src/types/page-info.ts",
+      "src/types/problem-detail.ts",
+      "src/types/sdk-work-api-response.ts",
+      "src/types/sdk-work-command-data.ts",
+      "src/types/sdk-work-command-response.ts",
+      "src/types/sdk-work-list-response.ts",
+      "src/types/sdk-work-page-data.ts",
+      "src/types/sdk-work-platform-error-code.ts",
+      "src/types/sdk-work-resource-data.ts",
+      "src/types/sdk-work-resource-response.ts",
+      "tsconfig.json"
+    ],
     "preservedLegacyFiles": false
   }
 }

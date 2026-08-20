@@ -2,7 +2,7 @@ import type { AiotFirmwareRolloutResponse } from './aiot-firmware-rollout-respon
 
 export interface FirmwareRolloutsRetrieveResponse {
   code: 0;
-  data: unknown & Record<string, unknown>;
+  data: unknown & { item: AiotFirmwareRolloutResponse; };
   /** Server-owned request correlation id. */
   traceId: string;
 }

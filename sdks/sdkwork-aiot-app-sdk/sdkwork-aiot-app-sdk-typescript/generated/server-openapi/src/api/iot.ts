@@ -1,5 +1,5 @@
 import { appApiPath } from './paths';
-import type { HttpClient } from '../http/client';
+import type { ApiRequestOptions, HttpClient } from '../http/client';
 
 import type { AiotCommandCreateRequest, AiotDevice, JsonValue, SdkWorkCommandData, SdkWorkPageData } from '../types';
 
@@ -18,12 +18,12 @@ export class IotDevicesEventsApi {
 
 
 /** List device events */
-  async list(deviceId: string, params?: IotDevicesEventsListParams): Promise<SdkWorkPageData> {
+  async list(deviceId: string, params?: IotDevicesEventsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/events`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/events`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 }
 
@@ -36,8 +36,8 @@ export class IotDevicesTwinApi {
 
 
 /** Retrieve device twin */
-  async retrieve(deviceId: string): Promise<JsonValue> {
-    return this.client.get<JsonValue>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`));
+  async retrieve(deviceId: string, requestOptions?: ApiRequestOptions): Promise<JsonValue> {
+    return this.client.request<JsonValue>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 }
 
@@ -54,19 +54,19 @@ export class IotDevicesCommandsApi {
 
 
 /** Create a device command */
-  async create(deviceId: string, body: AiotCommandCreateRequest, params?: IotDevicesCommandsCreateParams): Promise<SdkWorkCommandData> {
+  async create(deviceId: string, body: AiotCommandCreateRequest, params?: IotDevicesCommandsCreateParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkCommandData> {
     const requestHeaders = buildRequestHeaders(
       {
         'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.post<SdkWorkCommandData>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands`), body, undefined, requestHeaders, 'application/json');
+    return this.client.request<SdkWorkCommandData>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', ...(requestHeaders !== undefined ? { headers: requestHeaders } : {}), sdkworkUnwrapKind: 'command' });
   }
 
 /** Retrieve device command */
-  async retrieve(deviceId: string, commandId: string): Promise<Record<string, unknown>> {
-    return this.client.get<Record<string, unknown>>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands/${serializePathParameter(commandId, { name: 'commandId', style: 'simple', explode: false })}`));
+  async retrieve(deviceId: string, commandId: string, requestOptions?: ApiRequestOptions): Promise<Record<string, unknown>> {
+    return this.client.request<Record<string, unknown>>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands/${serializePathParameter(commandId, { name: 'commandId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 }
 
@@ -90,26 +90,24 @@ export class IotDevicesApi {
 
 
 /** List user-visible AIoT devices */
-  async list(params?: IotDevicesListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotDevicesListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(appApiPath(`/iot/devices`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(appApiPath(`/iot/devices`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Retrieve one AIoT device */
-  async retrieve(deviceId: string): Promise<AiotDevice> {
-    return this.client.get<AiotDevice>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`));
+  async retrieve(deviceId: string, requestOptions?: ApiRequestOptions): Promise<AiotDevice> {
+    return this.client.request<AiotDevice>(appApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 }
 
 export class IotApi {
-  private client: HttpClient;
   public readonly devices: IotDevicesApi;
 
   constructor(client: HttpClient) {
-    this.client = client;
     this.devices = new IotDevicesApi(client);
   }
 

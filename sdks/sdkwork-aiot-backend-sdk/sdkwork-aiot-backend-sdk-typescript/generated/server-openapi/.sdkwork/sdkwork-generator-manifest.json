@@ -3,7 +3,7 @@
   "generator": "@sdkwork/sdk-generator",
   "sdk": {
     "name": "sdkwork-aiot-backend-sdk",
-    "version": "0.1.11",
+    "version": "0.1.12",
     "language": "typescript",
     "sdkType": "backend",
     "protocol": "http",
@@ -12,7 +12,7 @@
   "generatedFiles": [
     {
       "path": "bin/publish-core.mjs",
-      "sha256": "98ad0918a78bfbe22bf8f12fec709b0bed545b9e01edd40f5e4abf31a23378a5"
+      "sha256": "a47e95119bf3eafcbcb2102f7024c147f967924e4e3f343d1a29effb4b6765df"
     },
     {
       "path": "bin/publish.ps1",
@@ -32,7 +32,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "7fa0e5fad82c668b14cf1f92846b72acb131f1b30feba1de29f0df25c2346de3"
+      "sha256": "c96db22fcf26a28e14a6e07f15af2e22f165031394d11e3c08033f4dbc00f211"
     },
     {
       "path": "LICENSE",
@@ -40,19 +40,19 @@
     },
     {
       "path": "package.json",
-      "sha256": "7a2be5ab85cbfeb1c0617a8b667d82edabcb8f0977a52c6ce0ddb10a4a3705a3"
+      "sha256": "46c6e62b2226b3b7384d6a80c04dbdb28fb3f6bdb3e4e22d510c2739b6f12069"
     },
     {
       "path": "README.md",
-      "sha256": "803b3f90654034e57259020e3a75d1d0c53a3c41645896156b76db4e321d99b1"
+      "sha256": "ca11694ddb6044fd205757c3cbf20dd60e16e2dc8f1211ac76b22ce90ea38619"
     },
     {
       "path": "sdkwork-sdk.json",
-      "sha256": "3402db9df833bc1c98b86fd51f53baaa2b59cd03a4db5673fbe67c03cf6b20ee"
+      "sha256": "d834180ed873776d1f1679ef86a70c41cd9f9a5de48e1a33faa7be578b37c44f"
     },
     {
       "path": "src/api/base.ts",
-      "sha256": "02ad25e6bf331ff241ba387c2947ddf1900dd849038e08c2757416a3aa788a04"
+      "sha256": "94d136c54a008dfe7602e373a0b2c79176bbf2fc6e7c899fc23b1f12f750380f"
     },
     {
       "path": "src/api/index.ts",
@@ -60,7 +60,7 @@
     },
     {
       "path": "src/api/iot.ts",
-      "sha256": "2af476e4a9fcc0809569ce7959f3f0a44b2127f1c198d1059c8ecdea9a5db9b4"
+      "sha256": "2789e4a52b911a3132061ef286dbced270824b5bc8316a6c4446fb078e27ce58"
     },
     {
       "path": "src/api/paths.ts",
@@ -72,7 +72,7 @@
     },
     {
       "path": "src/http/client.ts",
-      "sha256": "6e389d5c14fb5845365972b6776af185d8af8eb8da7bb398e59be6c29e394ddf"
+      "sha256": "bab0f740731f04f1f6e3c591cba91b1577f0ca521054d187755f437925d3dc6d"
     },
     {
       "path": "src/http/index.ts",
@@ -220,7 +220,7 @@
     },
     {
       "path": "src/types/aiot-runtime-capacity-policy.ts",
-      "sha256": "7b9646f44792b9cfb74a8adb272493be84b551145b01cc6fa50f50800b5c1479"
+      "sha256": "1927813a438b5153c4053a14aadf13144f4bb422110c3f8a5c4121a59024ba8f"
     },
     {
       "path": "src/types/aiot-session-policy.ts",
@@ -240,15 +240,15 @@
     },
     {
       "path": "src/types/capability-models-create-response201.ts",
-      "sha256": "39a0b79f5dda7343250a7c2f3142be103cf24bc7faaa43b1e8e62f33a8f31676"
+      "sha256": "01bfbeb52c0bcdd997144e53c44a63005e451ca7dcd0af7db3e4171a53a4bbcd"
     },
     {
       "path": "src/types/capability-models-retrieve-response.ts",
-      "sha256": "967063ee2a4dfe35bd3a7321032546562bd0839da9785bbdb99bd4d6c52700a5"
+      "sha256": "6668e5d2830646148eacf1e4257843ec6b4f1eb8c22348aeaf94e939bd1037c9"
     },
     {
       "path": "src/types/capability-models-update-response.ts",
-      "sha256": "da82107074806fea96570c3f7ec25a21cd587835b5683fc3ac413da31fa43a81"
+      "sha256": "8c619dab4407e1cc75acff6307a7119ae90150dd9d5c5c3abaf3165e247bc86b"
     },
     {
       "path": "src/types/capability-protocol-mapping.ts",
@@ -260,31 +260,31 @@
     },
     {
       "path": "src/types/devices-create-response201.ts",
-      "sha256": "3e250ccadb28804db36865d9b21a7275505c5f37a4311760461a2ff3acb3a489"
+      "sha256": "5edd18517d4d58783e575218e38c4f2eb6e8186e8febf3b3527d3a4a5933e175"
     },
     {
       "path": "src/types/devices-credentials-create-response201.ts",
-      "sha256": "963631adac543af80cfe8d073328f38514c8c89a9c06cb03bef1ed73caa6017e"
+      "sha256": "d2b506ad7c71d76f9b8260bbcfdb25f8f14a44e89b29202dc081149335d512a6"
     },
     {
       "path": "src/types/devices-credentials-retrieve-response.ts",
-      "sha256": "3bd00225f49b7633e9e7d8acd22d9819e226e9daa4f75b5c06d068c166ff8788"
+      "sha256": "a71bf24af45d2c065e2eb60d83cbd9b2cb95a12b26dbf77870080b88a797155d"
     },
     {
       "path": "src/types/devices-retrieve-response.ts",
-      "sha256": "8665471e7bd3e9110cd73e16c38a3451c48b54c7b5b1b43aa9eb98138058e51b"
+      "sha256": "c0b2f30da79791f5b0171a73a5f7c0d2796ebf8f5f86bb09940a80bfdb32df85"
     },
     {
       "path": "src/types/devices-twin-retrieve-response.ts",
-      "sha256": "7ecb0fc9eb0dbaf8d86fa49f09682a55c6f83efa85daf37a3343d8e308a94225"
+      "sha256": "964f93ec939c62f013a3090c29276f703560b6f0cafc26a7112c3fad61b9d8ae"
     },
     {
       "path": "src/types/devices-twin-update-response.ts",
-      "sha256": "494129203f8d76ed42cb111c762adebafd95825da36a7471390c3db85a789cdb"
+      "sha256": "85b99d31238c2c25b9559c78b7c0bc8bb4b9279c07189caf86e93feb93f2a253"
     },
     {
       "path": "src/types/devices-update-response.ts",
-      "sha256": "215383798cbfb240bf3fb80ae2cf1dcec713959659a3b5d37661f401cb30a455"
+      "sha256": "71a76bf146933eb47d49d62d9092ddf4b3dc6bf7fd76985a5098ac52223d7670"
     },
     {
       "path": "src/types/field-error.ts",
@@ -292,43 +292,43 @@
     },
     {
       "path": "src/types/firmware-artifacts-create-response201.ts",
-      "sha256": "408a732389e6b8c196bab17cf72375dbcf7991abe4c71899d9d6c1372a13ba07"
+      "sha256": "e799e5adf1af143c0036f252fc12461aaf213f99d23de718941a306e32224e01"
     },
     {
       "path": "src/types/firmware-artifacts-retrieve-response.ts",
-      "sha256": "795fffdc5ed714b82c4de2967a9160f7ebf8e9286df5433d64444037a1d61fd2"
+      "sha256": "c8b24b113136868facd5058c65c6091ce0019324982a65121ec86ac1ca24d877"
     },
     {
       "path": "src/types/firmware-artifacts-update-response.ts",
-      "sha256": "7a2a08859806b46f80c28372ad50555b69a5d429f1486d2f9fb10eda0e0e7aad"
+      "sha256": "0c4460f61e85448d490971ea4e8438f9c9ab3b81ff69985892342215b50d83b2"
     },
     {
-      "path": "src/types/firmware-rollouts-create-response202.ts",
-      "sha256": "76633e5a4a16c2d6b10f572b985ff568d6462a7e74d3763cf7ccf276cb4aa591"
+      "path": "src/types/firmware-rollouts-create-response201.ts",
+      "sha256": "31f89326eec716dd16fae180811eba9bce7e8807aaa87c47ab29cc07fff42e19"
     },
     {
       "path": "src/types/firmware-rollouts-retrieve-response.ts",
-      "sha256": "237b5d0ba7d7cda58268c029acdab13632df55af757e3ab90a8740c6dbab096f"
+      "sha256": "e5d7102214c9feb8b70d2bb8c3f4cb3022f6517bd57dee5a53a5e465155c2816"
     },
     {
       "path": "src/types/firmware-rollouts-update-response.ts",
-      "sha256": "42e0519c643e7ccdd75727fee978fffef276cf1a9e431be175592374b759374c"
+      "sha256": "bd352da1d4db53deefeb6646568d4206b8f81a3cbafc999d3ee38b29ae8db177"
     },
     {
       "path": "src/types/hardware-profiles-create-response201.ts",
-      "sha256": "30a10d479cb5e5431fc32dfe27e0b7f83ce93b9e31ec35f4170124b4b170413c"
+      "sha256": "6d2eb09cab4a6e514325c22fea50d2b6b4b06a37247fceb501526d521d38e12f"
     },
     {
       "path": "src/types/hardware-profiles-retrieve-response.ts",
-      "sha256": "6cc3b90f0eba28c25b01a039e11eb2cde9268ccfb160b35a5660b5a0181b5f20"
+      "sha256": "a60edd50b067a546ea3674265b5282dbd46e7c8f02da3656cbd87125a1e2272d"
     },
     {
       "path": "src/types/hardware-profiles-update-response.ts",
-      "sha256": "ff1efcdcfc7ce67e9d20aa65ae091b0683c297c67ddc3d083f9530423767e173"
+      "sha256": "73aa18e445748aad2fb0f98e10ff37dd76738e5b7c6657196b7915d73fa5015e"
     },
     {
       "path": "src/types/index.ts",
-      "sha256": "a3c07e0218985bce157612ed566ed1fe2af1b747f8bf0ac85ec6470976baef60"
+      "sha256": "c0ef1d5d6c07c9ae124a6d51cc0e10fc49e7c18149e7f36687e7b942f8e3b92c"
     },
     {
       "path": "src/types/json-value.ts",
@@ -360,7 +360,7 @@
     },
     {
       "path": "src/types/page-info.ts",
-      "sha256": "c54d9ee21792708a27a50566ae36fd95246641255cbde962fd9529fd7679af14"
+      "sha256": "4103f0faa5ae9cf6fd0b0af70382347a2c3e5a0ee850937447c8e89621b59823"
     },
     {
       "path": "src/types/problem-detail.ts",
@@ -368,31 +368,31 @@
     },
     {
       "path": "src/types/products-create-response201.ts",
-      "sha256": "ea5cd77f784b02d92982c5f3a60b2abb53153a22ffd1b0a593af1fe4924f2bee"
+      "sha256": "ed5a475b36793a1f2a2290ea7b8d91b11c098125fae4bfc16ea8bbfa50222410"
     },
     {
       "path": "src/types/products-retrieve-response.ts",
-      "sha256": "748bed882a638b95988513361ea02b36639858a8cfdda1bf394e043183200c8a"
+      "sha256": "6b3f19a1676b79e759dc4c8f77b21fd013fbe26f25537c61cd01d62ef5ef0445"
     },
     {
       "path": "src/types/products-update-response.ts",
-      "sha256": "cb557bc02cac40c4782950e4378fa9318b2faaeba1d97efac834829baa47c45c"
+      "sha256": "1bf8aa6f694c3098ac31559d3e0d9d6990830df5a31d3e29590982f1dd295b47"
     },
     {
       "path": "src/types/protocol-profiles-create-response201.ts",
-      "sha256": "4214d25bd5165dd0788d9f914cd44c3003caacc16bb8d1d8501a4cc1ed5c9235"
+      "sha256": "2db0d2f205f9852d92f155a8c982bec0e81c219b39d7b3ad2acb7a3a31be0ad8"
     },
     {
       "path": "src/types/protocol-profiles-retrieve-response.ts",
-      "sha256": "e25442265db115e36ed55c9589fea599a483aca15b29cdd2647a7698488ccfb4"
+      "sha256": "ec9d0cb299601f1bccacf379ea23db43a66c850d605fd00593c8634006e16cd0"
     },
     {
       "path": "src/types/protocol-profiles-update-response.ts",
-      "sha256": "e6cce9827bf6710a61f0e8b76e071932d003e7918ae8464af41067db152baeda"
+      "sha256": "b8774f24755e1c4213c452923e0a21e6a7bd742e7aeb27c7ab17e95ca8a5d11d"
     },
     {
       "path": "src/types/runtime-capacity-retrieve-response.ts",
-      "sha256": "61ab19439803704c38dd5864ba39a06133c92dff328ffab5350e25b38b0986e3"
+      "sha256": "14b741a9b094c3da4943fa0ea45dda8cfacb19dc6583e3a81868e292cb025e5e"
     },
     {
       "path": "src/types/sdk-work-api-response.ts",

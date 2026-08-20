@@ -2,7 +2,7 @@ import type { AiotHardwareProfileResponse } from './aiot-hardware-profile-respon
 
 export interface HardwareProfilesRetrieveResponse {
   code: 0;
-  data: unknown & Record<string, unknown>;
+  data: unknown & { item: AiotHardwareProfileResponse; };
   /** Server-owned request correlation id. */
   traceId: string;
 }

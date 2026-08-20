@@ -9,7 +9,7 @@ export interface AiotRuntimeCapacityPolicy {
   sessionLeaseRenewSeconds: number;
   outboxMaxAttempts: number;
   deadLetterAfterAttempts: number;
-  backpressure: Record<string, unknown>;
+  backpressure: { warnLag: string; rejectLag: string; deadLetterLag: string; };
   orderedDeviceCommands?: boolean;
   idempotentIngest?: boolean;
 }

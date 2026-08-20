@@ -78,7 +78,7 @@ export type { DevicesTwinRetrieveResponse } from './devices-twin-retrieve-respon
 export type { FirmwareArtifactsCreateResponse201 } from './firmware-artifacts-create-response201';
 export type { FirmwareArtifactsRetrieveResponse } from './firmware-artifacts-retrieve-response';
 export type { FirmwareArtifactsUpdateResponse } from './firmware-artifacts-update-response';
-export type { FirmwareRolloutsCreateResponse202 } from './firmware-rollouts-create-response202';
+export type { FirmwareRolloutsCreateResponse201 } from './firmware-rollouts-create-response201';
 export type { FirmwareRolloutsRetrieveResponse } from './firmware-rollouts-retrieve-response';
 export type { FirmwareRolloutsUpdateResponse } from './firmware-rollouts-update-response';
 export type { RuntimeCapacityRetrieveResponse } from './runtime-capacity-retrieve-response';

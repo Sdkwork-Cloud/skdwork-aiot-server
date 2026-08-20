@@ -2,7 +2,7 @@ import type { AiotFirmwareArtifactResponse } from './aiot-firmware-artifact-resp
 
 export interface FirmwareArtifactsCreateResponse201 {
   code: 0;
-  data: unknown & Record<string, unknown>;
+  data: unknown & { item: AiotFirmwareArtifactResponse; };
   /** Server-owned request correlation id. */
   traceId: string;
 }

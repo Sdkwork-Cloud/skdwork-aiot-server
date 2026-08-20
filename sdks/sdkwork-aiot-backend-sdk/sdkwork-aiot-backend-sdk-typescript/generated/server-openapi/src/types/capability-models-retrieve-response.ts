@@ -2,7 +2,7 @@ import type { AiotCapabilityModelResponse } from './aiot-capability-model-respon
 
 export interface CapabilityModelsRetrieveResponse {
   code: 0;
-  data: unknown & Record<string, unknown>;
+  data: unknown & { item: AiotCapabilityModelResponse; };
   /** Server-owned request correlation id. */
   traceId: string;
 }

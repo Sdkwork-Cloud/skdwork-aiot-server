@@ -2,7 +2,7 @@ import type { AiotProtocolProfileResponse } from './aiot-protocol-profile-respon
 
 export interface ProtocolProfilesCreateResponse201 {
   code: 0;
-  data: unknown & Record<string, unknown>;
+  data: unknown & { item: AiotProtocolProfileResponse; };
   /** Server-owned request correlation id. */
   traceId: string;
 }

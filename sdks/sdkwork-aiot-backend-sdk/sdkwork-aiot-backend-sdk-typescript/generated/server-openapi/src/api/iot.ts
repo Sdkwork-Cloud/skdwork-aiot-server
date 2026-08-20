@@ -1,5 +1,5 @@
 import { backendApiPath } from './paths';
-import type { HttpClient } from '../http/client';
+import type { ApiRequestOptions, HttpClient } from '../http/client';
 
 import type { AiotCapabilityModelCreateRequest, AiotCapabilityModelResponse, AiotCapabilityModelUpdateRequest, AiotCredentialCreateRequest, AiotCredentialResponse, AiotDeviceCreateRequest, AiotDeviceUpdateRequest, AiotFirmwareArtifactCreateRequest, AiotFirmwareArtifactResponse, AiotFirmwareArtifactUpdateRequest, AiotFirmwareRolloutCreateRequest, AiotFirmwareRolloutResponse, AiotFirmwareRolloutUpdateRequest, AiotHardwareProfileCreateRequest, AiotHardwareProfileResponse, AiotHardwareProfileUpdateRequest, AiotProductCreateRequest, AiotProductResponse, AiotProductUpdateRequest, AiotProtocolProfileCreateRequest, AiotProtocolProfileResponse, AiotProtocolProfileUpdateRequest, AiotRuntimeCapacityPolicyResponse, AiotTwinUpdateRequest, JsonValue, SdkWorkCommandData, SdkWorkPageData } from '../types';
 
@@ -13,17 +13,15 @@ export class IotRuntimeCapacityApi {
 
 
 /** Retrieve AIoT runtime capacity and backpressure policy */
-  async retrieve(): Promise<AiotRuntimeCapacityPolicyResponse> {
-    return this.client.get<AiotRuntimeCapacityPolicyResponse>(backendApiPath(`/iot/runtime/capacity`));
+  async retrieve(requestOptions?: ApiRequestOptions): Promise<AiotRuntimeCapacityPolicyResponse> {
+    return this.client.request<AiotRuntimeCapacityPolicyResponse>(backendApiPath(`/iot/runtime/capacity`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 }
 
 export class IotRuntimeApi {
-  private client: HttpClient;
   public readonly capacity: IotRuntimeCapacityApi;
 
   constructor(client: HttpClient) {
-    this.client = client;
     this.capacity = new IotRuntimeCapacityApi(client);
   }
 
@@ -43,12 +41,12 @@ export class IotProtocolAdaptersApi {
 
 
 /** List protocol adapters */
-  async list(params?: IotProtocolAdaptersListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotProtocolAdaptersListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/protocol_adapters`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/protocol_adapters`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 }
 
@@ -66,12 +64,12 @@ export class IotEventsApi {
 
 
 /** List platform IoT events */
-  async list(params?: IotEventsListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotEventsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/events`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/events`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 }
 
@@ -93,38 +91,38 @@ export class IotFirmwareRolloutsApi {
 
 
 /** List firmware rollouts */
-  async list(params?: IotFirmwareRolloutsListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotFirmwareRolloutsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/firmware_rollouts`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/firmware_rollouts`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Create firmware rollout */
-  async create(body: AiotFirmwareRolloutCreateRequest, params?: IotFirmwareRolloutsCreateParams): Promise<AiotFirmwareRolloutResponse> {
+  async create(body: AiotFirmwareRolloutCreateRequest, params?: IotFirmwareRolloutsCreateParams, requestOptions?: ApiRequestOptions): Promise<AiotFirmwareRolloutResponse> {
     const requestHeaders = buildRequestHeaders(
       {
         'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.post<AiotFirmwareRolloutResponse>(backendApiPath(`/iot/firmware_rollouts`), body, undefined, requestHeaders, 'application/json');
+    return this.client.request<AiotFirmwareRolloutResponse>(backendApiPath(`/iot/firmware_rollouts`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', ...(requestHeaders !== undefined ? { headers: requestHeaders } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve firmware rollout */
-  async retrieve(rolloutId: string): Promise<AiotFirmwareRolloutResponse> {
-    return this.client.get<AiotFirmwareRolloutResponse>(backendApiPath(`/iot/firmware_rollouts/${serializePathParameter(rolloutId, { name: 'rolloutId', style: 'simple', explode: false })}`));
+  async retrieve(rolloutId: string, requestOptions?: ApiRequestOptions): Promise<AiotFirmwareRolloutResponse> {
+    return this.client.request<AiotFirmwareRolloutResponse>(backendApiPath(`/iot/firmware_rollouts/${serializePathParameter(rolloutId, { name: 'rolloutId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Update firmware rollout */
-  async update(rolloutId: string, body?: AiotFirmwareRolloutUpdateRequest): Promise<AiotFirmwareRolloutResponse> {
-    return this.client.put<AiotFirmwareRolloutResponse>(backendApiPath(`/iot/firmware_rollouts/${serializePathParameter(rolloutId, { name: 'rolloutId', style: 'simple', explode: false })}`), body, undefined, undefined, 'application/json');
+  async update(rolloutId: string, body?: AiotFirmwareRolloutUpdateRequest, requestOptions?: ApiRequestOptions): Promise<AiotFirmwareRolloutResponse> {
+    return this.client.request<AiotFirmwareRolloutResponse>(backendApiPath(`/iot/firmware_rollouts/${serializePathParameter(rolloutId, { name: 'rolloutId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'PUT' as any, ...(body !== undefined ? { body, contentType: 'application/json' } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Delete firmware rollout */
-  async delete(rolloutId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/firmware_rollouts/${serializePathParameter(rolloutId, { name: 'rolloutId', style: 'simple', explode: false })}`));
+  async delete(rolloutId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/firmware_rollouts/${serializePathParameter(rolloutId, { name: 'rolloutId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
@@ -146,38 +144,38 @@ export class IotFirmwareArtifactsApi {
 
 
 /** List firmware artifacts */
-  async list(params?: IotFirmwareArtifactsListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotFirmwareArtifactsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/firmware_artifacts`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/firmware_artifacts`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Create firmware artifact metadata */
-  async create(body: AiotFirmwareArtifactCreateRequest, params?: IotFirmwareArtifactsCreateParams): Promise<AiotFirmwareArtifactResponse> {
+  async create(body: AiotFirmwareArtifactCreateRequest, params?: IotFirmwareArtifactsCreateParams, requestOptions?: ApiRequestOptions): Promise<AiotFirmwareArtifactResponse> {
     const requestHeaders = buildRequestHeaders(
       {
         'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.post<AiotFirmwareArtifactResponse>(backendApiPath(`/iot/firmware_artifacts`), body, undefined, requestHeaders, 'application/json');
+    return this.client.request<AiotFirmwareArtifactResponse>(backendApiPath(`/iot/firmware_artifacts`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', ...(requestHeaders !== undefined ? { headers: requestHeaders } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve firmware artifact */
-  async retrieve(artifactId: string): Promise<AiotFirmwareArtifactResponse> {
-    return this.client.get<AiotFirmwareArtifactResponse>(backendApiPath(`/iot/firmware_artifacts/${serializePathParameter(artifactId, { name: 'artifactId', style: 'simple', explode: false })}`));
+  async retrieve(artifactId: string, requestOptions?: ApiRequestOptions): Promise<AiotFirmwareArtifactResponse> {
+    return this.client.request<AiotFirmwareArtifactResponse>(backendApiPath(`/iot/firmware_artifacts/${serializePathParameter(artifactId, { name: 'artifactId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Update firmware artifact metadata */
-  async update(artifactId: string, body?: AiotFirmwareArtifactUpdateRequest): Promise<AiotFirmwareArtifactResponse> {
-    return this.client.put<AiotFirmwareArtifactResponse>(backendApiPath(`/iot/firmware_artifacts/${serializePathParameter(artifactId, { name: 'artifactId', style: 'simple', explode: false })}`), body, undefined, undefined, 'application/json');
+  async update(artifactId: string, body?: AiotFirmwareArtifactUpdateRequest, requestOptions?: ApiRequestOptions): Promise<AiotFirmwareArtifactResponse> {
+    return this.client.request<AiotFirmwareArtifactResponse>(backendApiPath(`/iot/firmware_artifacts/${serializePathParameter(artifactId, { name: 'artifactId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'PUT' as any, ...(body !== undefined ? { body, contentType: 'application/json' } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Delete firmware artifact metadata */
-  async delete(artifactId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/firmware_artifacts/${serializePathParameter(artifactId, { name: 'artifactId', style: 'simple', explode: false })}`));
+  async delete(artifactId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/firmware_artifacts/${serializePathParameter(artifactId, { name: 'artifactId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
@@ -190,13 +188,13 @@ export class IotDevicesTwinApi {
 
 
 /** Update backend device twin */
-  async update(deviceId: string, body: AiotTwinUpdateRequest): Promise<JsonValue> {
-    return this.client.patch<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`), body, undefined, undefined, 'application/json');
+  async update(deviceId: string, body: AiotTwinUpdateRequest, requestOptions?: ApiRequestOptions): Promise<JsonValue> {
+    return this.client.request<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'PATCH' as any, body, contentType: 'application/json', sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve backend device twin */
-  async retrieve(deviceId: string): Promise<JsonValue> {
-    return this.client.get<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`));
+  async retrieve(deviceId: string, requestOptions?: ApiRequestOptions): Promise<JsonValue> {
+    return this.client.request<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/twin`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 }
 
@@ -214,22 +212,22 @@ export class IotDevicesCommandsApi {
 
 
 /** List device commands */
-  async list(deviceId: string, params?: IotDevicesCommandsListParams): Promise<SdkWorkPageData> {
+  async list(deviceId: string, params?: IotDevicesCommandsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Retrieve device command */
-  async retrieve(deviceId: string, commandId: string): Promise<Record<string, unknown>> {
-    return this.client.get<Record<string, unknown>>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands/${serializePathParameter(commandId, { name: 'commandId', style: 'simple', explode: false })}`));
+  async retrieve(deviceId: string, commandId: string, requestOptions?: ApiRequestOptions): Promise<Record<string, unknown>> {
+    return this.client.request<Record<string, unknown>>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands/${serializePathParameter(commandId, { name: 'commandId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Cancel device command */
-  async cancel(deviceId: string, commandId: string): Promise<SdkWorkCommandData> {
-    return this.client.post<SdkWorkCommandData>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands/${serializePathParameter(commandId, { name: 'commandId', style: 'simple', explode: false })}/cancel`));
+  async cancel(deviceId: string, commandId: string, requestOptions?: ApiRequestOptions): Promise<SdkWorkCommandData> {
+    return this.client.request<SdkWorkCommandData>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/commands/${serializePathParameter(commandId, { name: 'commandId', style: 'simple', explode: false })}/cancel`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, sdkworkUnwrapKind: 'command' });
   }
 }
 
@@ -247,12 +245,12 @@ export class IotDevicesCapabilitiesApi {
 
 
 /** List device capabilities */
-  async list(deviceId: string, params?: IotDevicesCapabilitiesListParams): Promise<SdkWorkPageData> {
+  async list(deviceId: string, params?: IotDevicesCapabilitiesListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/capabilities`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/capabilities`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 }
 
@@ -270,17 +268,17 @@ export class IotDevicesSessionsApi {
 
 
 /** List device sessions */
-  async list(deviceId: string, params?: IotDevicesSessionsListParams): Promise<SdkWorkPageData> {
+  async list(deviceId: string, params?: IotDevicesSessionsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/sessions`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/sessions`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Disconnect device session */
-  async disconnect(deviceId: string, sessionId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/sessions/${serializePathParameter(sessionId, { name: 'sessionId', style: 'simple', explode: false })}`));
+  async delete(deviceId: string, sessionId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/sessions/${serializePathParameter(sessionId, { name: 'sessionId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
@@ -302,33 +300,33 @@ export class IotDevicesCredentialsApi {
 
 
 /** List device credentials */
-  async list(deviceId: string, params?: IotDevicesCredentialsListParams): Promise<SdkWorkPageData> {
+  async list(deviceId: string, params?: IotDevicesCredentialsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Create device credential */
-  async create(deviceId: string, body: AiotCredentialCreateRequest, params?: IotDevicesCredentialsCreateParams): Promise<AiotCredentialResponse> {
+  async create(deviceId: string, body: AiotCredentialCreateRequest, params?: IotDevicesCredentialsCreateParams, requestOptions?: ApiRequestOptions): Promise<AiotCredentialResponse> {
     const requestHeaders = buildRequestHeaders(
       {
         'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.post<AiotCredentialResponse>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials`), body, undefined, requestHeaders, 'application/json');
+    return this.client.request<AiotCredentialResponse>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', ...(requestHeaders !== undefined ? { headers: requestHeaders } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve device credential */
-  async retrieve(deviceId: string, credentialId: string): Promise<JsonValue> {
-    return this.client.get<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials/${serializePathParameter(credentialId, { name: 'credentialId', style: 'simple', explode: false })}`));
+  async retrieve(deviceId: string, credentialId: string, requestOptions?: ApiRequestOptions): Promise<JsonValue> {
+    return this.client.request<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials/${serializePathParameter(credentialId, { name: 'credentialId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Revoke device credential */
-  async delete(deviceId: string, credentialId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials/${serializePathParameter(credentialId, { name: 'credentialId', style: 'simple', explode: false })}`));
+  async delete(deviceId: string, credentialId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}/credentials/${serializePathParameter(credentialId, { name: 'credentialId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
@@ -364,44 +362,44 @@ export class IotDevicesApi {
 
 
 /** List AIoT devices */
-  async list(params?: IotDevicesListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotDevicesListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/devices`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Create AIoT device */
-  async create(body: AiotDeviceCreateRequest, params?: IotDevicesCreateParams): Promise<JsonValue> {
+  async create(body: AiotDeviceCreateRequest, params?: IotDevicesCreateParams, requestOptions?: ApiRequestOptions): Promise<JsonValue> {
     const requestHeaders = buildRequestHeaders(
       {
         'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.post<JsonValue>(backendApiPath(`/iot/devices`), body, undefined, requestHeaders, 'application/json');
+    return this.client.request<JsonValue>(backendApiPath(`/iot/devices`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', ...(requestHeaders !== undefined ? { headers: requestHeaders } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve AIoT device */
-  async retrieve(deviceId: string): Promise<JsonValue> {
-    return this.client.get<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`));
+  async retrieve(deviceId: string, requestOptions?: ApiRequestOptions): Promise<JsonValue> {
+    return this.client.request<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Update AIoT device */
-  async update(deviceId: string, body: AiotDeviceUpdateRequest, params?: IotDevicesUpdateParams): Promise<JsonValue> {
+  async update(deviceId: string, body: AiotDeviceUpdateRequest, params?: IotDevicesUpdateParams, requestOptions?: ApiRequestOptions): Promise<JsonValue> {
     const requestHeaders = buildRequestHeaders(
       {
         'Idempotency-Key': { value: params?.idempotencyKey, style: 'simple', explode: false },
       },
       {}
     );
-    return this.client.put<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`), body, undefined, requestHeaders, 'application/json');
+    return this.client.request<JsonValue>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'PUT' as any, body, contentType: 'application/json', ...(requestHeaders !== undefined ? { headers: requestHeaders } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Delete AIoT device */
-  async delete(deviceId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`));
+  async delete(deviceId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/devices/${serializePathParameter(deviceId, { name: 'deviceId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
@@ -419,32 +417,32 @@ export class IotCapabilityModelsApi {
 
 
 /** List capability models */
-  async list(params?: IotCapabilityModelsListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotCapabilityModelsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/capability_models`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/capability_models`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Create capability model */
-  async create(body: AiotCapabilityModelCreateRequest): Promise<AiotCapabilityModelResponse> {
-    return this.client.post<AiotCapabilityModelResponse>(backendApiPath(`/iot/capability_models`), body, undefined, undefined, 'application/json');
+  async create(body: AiotCapabilityModelCreateRequest, requestOptions?: ApiRequestOptions): Promise<AiotCapabilityModelResponse> {
+    return this.client.request<AiotCapabilityModelResponse>(backendApiPath(`/iot/capability_models`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve capability model */
-  async retrieve(capabilityModelId: string): Promise<AiotCapabilityModelResponse> {
-    return this.client.get<AiotCapabilityModelResponse>(backendApiPath(`/iot/capability_models/${serializePathParameter(capabilityModelId, { name: 'capabilityModelId', style: 'simple', explode: false })}`));
+  async retrieve(capabilityModelId: string, requestOptions?: ApiRequestOptions): Promise<AiotCapabilityModelResponse> {
+    return this.client.request<AiotCapabilityModelResponse>(backendApiPath(`/iot/capability_models/${serializePathParameter(capabilityModelId, { name: 'capabilityModelId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Update capability model */
-  async update(capabilityModelId: string, body?: AiotCapabilityModelUpdateRequest): Promise<AiotCapabilityModelResponse> {
-    return this.client.put<AiotCapabilityModelResponse>(backendApiPath(`/iot/capability_models/${serializePathParameter(capabilityModelId, { name: 'capabilityModelId', style: 'simple', explode: false })}`), body, undefined, undefined, 'application/json');
+  async update(capabilityModelId: string, body?: AiotCapabilityModelUpdateRequest, requestOptions?: ApiRequestOptions): Promise<AiotCapabilityModelResponse> {
+    return this.client.request<AiotCapabilityModelResponse>(backendApiPath(`/iot/capability_models/${serializePathParameter(capabilityModelId, { name: 'capabilityModelId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'PUT' as any, ...(body !== undefined ? { body, contentType: 'application/json' } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Delete capability model */
-  async delete(capabilityModelId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/capability_models/${serializePathParameter(capabilityModelId, { name: 'capabilityModelId', style: 'simple', explode: false })}`));
+  async delete(capabilityModelId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/capability_models/${serializePathParameter(capabilityModelId, { name: 'capabilityModelId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
@@ -462,32 +460,32 @@ export class IotProtocolProfilesApi {
 
 
 /** List protocol profiles */
-  async list(params?: IotProtocolProfilesListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotProtocolProfilesListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/protocol_profiles`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/protocol_profiles`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Create protocol profile */
-  async create(body: AiotProtocolProfileCreateRequest): Promise<AiotProtocolProfileResponse> {
-    return this.client.post<AiotProtocolProfileResponse>(backendApiPath(`/iot/protocol_profiles`), body, undefined, undefined, 'application/json');
+  async create(body: AiotProtocolProfileCreateRequest, requestOptions?: ApiRequestOptions): Promise<AiotProtocolProfileResponse> {
+    return this.client.request<AiotProtocolProfileResponse>(backendApiPath(`/iot/protocol_profiles`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve protocol profile */
-  async retrieve(protocolProfileId: string): Promise<AiotProtocolProfileResponse> {
-    return this.client.get<AiotProtocolProfileResponse>(backendApiPath(`/iot/protocol_profiles/${serializePathParameter(protocolProfileId, { name: 'protocolProfileId', style: 'simple', explode: false })}`));
+  async retrieve(protocolProfileId: string, requestOptions?: ApiRequestOptions): Promise<AiotProtocolProfileResponse> {
+    return this.client.request<AiotProtocolProfileResponse>(backendApiPath(`/iot/protocol_profiles/${serializePathParameter(protocolProfileId, { name: 'protocolProfileId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Update protocol profile */
-  async update(protocolProfileId: string, body?: AiotProtocolProfileUpdateRequest): Promise<AiotProtocolProfileResponse> {
-    return this.client.put<AiotProtocolProfileResponse>(backendApiPath(`/iot/protocol_profiles/${serializePathParameter(protocolProfileId, { name: 'protocolProfileId', style: 'simple', explode: false })}`), body, undefined, undefined, 'application/json');
+  async update(protocolProfileId: string, body?: AiotProtocolProfileUpdateRequest, requestOptions?: ApiRequestOptions): Promise<AiotProtocolProfileResponse> {
+    return this.client.request<AiotProtocolProfileResponse>(backendApiPath(`/iot/protocol_profiles/${serializePathParameter(protocolProfileId, { name: 'protocolProfileId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'PUT' as any, ...(body !== undefined ? { body, contentType: 'application/json' } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Delete protocol profile */
-  async delete(protocolProfileId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/protocol_profiles/${serializePathParameter(protocolProfileId, { name: 'protocolProfileId', style: 'simple', explode: false })}`));
+  async delete(protocolProfileId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/protocol_profiles/${serializePathParameter(protocolProfileId, { name: 'protocolProfileId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
@@ -505,32 +503,32 @@ export class IotHardwareProfilesApi {
 
 
 /** List hardware profiles */
-  async list(params?: IotHardwareProfilesListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotHardwareProfilesListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/hardware_profiles`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/hardware_profiles`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Create hardware profile */
-  async create(body: AiotHardwareProfileCreateRequest): Promise<AiotHardwareProfileResponse> {
-    return this.client.post<AiotHardwareProfileResponse>(backendApiPath(`/iot/hardware_profiles`), body, undefined, undefined, 'application/json');
+  async create(body: AiotHardwareProfileCreateRequest, requestOptions?: ApiRequestOptions): Promise<AiotHardwareProfileResponse> {
+    return this.client.request<AiotHardwareProfileResponse>(backendApiPath(`/iot/hardware_profiles`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve hardware profile */
-  async retrieve(hardwareProfileId: string): Promise<AiotHardwareProfileResponse> {
-    return this.client.get<AiotHardwareProfileResponse>(backendApiPath(`/iot/hardware_profiles/${serializePathParameter(hardwareProfileId, { name: 'hardwareProfileId', style: 'simple', explode: false })}`));
+  async retrieve(hardwareProfileId: string, requestOptions?: ApiRequestOptions): Promise<AiotHardwareProfileResponse> {
+    return this.client.request<AiotHardwareProfileResponse>(backendApiPath(`/iot/hardware_profiles/${serializePathParameter(hardwareProfileId, { name: 'hardwareProfileId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Update hardware profile */
-  async update(hardwareProfileId: string, body?: AiotHardwareProfileUpdateRequest): Promise<AiotHardwareProfileResponse> {
-    return this.client.put<AiotHardwareProfileResponse>(backendApiPath(`/iot/hardware_profiles/${serializePathParameter(hardwareProfileId, { name: 'hardwareProfileId', style: 'simple', explode: false })}`), body, undefined, undefined, 'application/json');
+  async update(hardwareProfileId: string, body?: AiotHardwareProfileUpdateRequest, requestOptions?: ApiRequestOptions): Promise<AiotHardwareProfileResponse> {
+    return this.client.request<AiotHardwareProfileResponse>(backendApiPath(`/iot/hardware_profiles/${serializePathParameter(hardwareProfileId, { name: 'hardwareProfileId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'PUT' as any, ...(body !== undefined ? { body, contentType: 'application/json' } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Delete hardware profile */
-  async delete(hardwareProfileId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/hardware_profiles/${serializePathParameter(hardwareProfileId, { name: 'hardwareProfileId', style: 'simple', explode: false })}`));
+  async delete(hardwareProfileId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/hardware_profiles/${serializePathParameter(hardwareProfileId, { name: 'hardwareProfileId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
@@ -548,37 +546,36 @@ export class IotProductsApi {
 
 
 /** List AIoT products */
-  async list(params?: IotProductsListParams): Promise<SdkWorkPageData> {
+  async list(params?: IotProductsListParams, requestOptions?: ApiRequestOptions): Promise<SdkWorkPageData> {
     const query = buildQueryString([
       { name: 'page', value: params?.page, style: 'form', explode: true, allowReserved: false },
       { name: 'page_size', value: params?.pageSize, style: 'form', explode: true, allowReserved: false },
     ]);
-    return this.client.get<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/products`), query));
+    return this.client.request<SdkWorkPageData>(appendQueryString(backendApiPath(`/iot/products`), query), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'page' });
   }
 
 /** Create AIoT product */
-  async create(body: AiotProductCreateRequest): Promise<AiotProductResponse> {
-    return this.client.post<AiotProductResponse>(backendApiPath(`/iot/products`), body, undefined, undefined, 'application/json');
+  async create(body: AiotProductCreateRequest, requestOptions?: ApiRequestOptions): Promise<AiotProductResponse> {
+    return this.client.request<AiotProductResponse>(backendApiPath(`/iot/products`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'POST' as any, body, contentType: 'application/json', sdkworkUnwrapKind: 'item' });
   }
 
 /** Retrieve AIoT product */
-  async retrieve(productId: string): Promise<AiotProductResponse> {
-    return this.client.get<AiotProductResponse>(backendApiPath(`/iot/products/${serializePathParameter(productId, { name: 'productId', style: 'simple', explode: false })}`));
+  async retrieve(productId: string, requestOptions?: ApiRequestOptions): Promise<AiotProductResponse> {
+    return this.client.request<AiotProductResponse>(backendApiPath(`/iot/products/${serializePathParameter(productId, { name: 'productId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'GET' as any, sdkworkUnwrapKind: 'item' });
   }
 
 /** Update AIoT product */
-  async update(productId: string, body?: AiotProductUpdateRequest): Promise<AiotProductResponse> {
-    return this.client.put<AiotProductResponse>(backendApiPath(`/iot/products/${serializePathParameter(productId, { name: 'productId', style: 'simple', explode: false })}`), body, undefined, undefined, 'application/json');
+  async update(productId: string, body?: AiotProductUpdateRequest, requestOptions?: ApiRequestOptions): Promise<AiotProductResponse> {
+    return this.client.request<AiotProductResponse>(backendApiPath(`/iot/products/${serializePathParameter(productId, { name: 'productId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'PUT' as any, ...(body !== undefined ? { body, contentType: 'application/json' } : {}), sdkworkUnwrapKind: 'item' });
   }
 
 /** Delete AIoT product */
-  async delete(productId: string): Promise<void> {
-    return this.client.delete<void>(backendApiPath(`/iot/products/${serializePathParameter(productId, { name: 'productId', style: 'simple', explode: false })}`));
+  async delete(productId: string, requestOptions?: ApiRequestOptions): Promise<void> {
+    return this.client.request<void>(backendApiPath(`/iot/products/${serializePathParameter(productId, { name: 'productId', style: 'simple', explode: false })}`), { ...(requestOptions?.signal !== undefined ? { signal: requestOptions.signal } : {}), ...(requestOptions?.timeout !== undefined ? { timeout: requestOptions.timeout } : {}), method: 'DELETE' as any });
   }
 }
 
 export class IotApi {
-  private client: HttpClient;
   public readonly products: IotProductsApi;
   public readonly hardwareProfiles: IotHardwareProfilesApi;
   public readonly protocolProfiles: IotProtocolProfilesApi;
@@ -591,7 +588,6 @@ export class IotApi {
   public readonly runtime: IotRuntimeApi;
 
   constructor(client: HttpClient) {
-    this.client = client;
     this.products = new IotProductsApi(client);
     this.hardwareProfiles = new IotHardwareProfilesApi(client);
     this.protocolProfiles = new IotProtocolProfilesApi(client);

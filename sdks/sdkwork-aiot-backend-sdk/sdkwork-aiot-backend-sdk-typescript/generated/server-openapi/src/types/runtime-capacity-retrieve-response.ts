@@ -2,7 +2,7 @@ import type { AiotRuntimeCapacityPolicyResponse } from './aiot-runtime-capacity-
 
 export interface RuntimeCapacityRetrieveResponse {
   code: 0;
-  data: unknown & Record<string, unknown>;
+  data: unknown & { item: AiotRuntimeCapacityPolicyResponse; };
   /** Server-owned request correlation id. */
   traceId: string;
 }
