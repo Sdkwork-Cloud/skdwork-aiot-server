@@ -14,9 +14,30 @@
     }
   },
   "profiles": {
-    "standalone.development": { "config": "topology/standalone.development.env" },
-    "cloud.development": { "config": "topology/cloud.development.env" },
-    "standalone.production": { "config": "topology/standalone.production.env" },
-    "cloud.production": { "config": "topology/cloud.production.env" }
-  }
+    "standalone.development": {
+      "config": "topology/standalone.development.env"
+    },
+    "cloud.development": {
+      "config": "topology/cloud.development.env"
+    },
+    "standalone.production": {
+      "config": "topology/standalone.production.env"
+    },
+    "cloud.production": {
+      "config": "topology/cloud.production.env"
+    },
+    "standalone.test": {
+      "config": "topology/standalone.test.env"
+    },
+    "standalone.staging": {
+      "config": "topology/standalone.staging.env"
+    },
+    "cloud.test": {
+      "config": "topology/cloud.test.env"
+    },
+    "cloud.staging": {
+      "config": "topology/cloud.staging.env"
+    }
+  },
+  "topology": "../specs/topology.spec.json"
 }

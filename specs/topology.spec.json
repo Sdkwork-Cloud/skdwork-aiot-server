@@ -10,6 +10,8 @@
     "environment": {
       "allowed": [
         "development",
+        "test",
+        "staging",
         "production"
       ]
     },
@@ -37,7 +39,11 @@
     "standalone.development": "etc/topology/standalone.development.env",
     "cloud.development": "etc/topology/cloud.development.env",
     "standalone.production": "etc/topology/standalone.production.env",
-    "cloud.production": "etc/topology/cloud.production.env"
+    "cloud.production": "etc/topology/cloud.production.env",
+    "standalone.test": "etc/topology/standalone.test.env",
+    "standalone.staging": "etc/topology/standalone.staging.env",
+    "cloud.test": "etc/topology/cloud.test.env",
+    "cloud.staging": "etc/topology/cloud.staging.env"
   },
   "envKeys": {
     "environment": "SDKWORK_AIOT_ENVIRONMENT",
@@ -156,28 +162,18 @@
             "decisionRef": "docs/architecture/decisions/ADR-20260720-edge-split-cloud-ingress.md"
           },
           {
-            "id": "aiot-pc-web",
-            "script": "_sdkwork:client:browser:standalone",
-            "required": true,
+            "id": "aiot-browser",
             "role": "client",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "bindEnv": "SDKWORK_AIOT_WEB_DEV_INGRESS_BIND",
             "runtimeTargets": [
               "browser"
             ],
             "clientArchitectures": [
-              "pc-web"
-            ]
-          },
-          {
-            "id": "aiot-h5",
-            "script": "_sdkwork:client:h5:standalone",
-            "required": true,
-            "role": "client",
-            "runtimeTargets": [
-              "browser"
-            ],
-            "clientArchitectures": [
+              "pc-web",
               "h5"
-            ]
+            ],
+            "required": true
           },
           {
             "id": "aiot-mini-program",
@@ -195,33 +191,77 @@
         "healthSurfaces": [
           "application.public-ingress",
           "edge.device-ingress"
+        ],
+        "browserDeliveries": [
+          {
+            "id": "aiot-adaptive-web",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "clientArchitectures": [
+              "pc-web",
+              "h5"
+            ],
+            "originMode": "same-origin",
+            "deliveryMode": "dev-server-proxy",
+            "clientProcessId": "aiot-browser",
+            "apiSurfaceId": "application.public-ingress",
+            "preserveCanonicalPaths": true,
+            "tabletArchitecture": "pc-web",
+            "renderers": {
+              "pc-web": {
+                "applicationRoot": "apps/sdkwork-aiot-pc",
+                "command": "pnpm",
+                "args": [
+                  "exec",
+                  "vite",
+                  "--host",
+                  "{host}",
+                  "--port",
+                  "{port}",
+                  "--strictPort"
+                ],
+                "defaultPort": 5175,
+                "portEnv": "SDKWORK_AIOT_PC_INTERNAL_DEV_PORT",
+                "env": {
+                  "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL": "{httpOrigin}"
+                }
+              },
+              "h5": {
+                "applicationRoot": "apps/sdkwork-aiot-h5",
+                "command": "pnpm",
+                "args": [
+                  "exec",
+                  "vite",
+                  "--host",
+                  "{host}",
+                  "--port",
+                  "{port}",
+                  "--strictPort"
+                ],
+                "defaultPort": 5176,
+                "portEnv": "SDKWORK_AIOT_H5_INTERNAL_DEV_PORT",
+                "env": {
+                  "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL": "{httpOrigin}"
+                }
+              }
+            }
+          }
         ]
       },
       "cloud.development": {
         "processes": [
           {
-            "id": "aiot-pc-web",
-            "script": "_sdkwork:client:browser:cloud",
-            "required": true,
+            "id": "aiot-browser",
             "role": "client",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "bindEnv": "SDKWORK_AIOT_WEB_DEV_INGRESS_BIND",
             "runtimeTargets": [
               "browser"
             ],
             "clientArchitectures": [
-              "pc-web"
-            ]
-          },
-          {
-            "id": "aiot-h5",
-            "script": "_sdkwork:client:h5:cloud",
-            "required": true,
-            "role": "client",
-            "runtimeTargets": [
-              "browser"
-            ],
-            "clientArchitectures": [
+              "pc-web",
               "h5"
-            ]
+            ],
+            "required": true
           },
           {
             "id": "aiot-mini-program",
@@ -240,6 +280,60 @@
           "application.public-ingress",
           "platform.api-gateway",
           "edge.device-ingress"
+        ],
+        "browserDeliveries": [
+          {
+            "id": "aiot-adaptive-web",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "clientArchitectures": [
+              "pc-web",
+              "h5"
+            ],
+            "originMode": "same-origin",
+            "deliveryMode": "dev-server-proxy",
+            "clientProcessId": "aiot-browser",
+            "apiSurfaceId": "application.public-ingress",
+            "preserveCanonicalPaths": true,
+            "tabletArchitecture": "pc-web",
+            "renderers": {
+              "pc-web": {
+                "applicationRoot": "apps/sdkwork-aiot-pc",
+                "command": "pnpm",
+                "args": [
+                  "exec",
+                  "vite",
+                  "--host",
+                  "{host}",
+                  "--port",
+                  "{port}",
+                  "--strictPort"
+                ],
+                "defaultPort": 5175,
+                "portEnv": "SDKWORK_AIOT_PC_INTERNAL_DEV_PORT",
+                "env": {
+                  "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL": "{httpOrigin}"
+                }
+              },
+              "h5": {
+                "applicationRoot": "apps/sdkwork-aiot-h5",
+                "command": "pnpm",
+                "args": [
+                  "exec",
+                  "vite",
+                  "--host",
+                  "{host}",
+                  "--port",
+                  "{port}",
+                  "--strictPort"
+                ],
+                "defaultPort": 5176,
+                "portEnv": "SDKWORK_AIOT_H5_INTERNAL_DEV_PORT",
+                "env": {
+                  "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL": "{httpOrigin}"
+                }
+              }
+            }
+          }
         ]
       },
       "cloud.production": {
@@ -247,6 +341,204 @@
         "healthSurfaces": []
       },
       "standalone.production": {
+        "processes": [],
+        "healthSurfaces": []
+      },
+      "standalone.test": {
+        "processes": [
+          {
+            "id": "application.public-ingress",
+            "script": "_sdkwork:gateway:standalone",
+            "required": true,
+            "role": "api-standalone-gateway"
+          },
+          {
+            "id": "edge.device-ingress",
+            "script": "_sdkwork:runtime:device-edge",
+            "required": true,
+            "role": "edge-runtime",
+            "decisionRef": "docs/architecture/decisions/ADR-20260720-edge-split-cloud-ingress.md"
+          },
+          {
+            "id": "aiot-browser",
+            "role": "client",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "bindEnv": "SDKWORK_AIOT_WEB_DEV_INGRESS_BIND",
+            "runtimeTargets": [
+              "browser"
+            ],
+            "clientArchitectures": [
+              "pc-web",
+              "h5"
+            ],
+            "required": true
+          },
+          {
+            "id": "aiot-mini-program",
+            "script": "_sdkwork:client:mini-program:standalone",
+            "required": true,
+            "role": "client",
+            "runtimeTargets": [
+              "mini-program"
+            ],
+            "clientArchitectures": [
+              "mini-program"
+            ]
+          }
+        ],
+        "healthSurfaces": [
+          "application.public-ingress",
+          "edge.device-ingress"
+        ],
+        "browserDeliveries": [
+          {
+            "id": "aiot-adaptive-web",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "clientArchitectures": [
+              "pc-web",
+              "h5"
+            ],
+            "originMode": "same-origin",
+            "deliveryMode": "dev-server-proxy",
+            "clientProcessId": "aiot-browser",
+            "apiSurfaceId": "application.public-ingress",
+            "preserveCanonicalPaths": true,
+            "tabletArchitecture": "pc-web",
+            "renderers": {
+              "pc-web": {
+                "applicationRoot": "apps/sdkwork-aiot-pc",
+                "command": "pnpm",
+                "args": [
+                  "exec",
+                  "vite",
+                  "--host",
+                  "{host}",
+                  "--port",
+                  "{port}",
+                  "--strictPort"
+                ],
+                "defaultPort": 5175,
+                "portEnv": "SDKWORK_AIOT_PC_INTERNAL_DEV_PORT",
+                "env": {
+                  "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL": "{httpOrigin}"
+                }
+              },
+              "h5": {
+                "applicationRoot": "apps/sdkwork-aiot-h5",
+                "command": "pnpm",
+                "args": [
+                  "exec",
+                  "vite",
+                  "--host",
+                  "{host}",
+                  "--port",
+                  "{port}",
+                  "--strictPort"
+                ],
+                "defaultPort": 5176,
+                "portEnv": "SDKWORK_AIOT_H5_INTERNAL_DEV_PORT",
+                "env": {
+                  "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL": "{httpOrigin}"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "standalone.staging": {
+        "processes": [],
+        "healthSurfaces": []
+      },
+      "cloud.test": {
+        "processes": [
+          {
+            "id": "aiot-browser",
+            "role": "client",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "bindEnv": "SDKWORK_AIOT_WEB_DEV_INGRESS_BIND",
+            "runtimeTargets": [
+              "browser"
+            ],
+            "clientArchitectures": [
+              "pc-web",
+              "h5"
+            ],
+            "required": true
+          },
+          {
+            "id": "aiot-mini-program",
+            "script": "_sdkwork:client:mini-program:cloud",
+            "required": true,
+            "role": "client",
+            "runtimeTargets": [
+              "mini-program"
+            ],
+            "clientArchitectures": [
+              "mini-program"
+            ]
+          }
+        ],
+        "healthSurfaces": [
+          "application.public-ingress",
+          "platform.api-gateway",
+          "edge.device-ingress"
+        ],
+        "browserDeliveries": [
+          {
+            "id": "aiot-adaptive-web",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "clientArchitectures": [
+              "pc-web",
+              "h5"
+            ],
+            "originMode": "same-origin",
+            "deliveryMode": "dev-server-proxy",
+            "clientProcessId": "aiot-browser",
+            "apiSurfaceId": "application.public-ingress",
+            "preserveCanonicalPaths": true,
+            "tabletArchitecture": "pc-web",
+            "renderers": {
+              "pc-web": {
+                "applicationRoot": "apps/sdkwork-aiot-pc",
+                "command": "pnpm",
+                "args": [
+                  "exec",
+                  "vite",
+                  "--host",
+                  "{host}",
+                  "--port",
+                  "{port}",
+                  "--strictPort"
+                ],
+                "defaultPort": 5175,
+                "portEnv": "SDKWORK_AIOT_PC_INTERNAL_DEV_PORT",
+                "env": {
+                  "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL": "{httpOrigin}"
+                }
+              },
+              "h5": {
+                "applicationRoot": "apps/sdkwork-aiot-h5",
+                "command": "pnpm",
+                "args": [
+                  "exec",
+                  "vite",
+                  "--host",
+                  "{host}",
+                  "--port",
+                  "{port}",
+                  "--strictPort"
+                ],
+                "defaultPort": 5176,
+                "portEnv": "SDKWORK_AIOT_H5_INTERNAL_DEV_PORT",
+                "env": {
+                  "VITE_SDKWORK_AIOT_APPLICATION_PUBLIC_HTTP_URL": "{httpOrigin}"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "cloud.staging": {
         "processes": [],
         "healthSurfaces": []
       }
