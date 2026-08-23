@@ -104,19 +104,222 @@
   },
   "cloudPublicHosts": {
     "application.app-http": {
-      "httpHost": "api.sdkwork.com"
+      "httpHost": "aiot-app.sdkwork.com",
+      "environments": {
+        "development": {
+          "httpHosts": [
+            "aiot-app-dev.sdkwork.com",
+            "aiot-app-dev.birdcoder.com",
+            "aiot-app-dev.dtupay.com",
+            "aiot-app-dev.sdkwork.cn",
+            "aiot-app-dev.birdcoder.cn",
+            "aiot-app-dev.dtupay.cn"
+          ]
+        },
+        "test": {
+          "httpHosts": [
+            "aiot-app-test.sdkwork.com",
+            "aiot-app-test.birdcoder.com",
+            "aiot-app-test.dtupay.com",
+            "aiot-app-test.sdkwork.cn",
+            "aiot-app-test.birdcoder.cn",
+            "aiot-app-test.dtupay.cn"
+          ]
+        },
+        "staging": {
+          "httpHosts": [
+            "aiot-app-staging.sdkwork.com",
+            "aiot-app-staging.birdcoder.com",
+            "aiot-app-staging.dtupay.com",
+            "aiot-app-staging.sdkwork.cn",
+            "aiot-app-staging.birdcoder.cn",
+            "aiot-app-staging.dtupay.cn"
+          ]
+        }
+      },
+      "httpHosts": [
+        "aiot-app.sdkwork.com",
+        "aiot-app.birdcoder.com",
+        "aiot-app.dtupay.com",
+        "aiot-app.sdkwork.cn",
+        "aiot-app.birdcoder.cn",
+        "aiot-app.dtupay.cn"
+      ]
     },
     "application.admin-http": {
-      "httpHost": "api.sdkwork.com"
+      "httpHost": "aiot-admin.sdkwork.com",
+      "environments": {
+        "development": {
+          "httpHosts": [
+            "aiot-admin-dev.sdkwork.com",
+            "aiot-admin-dev.birdcoder.com",
+            "aiot-admin-dev.dtupay.com",
+            "aiot-admin-dev.sdkwork.cn",
+            "aiot-admin-dev.birdcoder.cn",
+            "aiot-admin-dev.dtupay.cn"
+          ]
+        },
+        "test": {
+          "httpHosts": [
+            "aiot-admin-test.sdkwork.com",
+            "aiot-admin-test.birdcoder.com",
+            "aiot-admin-test.dtupay.com",
+            "aiot-admin-test.sdkwork.cn",
+            "aiot-admin-test.birdcoder.cn",
+            "aiot-admin-test.dtupay.cn"
+          ]
+        },
+        "staging": {
+          "httpHosts": [
+            "aiot-admin-staging.sdkwork.com",
+            "aiot-admin-staging.birdcoder.com",
+            "aiot-admin-staging.dtupay.com",
+            "aiot-admin-staging.sdkwork.cn",
+            "aiot-admin-staging.birdcoder.cn",
+            "aiot-admin-staging.dtupay.cn"
+          ]
+        }
+      },
+      "httpHosts": [
+        "aiot-admin.sdkwork.com",
+        "aiot-admin.birdcoder.com",
+        "aiot-admin.dtupay.com",
+        "aiot-admin.sdkwork.cn",
+        "aiot-admin.birdcoder.cn",
+        "aiot-admin.dtupay.cn"
+      ]
     },
     "edge.device-ingress": {
-      "httpHost": "edge.aiot.sdkwork.com"
+      "httpHost": "edge.aiot.sdkwork.com",
+      "environments": {
+        "development": {
+          "httpHosts": [
+            "edge.aiot-dev.sdkwork.com",
+            "edge.aiot-dev.birdcoder.com",
+            "edge.aiot-dev.dtupay.com",
+            "edge.aiot-dev.sdkwork.cn",
+            "edge.aiot-dev.birdcoder.cn",
+            "edge.aiot-dev.dtupay.cn",
+            "edge-dev.aiot.sdkwork.com"
+          ]
+        },
+        "test": {
+          "httpHosts": [
+            "edge.aiot-test.sdkwork.com",
+            "edge.aiot-test.birdcoder.com",
+            "edge.aiot-test.dtupay.com",
+            "edge.aiot-test.sdkwork.cn",
+            "edge.aiot-test.birdcoder.cn",
+            "edge.aiot-test.dtupay.cn",
+            "edge-test.aiot.sdkwork.com"
+          ]
+        },
+        "staging": {
+          "httpHosts": [
+            "edge.aiot-staging.sdkwork.com",
+            "edge.aiot-staging.birdcoder.com",
+            "edge.aiot-staging.dtupay.com",
+            "edge.aiot-staging.sdkwork.cn",
+            "edge.aiot-staging.birdcoder.cn",
+            "edge.aiot-staging.dtupay.cn",
+            "edge-staging.aiot.sdkwork.com"
+          ]
+        }
+      },
+      "httpHosts": [
+        "edge.aiot.sdkwork.com",
+        "edge.aiot.birdcoder.com",
+        "edge.aiot.dtupay.com",
+        "edge.aiot.sdkwork.cn",
+        "edge.aiot.birdcoder.cn",
+        "edge.aiot.dtupay.cn"
+      ]
     },
     "platform.api-gateway": {
-      "httpHost": "api.sdkwork.com"
+      "httpHost": "api.sdkwork.com",
+      "environments": {
+        "development": {
+          "httpHosts": [
+            "api-dev.sdkwork.com",
+            "api-dev.birdcoder.com",
+            "api-dev.dtupay.com",
+            "api-dev.sdkwork.cn",
+            "api-dev.birdcoder.cn",
+            "api-dev.dtupay.cn"
+          ]
+        },
+        "test": {
+          "httpHosts": [
+            "api-test.sdkwork.com",
+            "api-test.birdcoder.com",
+            "api-test.dtupay.com",
+            "api-test.sdkwork.cn",
+            "api-test.birdcoder.cn",
+            "api-test.dtupay.cn"
+          ]
+        },
+        "staging": {
+          "httpHosts": [
+            "api-staging.sdkwork.com",
+            "api-staging.birdcoder.com",
+            "api-staging.dtupay.com",
+            "api-staging.sdkwork.cn",
+            "api-staging.birdcoder.cn",
+            "api-staging.dtupay.cn"
+          ]
+        }
+      },
+      "httpHosts": [
+        "api.sdkwork.com",
+        "api.birdcoder.com",
+        "api.dtupay.com",
+        "api.sdkwork.cn",
+        "api.birdcoder.cn",
+        "api.dtupay.cn"
+      ]
     },
     "application.public-ingress": {
-      "httpHost": "api.sdkwork.com"
+      "httpHost": "aiot.sdkwork.com",
+      "environments": {
+        "development": {
+          "httpHosts": [
+            "aiot-dev.sdkwork.com",
+            "aiot-dev.birdcoder.com",
+            "aiot-dev.dtupay.com",
+            "aiot-dev.sdkwork.cn",
+            "aiot-dev.birdcoder.cn",
+            "aiot-dev.dtupay.cn"
+          ]
+        },
+        "test": {
+          "httpHosts": [
+            "aiot-test.sdkwork.com",
+            "aiot-test.birdcoder.com",
+            "aiot-test.dtupay.com",
+            "aiot-test.sdkwork.cn",
+            "aiot-test.birdcoder.cn",
+            "aiot-test.dtupay.cn"
+          ]
+        },
+        "staging": {
+          "httpHosts": [
+            "aiot-staging.sdkwork.com",
+            "aiot-staging.birdcoder.com",
+            "aiot-staging.dtupay.com",
+            "aiot-staging.sdkwork.cn",
+            "aiot-staging.birdcoder.cn",
+            "aiot-staging.dtupay.cn"
+          ]
+        }
+      },
+      "httpHosts": [
+        "aiot.sdkwork.com",
+        "aiot.birdcoder.com",
+        "aiot.dtupay.com",
+        "aiot.sdkwork.cn",
+        "aiot.birdcoder.cn",
+        "aiot.dtupay.cn"
+      ]
     }
   },
   "intelligence": {
