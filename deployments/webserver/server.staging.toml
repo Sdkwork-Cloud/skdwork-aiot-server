@@ -2,59 +2,8 @@ environment = "staging"
 
 [http]
 
-[http.certificates]
-
-[http.certificates."sdkwork.com"]
-certFile = "/opt/certs/letsencrypt/live/sdkwork.com/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/sdkwork.com/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/sdkwork.com/chain.pem"
-ocspStapling = true
-
-[http.certificates."birdcoder.com"]
-certFile = "/opt/certs/letsencrypt/live/birdcoder.com/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/birdcoder.com/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/birdcoder.com/chain.pem"
-ocspStapling = true
-
-[http.certificates."dtupay.com"]
-certFile = "/opt/certs/letsencrypt/live/dtupay.com/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/dtupay.com/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/dtupay.com/chain.pem"
-ocspStapling = true
-
-[http.certificates."sdkwork.cn"]
-certFile = "/opt/certs/letsencrypt/live/sdkwork.cn/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/sdkwork.cn/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/sdkwork.cn/chain.pem"
-ocspStapling = true
-
-[http.certificates."birdcoder.cn"]
-certFile = "/opt/certs/letsencrypt/live/birdcoder.cn/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/birdcoder.cn/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/birdcoder.cn/chain.pem"
-ocspStapling = true
-
-[http.certificates."dtupay.cn"]
-certFile = "/opt/certs/letsencrypt/live/dtupay.cn/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/dtupay.cn/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/dtupay.cn/chain.pem"
-ocspStapling = true
-
 [[http.server]]
 listen = ["80"]
-serverName = ["aiot-staging.sdkwork.com", "aiot-staging.birdcoder.com", "aiot-staging.dtupay.com", "aiot-staging.sdkwork.cn", "aiot-staging.birdcoder.cn", "aiot-staging.dtupay.cn", "aiot-app-staging.sdkwork.com", "aiot-app-staging.birdcoder.com", "aiot-app-staging.dtupay.com", "aiot-app-staging.sdkwork.cn", "aiot-app-staging.birdcoder.cn", "aiot-app-staging.dtupay.cn", "aiot-admin-staging.sdkwork.com", "aiot-admin-staging.birdcoder.com", "aiot-admin-staging.dtupay.com", "aiot-admin-staging.sdkwork.cn", "aiot-admin-staging.birdcoder.cn", "aiot-admin-staging.dtupay.cn", "edge.aiot-staging.sdkwork.com", "edge.aiot-staging.birdcoder.com", "edge.aiot-staging.dtupay.com", "edge.aiot-staging.sdkwork.cn", "edge.aiot-staging.birdcoder.cn", "edge.aiot-staging.dtupay.cn", "edge-staging.aiot.sdkwork.com"]
-
-[[http.server.location]]
-match = "/api/"
-proxyPass = "http://gateway"
-proxyHttpVersion = "1.1"
-proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
-
-[[http.server.location]]
-match = "/"
-proxyPass = "http://gateway"
-proxyHttpVersion = "1.1"
-proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
-proxyBuffering = false
-proxyReadTimeout = "300s"
+serverName = ["aiot-staging.sdkwork.com", "aiot-staging.birdcoder.com", "aiot-staging.dtupay.com", "aiot-staging.sdkwork.cn", "aiot-staging.birdcoder.cn", "aiot-staging.dtupay.cn", "aiot-staging.skubc.com", "aiot-staging.skubc.cn", "aiot-staging.zowalk.com", "aiot-staging.zowalk.cn", "aiot-staging.offer86.com", "aiot-staging.offer86.cn", "aiot-staging.86offer.com", "aiot-staging.86offer.cn", "aiot-app-staging.sdkwork.com", "aiot-app-staging.birdcoder.com", "aiot-app-staging.dtupay.com", "aiot-app-staging.sdkwork.cn", "aiot-app-staging.birdcoder.cn", "aiot-app-staging.dtupay.cn", "aiot-app-staging.skubc.com", "aiot-app-staging.skubc.cn", "aiot-app-staging.zowalk.com", "aiot-app-staging.zowalk.cn", "aiot-app-staging.offer86.com", "aiot-app-staging.offer86.cn", "aiot-app-staging.86offer.com", "aiot-app-staging.86offer.cn", "aiot-admin-staging.sdkwork.com", "aiot-admin-staging.birdcoder.com", "aiot-admin-staging.dtupay.com", "aiot-admin-staging.sdkwork.cn", "aiot-admin-staging.birdcoder.cn", "aiot-admin-staging.dtupay.cn", "aiot-admin-staging.skubc.com", "aiot-admin-staging.skubc.cn", "aiot-admin-staging.zowalk.com", "aiot-admin-staging.zowalk.cn", "aiot-admin-staging.offer86.com", "aiot-admin-staging.offer86.cn", "aiot-admin-staging.86offer.com", "aiot-admin-staging.86offer.cn", "edge.aiot-staging.sdkwork.com", "edge.aiot-staging.birdcoder.com", "edge.aiot-staging.dtupay.com", "edge.aiot-staging.sdkwork.cn", "edge.aiot-staging.birdcoder.cn", "edge.aiot-staging.dtupay.cn", "edge.aiot-staging.skubc.com", "edge.aiot-staging.skubc.cn", "edge.aiot-staging.zowalk.com", "edge.aiot-staging.zowalk.cn", "edge.aiot-staging.offer86.com", "edge.aiot-staging.offer86.cn", "edge.aiot-staging.86offer.com", "edge.aiot-staging.86offer.cn", "edge-staging.aiot.sdkwork.com"]
+include = ["snippets/gateway-locations.nonproduction.conf"]
 

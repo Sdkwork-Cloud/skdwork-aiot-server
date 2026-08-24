@@ -2,59 +2,8 @@ environment = "test"
 
 [http]
 
-[http.certificates]
-
-[http.certificates."sdkwork.com"]
-certFile = "/opt/certs/letsencrypt/live/sdkwork.com/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/sdkwork.com/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/sdkwork.com/chain.pem"
-ocspStapling = true
-
-[http.certificates."birdcoder.com"]
-certFile = "/opt/certs/letsencrypt/live/birdcoder.com/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/birdcoder.com/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/birdcoder.com/chain.pem"
-ocspStapling = true
-
-[http.certificates."dtupay.com"]
-certFile = "/opt/certs/letsencrypt/live/dtupay.com/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/dtupay.com/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/dtupay.com/chain.pem"
-ocspStapling = true
-
-[http.certificates."sdkwork.cn"]
-certFile = "/opt/certs/letsencrypt/live/sdkwork.cn/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/sdkwork.cn/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/sdkwork.cn/chain.pem"
-ocspStapling = true
-
-[http.certificates."birdcoder.cn"]
-certFile = "/opt/certs/letsencrypt/live/birdcoder.cn/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/birdcoder.cn/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/birdcoder.cn/chain.pem"
-ocspStapling = true
-
-[http.certificates."dtupay.cn"]
-certFile = "/opt/certs/letsencrypt/live/dtupay.cn/fullchain.pem"
-certKeyFile = "/opt/certs/letsencrypt/live/dtupay.cn/privkey.pem"
-chainFile = "/opt/certs/letsencrypt/live/dtupay.cn/chain.pem"
-ocspStapling = true
-
 [[http.server]]
 listen = ["80"]
-serverName = ["aiot-test.sdkwork.com", "aiot-test.birdcoder.com", "aiot-test.dtupay.com", "aiot-test.sdkwork.cn", "aiot-test.birdcoder.cn", "aiot-test.dtupay.cn", "aiot-app-test.sdkwork.com", "aiot-app-test.birdcoder.com", "aiot-app-test.dtupay.com", "aiot-app-test.sdkwork.cn", "aiot-app-test.birdcoder.cn", "aiot-app-test.dtupay.cn", "aiot-admin-test.sdkwork.com", "aiot-admin-test.birdcoder.com", "aiot-admin-test.dtupay.com", "aiot-admin-test.sdkwork.cn", "aiot-admin-test.birdcoder.cn", "aiot-admin-test.dtupay.cn", "edge.aiot-test.sdkwork.com", "edge.aiot-test.birdcoder.com", "edge.aiot-test.dtupay.com", "edge.aiot-test.sdkwork.cn", "edge.aiot-test.birdcoder.cn", "edge.aiot-test.dtupay.cn", "edge-test.aiot.sdkwork.com"]
-
-[[http.server.location]]
-match = "/api/"
-proxyPass = "http://gateway"
-proxyHttpVersion = "1.1"
-proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
-
-[[http.server.location]]
-match = "/"
-proxyPass = "http://gateway"
-proxyHttpVersion = "1.1"
-proxySetHeader = ["Host $host", "X-Forwarded-For $proxy_add_x_forwarded_for", "X-Forwarded-Proto $scheme"]
-proxyBuffering = false
-proxyReadTimeout = "300s"
+serverName = ["aiot-test.sdkwork.com", "aiot-test.birdcoder.com", "aiot-test.dtupay.com", "aiot-test.sdkwork.cn", "aiot-test.birdcoder.cn", "aiot-test.dtupay.cn", "aiot-test.skubc.com", "aiot-test.skubc.cn", "aiot-test.zowalk.com", "aiot-test.zowalk.cn", "aiot-test.offer86.com", "aiot-test.offer86.cn", "aiot-test.86offer.com", "aiot-test.86offer.cn", "aiot-app-test.sdkwork.com", "aiot-app-test.birdcoder.com", "aiot-app-test.dtupay.com", "aiot-app-test.sdkwork.cn", "aiot-app-test.birdcoder.cn", "aiot-app-test.dtupay.cn", "aiot-app-test.skubc.com", "aiot-app-test.skubc.cn", "aiot-app-test.zowalk.com", "aiot-app-test.zowalk.cn", "aiot-app-test.offer86.com", "aiot-app-test.offer86.cn", "aiot-app-test.86offer.com", "aiot-app-test.86offer.cn", "aiot-admin-test.sdkwork.com", "aiot-admin-test.birdcoder.com", "aiot-admin-test.dtupay.com", "aiot-admin-test.sdkwork.cn", "aiot-admin-test.birdcoder.cn", "aiot-admin-test.dtupay.cn", "aiot-admin-test.skubc.com", "aiot-admin-test.skubc.cn", "aiot-admin-test.zowalk.com", "aiot-admin-test.zowalk.cn", "aiot-admin-test.offer86.com", "aiot-admin-test.offer86.cn", "aiot-admin-test.86offer.com", "aiot-admin-test.86offer.cn", "edge.aiot-test.sdkwork.com", "edge.aiot-test.birdcoder.com", "edge.aiot-test.dtupay.com", "edge.aiot-test.sdkwork.cn", "edge.aiot-test.birdcoder.cn", "edge.aiot-test.dtupay.cn", "edge.aiot-test.skubc.com", "edge.aiot-test.skubc.cn", "edge.aiot-test.zowalk.com", "edge.aiot-test.zowalk.cn", "edge.aiot-test.offer86.com", "edge.aiot-test.offer86.cn", "edge.aiot-test.86offer.com", "edge.aiot-test.86offer.cn", "edge-test.aiot.sdkwork.com"]
+include = ["snippets/gateway-locations.nonproduction.conf"]
 

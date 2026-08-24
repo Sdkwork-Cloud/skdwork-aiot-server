@@ -119,7 +119,16 @@
     "dev:browser:standalone": "pnpm exec sdkwork-app dev --runtime-target browser --deployment-profile standalone",
     "dev:browser:cloud": "pnpm exec sdkwork-app dev --runtime-target browser --deployment-profile cloud",
     "dev:mini-program:standalone": "pnpm exec sdkwork-app dev --runtime-target mini-program --deployment-profile standalone",
-    "dev:mini-program:cloud": "pnpm exec sdkwork-app dev --runtime-target mini-program --deployment-profile cloud"
+    "dev:mini-program:cloud": "pnpm exec sdkwork-app dev --runtime-target mini-program --deployment-profile cloud",
+    "build:h5:dev": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture h5 --environment dev",
+    "build:h5:test": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture h5 --environment test",
+    "build:h5:staging": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture h5 --environment staging",
+    "build:h5:prod": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture h5 --environment prod",
+    "build:pc:dev": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture pc --environment dev",
+    "build:pc:test": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture pc --environment test",
+    "build:pc:staging": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture pc --environment staging",
+    "build:pc:prod": "node ../sdkwork-specs/tools/build-browser-client.mjs --root . --architecture pc --environment prod",
+    "check:browser-build-scripts": "node ../sdkwork-specs/tools/check-browser-build-scripts.mjs --root ."
   },
   "exports": {
     ".": {

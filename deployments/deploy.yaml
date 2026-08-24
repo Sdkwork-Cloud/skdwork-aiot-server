@@ -70,6 +70,78 @@ profiles:
           - aiot-app.dtupay.cn
           - aiot.dtupay.cn
           - edge.aiot.dtupay.cn
+      - domain: aiot-admin.skubc.com
+        tls: skubc.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.skubc.com
+          - aiot.skubc.com
+          - edge.aiot.skubc.com
+      - domain: aiot-admin.skubc.cn
+        tls: skubc.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.skubc.cn
+          - aiot.skubc.cn
+          - edge.aiot.skubc.cn
+      - domain: aiot-admin.zowalk.com
+        tls: zowalk.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.zowalk.com
+          - aiot.zowalk.com
+          - edge.aiot.zowalk.com
+      - domain: aiot-admin.zowalk.cn
+        tls: zowalk.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.zowalk.cn
+          - aiot.zowalk.cn
+          - edge.aiot.zowalk.cn
+      - domain: aiot-admin.offer86.com
+        tls: offer86.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.offer86.com
+          - aiot.offer86.com
+          - edge.aiot.offer86.com
+      - domain: aiot-admin.offer86.cn
+        tls: offer86.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.offer86.cn
+          - aiot.offer86.cn
+          - edge.aiot.offer86.cn
+      - domain: aiot-admin.86offer.com
+        tls: 86offer.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.86offer.com
+          - aiot.86offer.com
+          - edge.aiot.86offer.com
+      - domain: aiot-admin.86offer.cn
+        tls: 86offer.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.86offer.cn
+          - aiot.86offer.cn
+          - edge.aiot.86offer.cn
     packages: []
     overrides:
       topology:
@@ -145,6 +217,78 @@ profiles:
           - aiot-app.dtupay.cn
           - aiot.dtupay.cn
           - edge.aiot.dtupay.cn
+      - domain: aiot-admin.skubc.com
+        tls: skubc.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.skubc.com
+          - aiot.skubc.com
+          - edge.aiot.skubc.com
+      - domain: aiot-admin.skubc.cn
+        tls: skubc.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.skubc.cn
+          - aiot.skubc.cn
+          - edge.aiot.skubc.cn
+      - domain: aiot-admin.zowalk.com
+        tls: zowalk.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.zowalk.com
+          - aiot.zowalk.com
+          - edge.aiot.zowalk.com
+      - domain: aiot-admin.zowalk.cn
+        tls: zowalk.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.zowalk.cn
+          - aiot.zowalk.cn
+          - edge.aiot.zowalk.cn
+      - domain: aiot-admin.offer86.com
+        tls: offer86.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.offer86.com
+          - aiot.offer86.com
+          - edge.aiot.offer86.com
+      - domain: aiot-admin.offer86.cn
+        tls: offer86.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.offer86.cn
+          - aiot.offer86.cn
+          - edge.aiot.offer86.cn
+      - domain: aiot-admin.86offer.com
+        tls: 86offer.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.86offer.com
+          - aiot.86offer.com
+          - edge.aiot.86offer.com
+      - domain: aiot-admin.86offer.cn
+        tls: 86offer.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.86offer.cn
+          - aiot.86offer.cn
+          - edge.aiot.86offer.cn
     packages: []
     overrides:
       topology:

@@ -21,7 +21,11 @@
     "_sdkwork:check": "node ../../../sdkwork-specs/tools/check-app-manifest-standard.mjs --root . && node ../../../sdkwork-specs/tools/check-source-config-standard.mjs --root . && pnpm typecheck",
     "_sdkwork:verify": "pnpm run _sdkwork:check && pnpm run _sdkwork:test && pnpm run _sdkwork:build",
     "_sdkwork:clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:dev": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment dev",
+    "build:test": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment test",
+    "build:staging": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment staging",
+    "build:prod": "node ../../../sdkwork-specs/tools/build-browser-client.mjs --app-root . --environment prod"
   },
   "dependencies": {
     "@sdkwork/aiot-h5-console-agent": "workspace:*",
