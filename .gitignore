@@ -17,7 +17,7 @@ node_modules/
 .env.postgres
 .env.release.local
 # Release binaries are built locally/CI; keep manifest for checksum drift checks.
-artifacts/release/*.tar.gz
+artifacts/
 artifacts/release/*.zip
 artifacts/release/bundle-*/
 artifacts/release/*.exe
