@@ -21,7 +21,8 @@
   },
   "sideEffects": false,
   "dependencies": {
-    "@sdkwork/sdk-common": "^1.0.5"
+    "@sdkwork/sdk-common": "^1.0.8",
+    "@sdkwork/utils": "^0.11.0"
   },
   "scripts": {
     "generate": "node ../../../tools/run-sdkgen.mjs generate -i ../../../apis/backend-api/iot/sdkwork-aiot-backend-api.openapi.json -o generated/server-openapi -n sdkwork-aiot-backend-sdk -t backend -l typescript --package-name \"@sdkwork/aiot-backend-sdk\" --api-prefix \"/backend/v3/api\" --sdk-version 0.1.0 --standard-profile sdkwork-v3",
