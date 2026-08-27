@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdkwork.release.packages",
+  "generatedAt": "2026-06-24T01:22:54.292Z",
+  "packages": [
+    {
+      "id": "linux-x64-standalone-server-tar-gz",
+      "path": "artifacts/release/linux/x64/server.tar.gz",
+      "checksumAlgorithm": "SHA-256",
+      "checksum": "4d8ed33438e7025c076b0d0b6ba24950057e854025365f2ac4937a4c8822ceb5",
+      "enabled": true
+    },
+    {
+      "id": "windows-x64-standalone-server-zip",
+      "path": "artifacts/release/windows/x64/server.zip",
+      "checksumAlgorithm": "SHA-256",
+      "checksum": "2b3e84531880dcd6b1a57c2eb39f15cb80bb4f26d01b16e2dac48c115a36ea54",
+      "enabled": true
+    }
+  ]
+}

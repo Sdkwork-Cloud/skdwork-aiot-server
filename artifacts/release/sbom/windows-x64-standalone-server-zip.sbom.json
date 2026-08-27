@@ -1,0 +1,40 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-06-24T01:22:54.294Z",
+    "tools": [
+      {
+        "vendor": "SDKWork",
+        "name": "sdkwork-aiot-sbom",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "sdkwork-aiot",
+      "version": "0.1.0",
+      "bom-ref": "windows-x64-standalone-server-zip"
+    },
+    "properties": [
+      {
+        "name": "sdkwork:packageId",
+        "value": "windows-x64-standalone-server-zip"
+      },
+      {
+        "name": "sdkwork:runtimeTarget",
+        "value": "server"
+      },
+      {
+        "name": "sdkwork:deploymentProfile",
+        "value": "standalone"
+      },
+      {
+        "name": "sdkwork:checksum",
+        "value": "2b3e84531880dcd6b1a57c2eb39f15cb80bb4f26d01b16e2dac48c115a36ea54"
+      }
+    ]
+  },
+  "components": []
+}
