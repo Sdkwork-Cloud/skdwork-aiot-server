@@ -138,7 +138,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "parameters": []
       }
     },
     "/backend/v3/api/iot/products/{productId}": {
@@ -427,7 +428,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "parameters": []
       }
     },
     "/backend/v3/api/iot/hardware_profiles/{hardwareProfileId}": {
@@ -716,7 +718,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "parameters": []
       }
     },
     "/backend/v3/api/iot/protocol_profiles/{protocolProfileId}": {
@@ -1005,7 +1008,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "parameters": []
       }
     },
     "/backend/v3/api/iot/capability_models/{capabilityModelId}": {
@@ -1309,7 +1313,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "x-sdkwork-idempotent": true
       }
     },
     "/backend/v3/api/iot/devices/{deviceId}": {
@@ -1446,7 +1451,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "x-sdkwork-idempotent": true
       },
       "delete": {
         "tags": [
@@ -1612,7 +1618,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "x-sdkwork-idempotent": true
       }
     },
     "/backend/v3/api/iot/devices/{deviceId}/credentials/{credentialId}": {
@@ -2280,7 +2287,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "x-sdkwork-idempotent": true
       }
     },
     "/backend/v3/api/iot/firmware_artifacts/{artifactId}": {
@@ -2574,7 +2582,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "x-sdkwork-idempotent": true
       }
     },
     "/backend/v3/api/iot/firmware_rollouts/{rolloutId}": {
@@ -2913,7 +2922,8 @@
         "x-sdkwork-request-context": "WebRequestContext",
         "x-sdkwork-api-surface": "backend-api",
         "x-sdkwork-owner": "sdkwork-aiot",
-        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api"
+        "x-sdkwork-api-authority": "sdkwork-aiot-backend-api",
+        "parameters": []
       }
     }
   },
@@ -3036,7 +3046,7 @@
       "IdempotencyKey": {
         "name": "Idempotency-Key",
         "in": "header",
-        "required": false,
+        "required": true,
         "schema": {
           "type": "string",
           "minLength": 1,

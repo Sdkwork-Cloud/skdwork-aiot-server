@@ -10,9 +10,13 @@
     "domain": "aiot",
     "capability": "h5-core",
     "surface": "app",
-    "languages": ["typescript"],
+    "languages": [
+      "typescript"
+    ],
     "generated": false,
-    "manifests": ["package.json"]
+    "manifests": [
+      "package.json"
+    ]
   },
   "canonicalSpecs": [
     {
@@ -35,30 +39,49 @@
     "layerRole": "frontend-core",
     "providedPorts": [],
     "requiredPorts": [],
-    "publicExports": [".", "./sdk", "./modules", "./host", "./session", "./composition"],
+    "publicExports": [
+      ".",
+      "./sdk",
+      "./modules",
+      "./host",
+      "./session",
+      "./composition"
+    ],
     "sdkDependencies": [
-      { "workspace": "sdkwork-agents-app-sdk", "surface": "app-api", "credentialMode": "authenticated-app-api" },
-      { "workspace": "sdkwork-aiot-app-sdk", "surface": "app-api", "credentialMode": "authenticated-app-api" },
-      { "workspace": "sdkwork-voice-app-sdk", "surface": "app-api", "credentialMode": "authenticated-app-api" }
+      {
+        "workspace": "sdkwork-agents-app-sdk",
+        "surface": "app-api",
+        "credentialMode": "authenticated-app-api"
+      },
+      {
+        "workspace": "sdkwork-aiot-app-sdk",
+        "surface": "app-api",
+        "credentialMode": "authenticated-app-api"
+      },
+      {
+        "workspace": "sdkwork-voice-app-sdk",
+        "surface": "app-api",
+        "credentialMode": "authenticated-app-api"
+      }
     ],
     "permissionComposition": {
       "inheritanceMode": "module-catalog-with-overrides",
       "moduleCatalogRefs": [
         {
           "moduleId": "agents",
-          "manifestRef": "../../../../../../sdkwork-agents/specs/iam.module.manifest.json",
+          "manifestRef": "../../../../../sdkwork-agents/specs/iam.module.manifest.json",
           "inheritPermissions": true,
           "inheritRoles": true
         },
         {
-          "moduleId": "aiot",
-          "manifestRef": "../../../../../specs/iam.module.manifest.json",
+          "moduleId": "iot",
+          "manifestRef": "../../../../specs/iam.module.manifest.json",
           "inheritPermissions": true,
           "inheritRoles": true
         },
         {
           "moduleId": "voice",
-          "manifestRef": "../../../../../../sdkwork-voice/specs/iam.module.manifest.json",
+          "manifestRef": "../../../../../sdkwork-voice/specs/iam.module.manifest.json",
           "inheritPermissions": true,
           "inheritRoles": true
         }
@@ -79,11 +102,13 @@
         "allowFrontendHintsWithoutServerDuplication": true
       },
       "applicationModule": {
-        "manifestRef": "../../../../../specs/iam.module.manifest.json"
+        "manifestRef": "../../../../specs/iam.module.manifest.json"
       }
     }
   },
   "verification": {
-    "commands": ["pnpm typecheck"]
+    "commands": [
+      "pnpm typecheck"
+    ]
   }
 }

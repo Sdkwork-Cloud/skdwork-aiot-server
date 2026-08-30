@@ -734,8 +734,7 @@
         ],
         "healthSurfaces": [
           "application.public-ingress",
-          "platform.api-gateway",
-          "edge.device-ingress"
+          "platform.api-gateway"
         ],
         "browserDeliveries": [
           {
@@ -797,8 +796,47 @@
         "healthSurfaces": []
       },
       "standalone.production": {
-        "processes": [],
-        "healthSurfaces": []
+        "processes": [
+          {
+            "id": "application.public-ingress",
+            "role": "api-standalone-gateway",
+            "script": "_sdkwork:gateway:standalone",
+            "required": true
+          }
+        ],
+        "healthSurfaces": [],
+        "browserDeliveries": [
+          {
+            "id": "aiot-static-pc-web",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "clientArchitectures": [
+              "pc-web"
+            ],
+            "originMode": "same-origin",
+            "deliveryMode": "gateway-static",
+            "apiSurfaceId": "application.public-ingress",
+            "hostProcessId": "application.public-ingress",
+            "buildOutput": "apps/sdkwork-aiot-pc/dist",
+            "runtimeRootEnv": "SDKWORK_AIOT_PC_STATIC_ROOT",
+            "mountPath": "/",
+            "spaFallback": "/index.html"
+          },
+          {
+            "id": "aiot-static-h5",
+            "applicationRoot": "apps/sdkwork-aiot-pc",
+            "clientArchitectures": [
+              "h5"
+            ],
+            "originMode": "same-origin",
+            "deliveryMode": "gateway-static",
+            "apiSurfaceId": "application.public-ingress",
+            "hostProcessId": "application.public-ingress",
+            "buildOutput": "apps/sdkwork-aiot-pc/dist",
+            "runtimeRootEnv": "SDKWORK_AIOT_PC_STATIC_ROOT",
+            "mountPath": "/",
+            "spaFallback": "/index.html"
+          }
+        ]
       },
       "standalone.test": {
         "processes": [
@@ -903,7 +941,8 @@
       },
       "standalone.staging": {
         "processes": [],
-        "healthSurfaces": []
+        "healthSurfaces": [],
+        "browserDeliveries": []
       },
       "cloud.test": {
         "processes": [
@@ -1000,7 +1039,8 @@
       },
       "standalone.demo": {
         "processes": [],
-        "healthSurfaces": []
+        "healthSurfaces": [],
+        "browserDeliveries": []
       },
       "cloud.demo": {
         "processes": [],
