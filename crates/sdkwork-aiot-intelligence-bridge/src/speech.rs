@@ -5,7 +5,7 @@ use sdkwork_aiot_adapter_xiaozhi::decode_xiaozhi_opus_uplink_to_wav;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::cloud_router::{decode_speech_payload, map_sdk_error};
+use crate::cloud_router::map_sdk_error;
 use crate::config::IntelligenceConfig;
 use crate::kernel_runtime::KernelRuntimeClient;
 use crate::session_map::SessionMap;
@@ -193,7 +193,7 @@ impl KernelSpeechPipeline {
         Ok(crate::cloud_router::ProviderTtsAudio {
             format: self.config.tts_response_format.clone(),
             sample_rate: self.config.tts_sample_rate,
-            bytes: decode_speech_payload(&raw),
+            bytes: raw,
         })
     }
 }
