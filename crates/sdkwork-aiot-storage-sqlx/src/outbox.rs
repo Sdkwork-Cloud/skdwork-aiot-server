@@ -192,16 +192,17 @@ impl OutboxEventRepository for SqlxOutboxEventRepository {
                         .execute(pool.sqlite_pool().expect("sqlite pool"))
                         .await?
                         .rows_affected() as i64,
-                    DeviceDatabaseEngine::Postgres => sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
-                        .bind(OUTBOX_STATUS_PUBLISHED)
-                        .bind(&now)
-                        .bind(tenant_id)
-                        .bind(&event_id)
-                        .bind(OUTBOX_STATUS_CLAIMED)
-                        .execute(pool.postgres_pool().expect("postgres pool"))
-                        .await?
-                        .rows_affected()
-                        as i64,
+                    DeviceDatabaseEngine::Postgres => {
+                        sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
+                            .bind(OUTBOX_STATUS_PUBLISHED)
+                            .bind(&now)
+                            .bind(tenant_id)
+                            .bind(&event_id)
+                            .bind(OUTBOX_STATUS_CLAIMED)
+                            .execute(pool.postgres_pool().expect("postgres pool"))
+                            .await?
+                            .rows_affected() as i64
+                    }
                 };
                 Ok::<i64, sqlx::Error>(changed)
             })
@@ -272,28 +273,30 @@ impl OutboxEventRepository for SqlxOutboxEventRepository {
                          WHERE tenant_id = ?4 AND event_id = ?5 AND status = ?6",
                     );
                     let changed: i64 = match &mut tx {
-                        DeviceDbTransaction::Sqlite(connection) => sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
-                            .bind(next_attempt)
-                            .bind(next_attempt_at)
-                            .bind(status)
-                            .bind(tenant_id)
-                            .bind(&event_id)
-                            .bind(OUTBOX_STATUS_CLAIMED)
-                            .execute(&mut **connection)
-                            .await?
-                            .rows_affected()
-                            as i64,
-                        DeviceDbTransaction::Postgres(connection) => sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
-                            .bind(next_attempt)
-                            .bind(next_attempt_at)
-                            .bind(status)
-                            .bind(tenant_id)
-                            .bind(&event_id)
-                            .bind(OUTBOX_STATUS_CLAIMED)
-                            .execute(&mut **connection)
-                            .await?
-                            .rows_affected()
-                            as i64,
+                        DeviceDbTransaction::Sqlite(connection) => {
+                            sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
+                                .bind(next_attempt)
+                                .bind(next_attempt_at)
+                                .bind(status)
+                                .bind(tenant_id)
+                                .bind(&event_id)
+                                .bind(OUTBOX_STATUS_CLAIMED)
+                                .execute(&mut **connection)
+                                .await?
+                                .rows_affected() as i64
+                        }
+                        DeviceDbTransaction::Postgres(connection) => {
+                            sqlx::query(sqlx::AssertSqlSafe(update_sql.as_str()))
+                                .bind(next_attempt)
+                                .bind(next_attempt_at)
+                                .bind(status)
+                                .bind(tenant_id)
+                                .bind(&event_id)
+                                .bind(OUTBOX_STATUS_CLAIMED)
+                                .execute(&mut **connection)
+                                .await?
+                                .rows_affected() as i64
+                        }
                     };
                     Ok(changed)
                 })

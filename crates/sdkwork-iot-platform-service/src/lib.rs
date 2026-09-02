@@ -57,16 +57,16 @@ use sdkwork_aiot_transport::{build_health_response, HttpRequest, HttpResponse, H
 use sdkwork_iot_device_service::{CapabilityDefinition, CapabilityKind, ProtocolProfile};
 use sdkwork_utils_rust::{base64url_decode, hex_encode, hmac_sha256, secure_compare};
 
+mod admin_stores;
 mod firmware_rollout_planner;
 mod service_stores;
-mod admin_stores;
 
+pub use admin_stores::{AiotCatalogRepositoryHandle, AiotFirmwareRepositoryHandle};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 pub use service_stores::{
     open_admin_service_stores, open_app_service_stores, AiotAdminServiceStores,
     AiotAppServiceStores,
 };
-pub use admin_stores::{AiotCatalogRepositoryHandle, AiotFirmwareRepositoryHandle};
 
 const AUTH_FAILURE_RATE_LIMIT_PER_MINUTE: u32 = 100;
 const AUTH_FAILURE_RATE_LIMIT_WINDOW: Duration = Duration::from_secs(60);
@@ -157,9 +157,7 @@ pub struct CredentialRepositoryAdapter {
 }
 
 impl CredentialRepositoryAdapter {
-    pub fn from_repository(
-        inner: sdkwork_aiot_storage_sqlx::SqlxCredentialRepository,
-    ) -> Self {
+    pub fn from_repository(inner: sdkwork_aiot_storage_sqlx::SqlxCredentialRepository) -> Self {
         Self {
             inner: Arc::new(inner),
         }

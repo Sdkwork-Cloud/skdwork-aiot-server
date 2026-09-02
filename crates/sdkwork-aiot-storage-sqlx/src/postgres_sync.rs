@@ -54,7 +54,9 @@ impl BlockingPostgresPool {
 
     pub fn execute_batch_sql(&self, sql: &str) -> Result<(), StoragePostgresError> {
         self.run(async {
-            sqlx::raw_sql(sqlx::AssertSqlSafe(sql.to_owned())).execute(&self.pool).await?;
+            sqlx::raw_sql(sqlx::AssertSqlSafe(sql.to_owned()))
+                .execute(&self.pool)
+                .await?;
             Ok(())
         })
     }
@@ -120,7 +122,10 @@ pub async fn execute_sql_plan<'e, E>(
 where
     E: sqlx::Executor<'e, Database = Postgres>,
 {
-    let query = bind_sql_plan(sqlx::query(sqlx::AssertSqlSafe(statement.sql.as_str())), statement);
+    let query = bind_sql_plan(
+        sqlx::query(sqlx::AssertSqlSafe(statement.sql.as_str())),
+        statement,
+    );
     Ok(query.execute(executor).await?.rows_affected())
 }
 

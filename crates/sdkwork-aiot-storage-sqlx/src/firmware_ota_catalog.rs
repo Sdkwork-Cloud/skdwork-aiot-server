@@ -150,8 +150,8 @@ impl FirmwareOtaCatalog {
                 Value::String(deployment_state.to_string()),
             );
         }
-        let payload_json = serde_json::to_string(&value)
-            .map_err(|_| PersistedEntityError::PersistenceFailure)?;
+        let payload_json =
+            serde_json::to_string(&value).map_err(|_| PersistedEntityError::PersistenceFailure)?;
         self.store.upsert_entity(
             &association,
             ENTITY_FIRMWARE_DEPLOYMENT,

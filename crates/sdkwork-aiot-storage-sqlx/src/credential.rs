@@ -381,8 +381,7 @@ impl SqlxCredentialRepository {
         association: &AiotStorageAssociation,
         device_id: &str,
         params: OffsetListPageParams,
-    ) -> Result<AiotOffsetListResult<DeviceCredentialRecord>, CredentialRepositoryError>
-    {
+    ) -> Result<AiotOffsetListResult<DeviceCredentialRecord>, CredentialRepositoryError> {
         let association = association.clone();
         let device_id = device_id.to_string();
         let limit = params.page_size.max(1);
@@ -406,12 +405,13 @@ impl SqlxCredentialRepository {
                 );
                 match pool.engine() {
                     DeviceDatabaseEngine::Sqlite => {
-                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
-                            .bind(association.tenant_id)
-                            .bind(association.organization_id)
-                            .bind(&device_id)
-                            .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
-                            .await?;
+                        let total: i64 =
+                            sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
+                                .bind(association.tenant_id)
+                                .bind(association.organization_id)
+                                .bind(&device_id)
+                                .fetch_one(pool.sqlite_pool().expect("sqlite pool"))
+                                .await?;
                         let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)
@@ -429,12 +429,13 @@ impl SqlxCredentialRepository {
                         })
                     }
                     DeviceDatabaseEngine::Postgres => {
-                        let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
-                            .bind(association.tenant_id)
-                            .bind(association.organization_id)
-                            .bind(&device_id)
-                            .fetch_one(pool.postgres_pool().expect("postgres pool"))
-                            .await?;
+                        let total: i64 =
+                            sqlx::query_scalar(sqlx::AssertSqlSafe(count_sql.as_str()))
+                                .bind(association.tenant_id)
+                                .bind(association.organization_id)
+                                .bind(&device_id)
+                                .fetch_one(pool.postgres_pool().expect("postgres pool"))
+                                .await?;
                         let rows = sqlx::query(sqlx::AssertSqlSafe(list_sql.as_str()))
                             .bind(association.tenant_id)
                             .bind(association.organization_id)

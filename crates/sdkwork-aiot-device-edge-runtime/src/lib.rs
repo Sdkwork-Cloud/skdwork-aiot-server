@@ -43,8 +43,8 @@ use sdkwork_aiot_storage::{
 use sdkwork_aiot_storage_sqlx::{
     open_aiot_device_database_from_env, outbox_readiness_probe,
     start_outbox_dispatcher_worker as start_storage_outbox_dispatcher_worker, AiotDeviceDatabase,
-    BlockingSqlitePool, FirmwareOtaCatalog, PersistedEntityError,
-    SqlxCredentialRepository, SqlxPoolSqlStatementExecutor, StorageSqliteError,
+    BlockingSqlitePool, FirmwareOtaCatalog, PersistedEntityError, SqlxCredentialRepository,
+    SqlxPoolSqlStatementExecutor, StorageSqliteError,
 };
 use sdkwork_aiot_transport::{
     websocket_frame_to_inbound_frame, HttpRequest, HttpResponse, HttpStatus, TransportError,

@@ -8,7 +8,7 @@ mod readiness;
 
 pub use bootstrap::{
     assemble_api_router, assemble_api_router_with_database_host, assemble_api_router_with_pool,
-    ApiAssembly,
+    web_module, web_module_with_pool, ApiAssembly,
 };
 
 pub fn assembly_route_count() -> usize {

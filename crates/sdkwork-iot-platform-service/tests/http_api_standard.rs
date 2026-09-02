@@ -3621,7 +3621,6 @@ fn credential_repository_adapter_persists_and_lists_credentials() {
     .expect("backend devices.credentials.list persisted");
     assert!(listed.starts_with("HTTP/1.1 200"));
     assert!(listed.contains(r#""credentialType":"hmac""#));
-
 }
 
 #[test]
@@ -3635,12 +3634,14 @@ fn catalog_and_firmware_handles_persist_across_reopen() {
             .persisted_entity_repository()
             .expect("persisted entity repository"),
     );
-    let catalog = Arc::new(sdkwork_iot_platform_service::AiotCatalogRepositoryHandle::from_entity_store(
-        entity_store.clone(),
-    ));
-    let firmware = Arc::new(sdkwork_iot_platform_service::AiotFirmwareRepositoryHandle::from_entity_store(
-        entity_store,
-    ));
+    let catalog = Arc::new(
+        sdkwork_iot_platform_service::AiotCatalogRepositoryHandle::from_entity_store(
+            entity_store.clone(),
+        ),
+    );
+    let firmware = Arc::new(
+        sdkwork_iot_platform_service::AiotFirmwareRepositoryHandle::from_entity_store(entity_store),
+    );
     let admin = standard_admin_api_server()
         .expect("admin api server")
         .with_catalog_repository(catalog)
@@ -3681,12 +3682,16 @@ fn catalog_and_firmware_handles_persist_across_reopen() {
             .persisted_entity_repository()
             .expect("reopened persisted entity repository"),
     );
-    let reopened_catalog = Arc::new(sdkwork_iot_platform_service::AiotCatalogRepositoryHandle::from_entity_store(
-        reopened_entity_store.clone(),
-    ));
-    let reopened_firmware = Arc::new(sdkwork_iot_platform_service::AiotFirmwareRepositoryHandle::from_entity_store(
-        reopened_entity_store,
-    ));
+    let reopened_catalog = Arc::new(
+        sdkwork_iot_platform_service::AiotCatalogRepositoryHandle::from_entity_store(
+            reopened_entity_store.clone(),
+        ),
+    );
+    let reopened_firmware = Arc::new(
+        sdkwork_iot_platform_service::AiotFirmwareRepositoryHandle::from_entity_store(
+            reopened_entity_store,
+        ),
+    );
     let reopened_admin = standard_admin_api_server()
         .expect("reopened admin api server")
         .with_catalog_repository(reopened_catalog)
@@ -3716,7 +3721,6 @@ fn catalog_and_firmware_handles_persist_across_reopen() {
     assert!(list_artifacts.starts_with("HTTP/1.1 200"));
     assert!(list_artifacts.contains(r#""artifactId":"firmware-artifact-0001""#));
     assert!(list_artifacts.contains(r#""artifactKey":"fw-persist""#));
-
 }
 
 #[test]

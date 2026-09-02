@@ -11,8 +11,8 @@ use sdkwork_aiot_storage_sqlx::{
     initial_migration_sql, migration_catalog, schema_version, InMemorySqlStatementExecutor,
     InMemorySqlxDeviceRepository, SqlBindValue, SqlDeviceWriteOperation, SqlDialect,
     SqlProtocolIngestPlanner, SqlStatementBatch, SqlStatementExecutor, SqlStatementPlan,
-    SqlTransactionFailurePolicy, SqlTransactionOutcome, SqlTransactionPlan,
-    SqlxDeviceRepository, SqlxProtocolIngestUnitOfWork,
+    SqlTransactionFailurePolicy, SqlTransactionOutcome, SqlTransactionPlan, SqlxDeviceRepository,
+    SqlxProtocolIngestUnitOfWork,
 };
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
@@ -1628,9 +1628,7 @@ fn sqlx_pool_sql_statement_executor_persists_device_create_batch() {
 
 #[test]
 fn sqlite_credential_repository_verifies_hashed_bearer_tokens() {
-    use sdkwork_aiot_storage_sqlx::{
-        CredentialCreateCommand, SqlxCredentialRepository,
-    };
+    use sdkwork_aiot_storage_sqlx::{CredentialCreateCommand, SqlxCredentialRepository};
 
     let repository = SqlxCredentialRepository::new_in_memory().expect("credential repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
@@ -1679,8 +1677,8 @@ fn shared_sqlite_memory_uri_uses_one_schema_for_device_and_credential_repositori
 
     let device_repo =
         SqlxDeviceRepository::open(DEFAULT_SHARED_SQLITE_MEMORY_URI).expect("device repo");
-    let credential_repo = SqlxCredentialRepository::open(DEFAULT_SHARED_SQLITE_MEMORY_URI)
-        .expect("credential repo");
+    let credential_repo =
+        SqlxCredentialRepository::open(DEFAULT_SHARED_SQLITE_MEMORY_URI).expect("credential repo");
     let association = AiotStorageAssociation::tenant_org(100001, 0);
 
     device_repo

@@ -1310,8 +1310,7 @@ fn device_database_supports_postgres_device_repository() {
         fs::read_to_string(root.join("crates/sdkwork-aiot-storage-sqlx/src/device_database.rs"))
             .expect("device database");
     assert!(
-        device_database
-            .contains("SqlxDeviceRepository::from_blocking_pool(self.pool.clone())"),
+        device_database.contains("SqlxDeviceRepository::from_blocking_pool(self.pool.clone())"),
         "device database must open device repository from BlockingDevicePool for all engines"
     );
     assert!(

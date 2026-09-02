@@ -14,7 +14,7 @@ use sdkwork_aiot_device_edge_runtime::{
 };
 use sdkwork_aiot_storage::AiotStorageAssociation;
 use sdkwork_aiot_storage_sqlx::{
-    FirmwareOtaCatalog, CredentialCreateCommand, PersistedEntityRepository,
+    CredentialCreateCommand, FirmwareOtaCatalog, PersistedEntityRepository,
     SqlxCredentialRepository,
 };
 use sdkwork_aiot_transport::parse_http_request_bytes;
