@@ -456,15 +456,12 @@ fn resolve_protected_context_from_token(
                 "Resolved appbase context is required",
             )
         })?;
+    // PERMISSION_STANDARD_SPEC §Tenant-Default Organization Context: a personal
+    // (tenant-scope) token carries no organization claim; normalize to "0" instead
+    // of rejecting the request.
     let organization_id = json_claim_string(&access_claims, &["organization_id", "organizationId"])
         .or_else(|| json_claim_string(&auth_claims, &["organization_id", "organizationId"]))
-        .ok_or_else(|| {
-            problem_response(
-                HttpStatus::Forbidden,
-                "api.context.missing",
-                "Resolved appbase context is required",
-            )
-        })?;
+        .unwrap_or_else(|| "0".to_string());
 
     parse_i64(&tenant_id).map_err(|_| {
         problem_response(
