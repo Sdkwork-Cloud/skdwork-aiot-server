@@ -8,16 +8,19 @@ tablet_surface = "pc"
 development = "apps/sdkwork-aiot-pc/dist/standalone/dev"
 test = "apps/sdkwork-aiot-pc/dist/standalone/test"
 staging = "apps/sdkwork-aiot-pc/dist/standalone/staging"
+demo = "apps/sdkwork-aiot-pc/dist/standalone/demo"
 production = "apps/sdkwork-aiot-pc/dist/standalone/prod"
 
 [app_roots.h5_static_by_environment]
 development = "apps/sdkwork-aiot-h5/dist/standalone/dev"
 test = "apps/sdkwork-aiot-h5/dist/standalone/test"
 staging = "apps/sdkwork-aiot-h5/dist/standalone/staging"
+demo = "apps/sdkwork-aiot-h5/dist/standalone/demo"
 production = "apps/sdkwork-aiot-h5/dist/standalone/prod"
 
 [app_roots.static_fallback_by_environment]
 development = "deployments/webserver/static"
 test = "deployments/webserver/static"
 staging = "deployments/webserver/static"
+demo = "deployments/webserver/static"
 production = "deployments/webserver/static"

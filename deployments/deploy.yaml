@@ -43,6 +43,15 @@ profiles:
           - aiot-app.dtupay.com
           - aiot.dtupay.com
           - edge.aiot.dtupay.com
+      - domain: aiot-admin.noaper.com
+        tls: noaper.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.noaper.com
+          - aiot.noaper.com
+          - edge.aiot.noaper.com
       - domain: aiot-admin.sdkwork.cn
         tls: sdkwork.cn
         mode: web+api
@@ -70,6 +79,15 @@ profiles:
           - aiot-app.dtupay.cn
           - aiot.dtupay.cn
           - edge.aiot.dtupay.cn
+      - domain: aiot-admin.noaper.cn
+        tls: noaper.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.noaper.cn
+          - aiot.noaper.cn
+          - edge.aiot.noaper.cn
       - domain: aiot-admin.skubc.com
         tls: skubc.com
         mode: web+api
@@ -190,6 +208,15 @@ profiles:
           - aiot-app.dtupay.com
           - aiot.dtupay.com
           - edge.aiot.dtupay.com
+      - domain: aiot-admin.noaper.com
+        tls: noaper.com
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.noaper.com
+          - aiot.noaper.com
+          - edge.aiot.noaper.com
       - domain: aiot-admin.sdkwork.cn
         tls: sdkwork.cn
         mode: web+api
@@ -217,6 +244,15 @@ profiles:
           - aiot-app.dtupay.cn
           - aiot.dtupay.cn
           - edge.aiot.dtupay.cn
+      - domain: aiot-admin.noaper.cn
+        tls: noaper.cn
+        mode: web+api
+        web: adaptive
+        apiPathStyle: full-prefix
+        aliases:
+          - aiot-app.noaper.cn
+          - aiot.noaper.cn
+          - edge.aiot.noaper.cn
       - domain: aiot-admin.skubc.com
         tls: skubc.com
         mode: web+api

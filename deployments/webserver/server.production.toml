@@ -40,6 +40,18 @@ include = ["snippets/adaptive-web.dispatch.conf"]
 
 [[http.server]]
 listen = ["443 ssl", "80"]
+serverName = ["aiot.noaper.com", "aiot-app.noaper.com", "aiot-admin.noaper.com", "edge.aiot.noaper.com"]
+include = ["snippets/adaptive-web.named-locations.conf", "snippets/gateway-api-locations.production.conf"]
+
+[http.server.tls]
+cert = "noaper.com"
+
+[[http.server.location]]
+match = "/"
+include = ["snippets/adaptive-web.dispatch.conf"]
+
+[[http.server]]
+listen = ["443 ssl", "80"]
 serverName = ["aiot.sdkwork.cn", "aiot-app.sdkwork.cn", "aiot-admin.sdkwork.cn", "edge.aiot.sdkwork.cn"]
 include = ["snippets/adaptive-web.named-locations.conf", "snippets/gateway-api-locations.production.conf"]
 
@@ -69,6 +81,18 @@ include = ["snippets/adaptive-web.named-locations.conf", "snippets/gateway-api-l
 
 [http.server.tls]
 cert = "dtupay.cn"
+
+[[http.server.location]]
+match = "/"
+include = ["snippets/adaptive-web.dispatch.conf"]
+
+[[http.server]]
+listen = ["443 ssl", "80"]
+serverName = ["aiot.noaper.cn", "aiot-app.noaper.cn", "aiot-admin.noaper.cn", "edge.aiot.noaper.cn"]
+include = ["snippets/adaptive-web.named-locations.conf", "snippets/gateway-api-locations.production.conf"]
+
+[http.server.tls]
+cert = "noaper.cn"
 
 [[http.server.location]]
 match = "/"
