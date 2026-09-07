@@ -388,13 +388,11 @@ fn resolve_protected_context_from_proxy_headers(
             "Resolved appbase context is required",
         )
     })?;
-    let organization_id = required_header(request, "x-sdkwork-organization-id").map_err(|_| {
-        problem_response(
-            HttpStatus::Forbidden,
-            "api.context.missing",
-            "Resolved appbase context is required",
-        )
-    })?;
+    // PERMISSION_STANDARD_SPEC §Tenant-Default Organization Context: the proxy
+    // header is optional for personal (tenant-scope) sessions; normalize to "0".
+    let organization_id = optional_header(request, "x-sdkwork-organization-id")
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("0");
 
     parse_i64(tenant_id).map_err(|_| {
         problem_response(
