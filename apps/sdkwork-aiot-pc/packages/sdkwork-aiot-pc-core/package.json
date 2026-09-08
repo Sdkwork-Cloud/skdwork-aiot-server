@@ -59,6 +59,7 @@
     "@sdkwork/aiot-backend-sdk": "workspace:*",
     "@sdkwork/core-pc-react": "workspace:*",
     "@sdkwork/drive-app-sdk": "workspace:*",
+    "@sdkwork/sdk-common": "workspace:*",
     "@sdkwork/utils": "workspace:*",
     "@sdkwork/voice-app-sdk": "workspace:*"
   }

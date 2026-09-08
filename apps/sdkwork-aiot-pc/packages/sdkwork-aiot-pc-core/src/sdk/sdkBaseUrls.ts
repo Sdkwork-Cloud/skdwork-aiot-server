@@ -3,22 +3,12 @@ import {
   readImportMetaEnv,
   readProcessEnv,
 } from '@sdkwork/aiot-app-core';
+import { resolveBaseUrl } from '@sdkwork/sdk-common';
 import {
-  DEFAULT_LOCAL_APPLICATION_ADMIN_HTTP_URL,
-  DEFAULT_LOCAL_APPLICATION_APP_HTTP_URL,
   DEFAULT_LOCAL_EDGE_DEVICE_INGRESS_HTTP_URL,
   DEFAULT_LOCAL_EDGE_DEVICE_INGRESS_WEBSOCKET_URL,
-  DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL,
-  DEFAULT_LOCAL_AGENTS_APP_HTTP_URL,
-  DEFAULT_LOCAL_VOICE_APP_HTTP_URL,
-  VITE_SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_URL,
-  VITE_SDKWORK_AIOT_APPLICATION_APP_HTTP_URL,
   VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_HTTP_URL,
   VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_WEBSOCKET_URL,
-  VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL,
-  VITE_SDKWORK_DRIVE_APP_API_BASE_URL,
-  VITE_SDKWORK_AGENTS_APP_API_BASE_URL,
-  VITE_SDKWORK_VOICE_APP_API_BASE_URL,
 } from './topologyEnvKeys';
 
 const SDKWORK_APP_API_PREFIX = '/app/v3/api';
@@ -116,14 +106,6 @@ function resolveSameOriginHttpBaseUrl(): string | undefined {
   return window.location.origin;
 }
 
-function resolveLocalDevApplicationAppHttpBaseUrl(): string | undefined {
-  return isSdkRuntimeDev() ? DEFAULT_LOCAL_APPLICATION_APP_HTTP_URL : undefined;
-}
-
-function resolveLocalDevApplicationAdminHttpBaseUrl(): string | undefined {
-  return isSdkRuntimeDev() ? DEFAULT_LOCAL_APPLICATION_ADMIN_HTTP_URL : undefined;
-}
-
 function resolveLocalDevEdgeIngressHttpBaseUrl(): string | undefined {
   return isSdkRuntimeDev() ? DEFAULT_LOCAL_EDGE_DEVICE_INGRESS_HTTP_URL : undefined;
 }
@@ -132,89 +114,46 @@ function resolveLocalDevEdgeIngressWebSocketBaseUrl(): string | undefined {
   return isSdkRuntimeDev() ? DEFAULT_LOCAL_EDGE_DEVICE_INGRESS_WEBSOCKET_URL : undefined;
 }
 
-function resolveLocalDevPlatformApiGatewayBaseUrl(): string | undefined {
-  return isSdkRuntimeDev() ? DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL : undefined;
+function resolveSdkApiBaseUrl(): string {
+  // Unified single base-url key (SDKWORK_API_BASE_URL); the matching API host
+  // is chosen from the current page's environment+brand. All SDK clients in
+  // this package expect a bare origin — SDK-owned path prefixes (/app/v3/api
+  // etc.) are appended by the generated SDK clients themselves, so path
+  // preservation stays off.
+  return resolveBaseUrl({ envKey: 'SDKWORK_API_BASE_URL' }).url;
 }
 
 export function resolveAiotAppApiBaseUrl(): string {
-  const value = readFirstNonBlank([
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_APPLICATION_APP_HTTP_URL),
-    resolveLocalDevApplicationAppHttpBaseUrl(),
-    resolveSameOriginHttpBaseUrl(),
-    DEFAULT_LOCAL_APPLICATION_APP_HTTP_URL,
-  ]) ?? DEFAULT_LOCAL_APPLICATION_APP_HTTP_URL;
-  return normalizeHttpSdkBaseUrl(value);
+  return resolveSdkApiBaseUrl();
 }
 
 export function resolveAiotAdminApiBaseUrl(): string {
-  const value = readFirstNonBlank([
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_APPLICATION_ADMIN_HTTP_URL),
-    resolveLocalDevApplicationAdminHttpBaseUrl(),
-    resolveSameOriginHttpBaseUrl(),
-    DEFAULT_LOCAL_APPLICATION_ADMIN_HTTP_URL,
-  ]) ?? DEFAULT_LOCAL_APPLICATION_ADMIN_HTTP_URL;
-  return normalizeHttpSdkBaseUrl(value);
+  return resolveSdkApiBaseUrl();
 }
 
 export function resolveAiotPlatformApiGatewayBaseUrl(): string {
-  const value = readFirstNonBlank([
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL),
-    resolveLocalDevPlatformApiGatewayBaseUrl(),
-    resolveSameOriginHttpBaseUrl(),
-    DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL,
-  ]) ?? DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL;
-  return normalizeHttpSdkBaseUrl(value);
+  return resolveSdkApiBaseUrl();
 }
 
 export function resolveDriveAppApiBaseUrl(): string {
-  const value = readFirstNonBlank([
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_DRIVE_APP_API_BASE_URL),
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL),
-    resolveLocalDevPlatformApiGatewayBaseUrl(),
-    resolveSameOriginHttpBaseUrl(),
-    DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL,
-  ]) ?? DEFAULT_LOCAL_PLATFORM_API_GATEWAY_HTTP_URL;
-  return normalizeHttpSdkBaseUrl(value);
+  return resolveSdkApiBaseUrl();
 }
 
 export function isAgentsAppSdkConfigured(): boolean {
-  if (readSdkBaseUrlEnvValue(VITE_SDKWORK_AGENTS_APP_API_BASE_URL)) {
-    return true;
-  }
-  return isSdkRuntimeDev()
-    && Boolean(readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL));
+  // The unified single base-url key drives sibling-app SDK availability.
+  return resolveBaseUrl({ envKey: 'SDKWORK_API_BASE_URL' }).reason !== 'empty';
 }
 
 export function resolveAgentsAppApiBaseUrl(): string {
-  const value = readFirstNonBlank([
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_AGENTS_APP_API_BASE_URL),
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL),
-    resolveLocalDevPlatformApiGatewayBaseUrl(),
-    isSdkRuntimeDev() ? DEFAULT_LOCAL_AGENTS_APP_HTTP_URL : undefined,
-    resolveSameOriginHttpBaseUrl(),
-    DEFAULT_LOCAL_AGENTS_APP_HTTP_URL,
-  ]) ?? DEFAULT_LOCAL_AGENTS_APP_HTTP_URL;
-  return normalizeHttpSdkBaseUrl(value);
+  return resolveSdkApiBaseUrl();
 }
 
 export function isVoiceAppSdkConfigured(): boolean {
-  if (readSdkBaseUrlEnvValue(VITE_SDKWORK_VOICE_APP_API_BASE_URL)) {
-    return true;
-  }
-  return isSdkRuntimeDev()
-    && Boolean(readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL));
+  return resolveBaseUrl({ envKey: 'SDKWORK_API_BASE_URL' }).reason !== 'empty';
 }
 
 export function resolveVoiceAppApiBaseUrl(): string {
-  const value = readFirstNonBlank([
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_VOICE_APP_API_BASE_URL),
-    readSdkBaseUrlEnvValue(VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL),
-    resolveLocalDevPlatformApiGatewayBaseUrl(),
-    isSdkRuntimeDev() ? DEFAULT_LOCAL_VOICE_APP_HTTP_URL : undefined,
-    resolveSameOriginHttpBaseUrl(),
-    DEFAULT_LOCAL_VOICE_APP_HTTP_URL,
-  ]) ?? DEFAULT_LOCAL_VOICE_APP_HTTP_URL;
-  return normalizeHttpSdkBaseUrl(value);
+  return resolveSdkApiBaseUrl();
 }
 
 export function resolveAiotEdgeIngressHttpBaseUrl(): string {

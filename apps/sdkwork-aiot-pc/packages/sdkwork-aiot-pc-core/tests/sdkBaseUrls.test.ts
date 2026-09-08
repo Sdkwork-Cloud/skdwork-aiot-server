@@ -1,40 +1,39 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  isAgentsAppSdkConfigured,
   resolveAiotAppApiBaseUrl,
   resolveAiotEdgeIngressWebSocketBaseUrl,
-  resolveAiotPlatformApiGatewayBaseUrl,
 } from '../src/sdk/sdkBaseUrls';
-import {
-  VITE_SDKWORK_AIOT_APPLICATION_APP_HTTP_URL,
-  VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL,
-} from '../src/sdk/topologyEnvKeys';
 
-const originalImportMetaEnv = { ...import.meta.env };
+const BASE_URL_ENV_KEY = 'SDKWORK_API_BASE_URL';
+
+const originalBaseUrlEnv = process.env[BASE_URL_ENV_KEY];
 
 afterEach(() => {
-  Object.assign(import.meta.env, originalImportMetaEnv);
+  if (originalBaseUrlEnv === undefined) {
+    delete process.env[BASE_URL_ENV_KEY];
+  } else {
+    process.env[BASE_URL_ENV_KEY] = originalBaseUrlEnv;
+  }
 });
 
 describe('sdkwork-aiot-pc-core sdkBaseUrls', () => {
-  it('resolves application app-http base url from topology env keys', () => {
-    import.meta.env[VITE_SDKWORK_AIOT_APPLICATION_APP_HTTP_URL] =
-      'http://127.0.0.1:18082/app/v3/api/iot';
+  it('resolves base urls from the unified SDKWORK_API_BASE_URL key and strips sdk-owned paths', () => {
+    process.env[BASE_URL_ENV_KEY] = 'http://api-test.example.com/app/v3/api/iot';
 
-    expect(resolveAiotAppApiBaseUrl()).toBe('http://127.0.0.1:18082');
+    expect(resolveAiotAppApiBaseUrl()).toBe('http://api-test.example.com');
   });
 
-  it('resolves platform api-gateway base url for IAM and appbase SDKs', () => {
-    import.meta.env[VITE_SDKWORK_AIOT_PLATFORM_API_GATEWAY_HTTP_URL] =
-      'http://127.0.0.1:3900/app/v3/api';
+  it('reports sibling sdk configured when the shared base-url key is set', () => {
+    process.env[BASE_URL_ENV_KEY] = 'http://api-test.example.com';
 
-    expect(resolveAiotPlatformApiGatewayBaseUrl()).toBe('http://127.0.0.1:3900');
+    expect(isAgentsAppSdkConfigured()).toBe(true);
   });
 
   it('derives edge websocket url from edge ingress http url when websocket env is unset', () => {
-    import.meta.env[VITE_SDKWORK_AIOT_APPLICATION_APP_HTTP_URL] = 'http://127.0.0.1:18082';
-    delete import.meta.env.VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_HTTP_URL;
-    delete import.meta.env.VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_WEBSOCKET_URL;
+    delete process.env.VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_HTTP_URL;
+    delete process.env.VITE_SDKWORK_AIOT_EDGE_DEVICE_INGRESS_WEBSOCKET_URL;
 
     expect(resolveAiotEdgeIngressWebSocketBaseUrl()).toBe('ws://127.0.0.1:18080');
   });
